@@ -220,7 +220,16 @@ export default function RegisterPage() {
             <CardTitle className="text-2xl text-center">Sign Up</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-4" 
+              autoComplete="off"
+              spellCheck="false"
+            >
+              {/* Hidden fields to prevent autofill */}
+              <input type="text" style={{ display: 'none' }} aria-hidden="true" />
+              <input type="password" style={{ display: 'none' }} aria-hidden="true" />
+              
               {error && (
                 <Alert className="border-red-200 bg-red-50">
                   <AlertDescription className="text-red-700">{error}</AlertDescription>
@@ -239,6 +248,8 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   required
                   className="h-12"
+                  autoComplete="off"
+                  data-lpignore="true"
                 />
               </div>
 
@@ -248,10 +259,12 @@ export default function RegisterPage() {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="tony@icloud.com"
+                  placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   className="h-12"
+                  autoComplete="off"
+                  data-lpignore="true"
                 />
               </div>
 
@@ -261,85 +274,88 @@ export default function RegisterPage() {
                   id="phoneNumber"
                   name="phoneNumber"
                   type="tel"
-                  placeholder="+254711598133"
+                  placeholder="+254711000000"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   className="h-12"
+                  autoComplete="off"
+                  data-lpignore="true"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="county">
-                    County <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={formData.county} onValueChange={(value) => handleSelectChange("county", value)}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Select county" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kenyanCounties.map((county) => (
-                        <SelectItem key={county} value={county}>
-                          {county}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subCounty">
-                    Sub County <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="subCounty"
-                    name="subCounty"
-                    placeholder="Eldoret East"
-                    value={formData.subCounty}
-                    onChange={handleChange}
-                    required
-                    className="h-12"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="county">
+                  County <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  name="county"
+                  value={formData.county}
+                  onValueChange={(value) => handleSelectChange("county", value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select your county" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {kenyanCounties.map((county) => (
+                      <SelectItem key={county} value={county}>
+                        {county}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">
+                <Label htmlFor="subCounty">
+                  Sub County <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="subCounty"
+                  name="subCounty"
+                  placeholder="Enter your sub county"
+                  value={formData.subCounty}
+                  onChange={handleChange}
+                  required
+                  className="h-12"
+                  autoComplete="off"
+                  data-lpignore="true"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">
                   Password <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
-                    id="password"
+                    id="new-password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Password123"
+                    placeholder="Create a strong password"
                     value={formData.password}
                     onChange={handleChange}
                     required
                     className="h-12 pr-12"
+                    autoComplete="new-password"
+                    data-lpignore="true"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <Eye className="w-4 h-4 text-gray-500" />
-                    )}
-                  </Button>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">
+                <Label htmlFor="confirm-new-password">
                   Confirm Password <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
                   <Input
-                    id="confirmPassword"
+                    id="confirm-new-password"
                     name="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
@@ -347,20 +363,16 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     required
                     className="h-12 pr-12"
+                    autoComplete="new-password"
+                    data-lpignore="true"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <Eye className="w-4 h-4 text-gray-500" />
-                    )}
-                  </Button>
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 

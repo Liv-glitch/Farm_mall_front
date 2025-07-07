@@ -63,15 +63,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-secondary-50 to-brown-50 flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-green-50 via-secondary-50 to-brown-50 flex flex-col items-stretch justify-between p-4 sm:items-center sm:justify-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md mx-auto flex-1 flex flex-col sm:flex-none sm:mt-0"
       >
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center text-green-600 hover:text-green-700 mb-6">
+        <div className="flex-shrink-0 text-center mb-6 sm:mb-8">
+          <Link 
+            href="/" 
+            className="inline-flex items-center text-green-600 hover:text-green-700 mb-6 text-sm sm:text-base"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Link>
@@ -80,29 +83,29 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-secondary-500 rounded-xl flex items-center justify-center">
               <Leaf className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-secondary-600 bg-clip-text text-transparent">
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-secondary-600 bg-clip-text text-transparent">
               Farm Mall
             </span>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your account to continue</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+          <p className="text-sm sm:text-base text-gray-600">Sign in to your account to continue</p>
         </div>
 
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm flex-1 sm:flex-none">
+          <CardHeader className="space-y-1 pb-4 sm:pb-6">
+            <CardTitle className="text-xl sm:text-2xl text-center">Sign In</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">{error}</AlertDescription>
+                  <AlertDescription className="text-sm text-red-700">{error}</AlertDescription>
                 </Alert>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email or Phone Number</Label>
+                <Label htmlFor="email" className="text-sm sm:text-base">Email or Phone Number</Label>
                 <Input
                   id="email"
                   type="text"
@@ -110,12 +113,12 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-12"
+                  className="h-11 sm:h-12 text-base"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -124,13 +127,13 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-12 pr-12"
+                    className="h-11 sm:h-12 pr-12 text-base"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-12 px-3 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-11 sm:h-12 px-3 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -143,14 +146,17 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Link href="/auth/forgot-password" className="text-sm text-green-600 hover:text-green-700">
+                <Link 
+                  href="/auth/forgot-password" 
+                  className="text-sm text-green-600 hover:text-green-700"
+                >
                   Forgot password?
                 </Link>
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-green-500 to-secondary-500 hover:from-green-600 hover:to-secondary-600"
+                className="w-full h-11 sm:h-12 bg-gradient-to-r from-green-500 to-secondary-500 hover:from-green-600 hover:to-secondary-600 text-base"
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
@@ -158,7 +164,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Don't have an account?{" "}
                 <Link href="/auth/register" className="text-green-600 hover:text-green-700 font-medium">
                   Sign up

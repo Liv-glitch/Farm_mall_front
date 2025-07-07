@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api/client"
 import { config } from "@/lib/config"
 import { toast } from "@/components/ui/use-toast"
-import type { User, LoginRequest, RegisterRequest } from "@/lib/types/auth"
+import type { User, LoginRequest, RegisterRequest, Farm } from "@/lib/types/auth"
 
 interface AuthContextType {
   user: User | null
+  farm: Farm | null
   loading: boolean
   login: (credentials: LoginRequest) => Promise<void>
   register: (userData: RegisterRequest) => Promise<void>
@@ -34,8 +35,8 @@ function setAuthToken(token: string) {
   // Set in localStorage for client-side access
   localStorage.setItem(config.auth.tokenKey, token)
   
-  // Set cookie for middleware access
-  document.cookie = `${config.auth.tokenKey}=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
+  // Set cookie for middleware access - use farm_mall_token to match middleware
+  document.cookie = `farm_mall_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
 }
 
 // Helper function to remove both localStorage and cookie
@@ -43,39 +44,68 @@ function clearAuthToken() {
   localStorage.removeItem(config.auth.tokenKey)
   localStorage.removeItem(config.auth.refreshTokenKey)
   
-  // Clear cookie
-  document.cookie = `${config.auth.tokenKey}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  // Clear cookie - use farm_mall_token to match middleware
+  document.cookie = `farm_mall_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
+  const [farm, setFarm] = useState<Farm | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is logged in on mount
+    // Check for token in both localStorage and cookie
     const token = localStorage.getItem(config.auth.tokenKey)
-    if (token) {
-      // Validate token and get user info
-      fetchUser()
+    const cookieToken = document.cookie.split('; ').find(row => row.startsWith('farm_mall_token='))?.split('=')[1]
+    
+    // If we have a token in either place, try to fetch user
+    if (token || cookieToken) {
+      // If tokens don't match, sync them
+      if (token !== cookieToken) {
+        if (token) {
+          setAuthToken(token)
+        } else if (cookieToken) {
+          localStorage.setItem(config.auth.tokenKey, cookieToken)
+        }
+      }
+      
+      // Always attempt to fetch user if we have any token
+      fetchUserAndFarm()
     } else {
       setLoading(false)
     }
   }, [])
 
-  const fetchUser = async () => {
+  const fetchUserAndFarm = async () => {
     try {
       const userData = await apiClient.getProfile() as User
       setUser(userData)
+
+      // Fetch user's farm
+      const farms = await apiClient.getUserFarms()
+      if (farms && farms.length > 0) {
+        const firstFarm = farms[0]
+        setFarm({
+          id: firstFarm.id,
+          name: firstFarm.name,
+          location: firstFarm.location,
+          size: firstFarm.sizeAcres || 0,
+          userId: firstFarm.ownerId,
+          createdAt: firstFarm.createdAt,
+          updatedAt: firstFarm.updatedAt
+        })
+      }
     } catch (error) {
-      console.error("Failed to fetch user:", error)
-      // Token might be invalid, clear it
+      console.error("Failed to fetch user data:", error)
       clearAuthToken()
-      toast({
-        title: "Session Expired",
-        description: "Please log in again.",
-        variant: "destructive",
-      })
+      if (!window.location.pathname.startsWith('/auth/') && window.location.pathname !== '/') {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -89,20 +119,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       if (lastLoginAttempt) {
         const timeSinceLastAttempt = now - parseInt(lastLoginAttempt)
-        if (timeSinceLastAttempt < 2000) { // 2 seconds minimum between attempts
+        if (timeSinceLastAttempt < 2000) {
           throw new Error("Please wait a moment before trying again")
         }
       }
       
-      // Record this attempt
       localStorage.setItem('lastLoginAttempt', now.toString())
       
       const response = await apiClient.login(credentials) as any
       
-      // Clear the last attempt timestamp on success
       localStorage.removeItem('lastLoginAttempt')
       
-      // Handle different response structures
       const token = response?.token || response?.tokens?.accessToken || response?.accessToken
       const user = response?.user || response?.data?.user
       
@@ -110,20 +137,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error("Invalid response from server")
       }
       
-      // Set auth token in both localStorage and cookie
       setAuthToken(token)
-      
-      // Update API client token
       apiClient.setToken(token)
-      
       setUser(user)
+
+      // Fetch farm data after successful login
+      const farms = await apiClient.getUserFarms()
+      if (farms && farms.length > 0) {
+        const firstFarm = farms[0]
+        setFarm({
+          id: firstFarm.id,
+          name: firstFarm.name,
+          location: firstFarm.location,
+          size: firstFarm.sizeAcres || 0,
+          userId: firstFarm.ownerId,
+          createdAt: firstFarm.createdAt,
+          updatedAt: firstFarm.updatedAt
+        })
+      }
 
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.fullName}!`,
       })
 
-      // Role-based routing with slight delay to ensure state is updated
       setTimeout(() => {
         if (user.role === "admin") {
           router.push("/admin")
@@ -147,7 +184,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await apiClient.register(userData) as any
       
-      // Handle different response structures
       const token = response?.token || response?.tokens?.accessToken || response?.accessToken
       const user = response?.user || response?.data?.user
       
@@ -155,12 +191,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error("Invalid response from server")
       }
       
-      // Set auth token in both localStorage and cookie
       setAuthToken(token)
-      
-      // Update API client token
       apiClient.setToken(token)
-      
       setUser(user)
 
       toast({
@@ -168,7 +200,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         description: `Welcome to Farm Mall, ${user.fullName}!`,
       })
 
-      // Redirect to dashboard for new users
       setTimeout(() => {
         router.push("/dashboard")
       }, 100)
@@ -185,17 +216,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const logout = () => {
-    // Clear all auth data
     clearAuthToken()
     apiClient.clearTokens()
     setUser(null)
+    setFarm(null)
     
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     })
     
-    // Redirect to home page
     router.push("/")
   }
 
@@ -203,6 +233,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         user,
+        farm,
         loading,
         login,
         register,

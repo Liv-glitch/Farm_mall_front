@@ -1,21 +1,33 @@
+export interface Farm {
+  id: string;
+  name: string;
+  location: string;
+  size: number;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: User;
+  collaborators: Collaborator[];
+}
+
 export interface User {
-  id: string
-  fullName: string
-  email?: string
-  phoneNumber?: string
-  passwordHash: string
-  county: string
-  subCounty: string
-  profilePictureUrl?: string
-  locationLat?: number
-  locationLng?: number
-  subscriptionType: "free" | "premium"
-  subscriptionExpiresAt?: Date
-  emailVerified: boolean
-  phoneVerified: boolean
-  role: "user" | "admin"
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  email: string;
+  phoneNumber?: string;
+  passwordHash: string;
+  fullName: string;
+  county: string;
+  subCounty: string;
+  profilePictureUrl?: string;
+  locationLat?: number;
+  locationLng?: number;
+  subscriptionType: "free" | "premium";
+  subscriptionExpiresAt?: Date;
+  role: "user" | "admin";
+  farms?: Farm[];
+  createdAt: string;
+  updatedAt: string;
+  name: string;
 }
 
 export interface RegisterRequest {
@@ -42,8 +54,8 @@ export interface AuthTokens {
 }
 
 export interface AuthResponse {
-  user: Omit<User, "passwordHash">
-  tokens: AuthTokens
+  user: User
+  token: string
 }
 
 export interface JWTPayload {
@@ -120,4 +132,111 @@ export const SUBSCRIPTION_FEATURES: Record<"free" | "premium", SubscriptionFeatu
     maxPestAnalysesPerMonth: -1, // unlimited
     canAccessMarketplace: true,
   },
+}
+
+export type CollaboratorRole = 'manager' | 'worker' | 'family_member' | 'viewer';
+
+export interface RolePermissions {
+  canCreateCycles: boolean;
+  canEditCycles: boolean;
+  canDeleteCycles: boolean;
+  canAssignTasks: boolean;
+  canViewFinancials: boolean;
+}
+
+export interface Collaborator {
+  id: string;
+  userId: string;
+  farmId: string;
+  role: CollaboratorRole;
+  status: 'pending' | 'active' | 'inactive';
+  inviteToken?: string;
+  invitedBy: string;
+  invitedAt: string;
+  acceptedAt?: string;
+  email: string;
+  phoneNumber?: string;
+  fullName: string;
+  createdAt: string;
+  updatedAt: string;
+  permissions: {
+    canCreateCycles: boolean;
+    canEditCycles: boolean;
+    canDeleteCycles: boolean;
+    canAssignTasks: boolean;
+    canViewFinancials: boolean;
+  };
+}
+
+export interface CollaborationInvite {
+  id: string;
+  email: string;
+  phoneNumber?: string;
+  role: CollaboratorRole;
+  farmId: string;
+  inviteToken: string;
+  status: 'pending' | 'accepted' | 'expired';
+  invitedBy: string;
+  invitedAt: string;
+  expiresAt: string;
+}
+
+export const ROLE_PERMISSIONS: Record<CollaboratorRole, RolePermissions> = {
+  manager: {
+    canCreateCycles: true,
+    canEditCycles: true,
+    canDeleteCycles: false,
+    canAssignTasks: true,
+    canViewFinancials: true
+  },
+  worker: {
+    canCreateCycles: false,
+    canEditCycles: false,
+    canDeleteCycles: false,
+    canAssignTasks: false,
+    canViewFinancials: false
+  },
+  family_member: {
+    canCreateCycles: true,
+    canEditCycles: true,
+    canDeleteCycles: false,
+    canAssignTasks: false,
+    canViewFinancials: true
+  },
+  viewer: {
+    canCreateCycles: false,
+    canEditCycles: false,
+    canDeleteCycles: false,
+    canAssignTasks: false,
+    canViewFinancials: false
+  }
+};
+
+export type RegisterData = {
+  email: string;
+  password: string;
+  fullName: string;
+  phoneNumber?: string;
+};
+
+export type AuthContextType = {
+  user: User | null;
+  farm: Farm | null;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+};
+
+export interface CollaboratorInvite {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  farm: Farm;
+  invitedBy: User;
+  createdAt: string;
+  expiresAt: string;
 }
