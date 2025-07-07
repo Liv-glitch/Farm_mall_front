@@ -86,9 +86,9 @@ export function UserSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={pathname === item.url}
-                    className="h-12 px-4 mb-1 rounded-lg hover:bg-sage-50 data-[active=true]:bg-sage-100 data-[active=true]:text-sage-800 data-[active=true]:border-sage-200 data-[active=true]:border"
+                    className="h-12 px-4 mb-1 rounded-lg hover:bg-sage-50 data-[active=true]:bg-sage-100 data-[active=true]:text-sage-800 data-[active=true]:border-sage-200 data-[active=true]:border relative z-50"
                   >
-                    <Link href={item.url} className="flex items-center gap-3 text-sm font-medium">
+                    <Link href={item.url} className="flex items-center gap-3 text-sm font-medium w-full">
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>
@@ -110,9 +110,9 @@ export function UserSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={pathname === item.url}
-                    className="h-12 px-4 mb-1 rounded-lg hover:bg-warm-50 data-[active=true]:bg-warm-100 data-[active=true]:text-warm-800 data-[active=true]:border-warm-200 data-[active=true]:border"
+                    className="h-12 px-4 mb-1 rounded-lg hover:bg-warm-50 data-[active=true]:bg-warm-100 data-[active=true]:text-warm-800 data-[active=true]:border-warm-200 data-[active=true]:border relative z-50"
                   >
-                    <Link href={item.url} className="flex items-center gap-3 text-sm font-medium">
+                    <Link href={item.url} className="flex items-center gap-3 text-sm font-medium w-full">
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>

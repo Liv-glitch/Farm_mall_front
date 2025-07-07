@@ -19,18 +19,18 @@ export function DashboardHeader() {
   const { user, logout } = useAuth()
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-2 sm:px-4">
+    <header className="flex h-16 w-full shrink-0 items-center gap-2 border-b bg-background px-2 sm:px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
 
-      <div className="flex flex-1 items-center justify-between min-w-0">
-        <div className="flex items-center space-x-2 min-w-0 flex-1">
+      <div className="flex flex-1 items-center justify-between gap-4 min-w-0">
+        <div className="flex items-center space-x-2 min-w-0">
           <h1 className="text-sm sm:text-lg font-semibold truncate">
             {user?.role === "admin" ? "Admin Dashboard" : "Farm Dashboard"}
           </h1>
         </div>
 
-        <div className="flex items-center space-x-1 sm:space-x-3 flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
             <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>

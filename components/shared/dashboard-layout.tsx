@@ -14,12 +14,16 @@ export function DashboardLayout({ children, sidebar }: DashboardLayoutProps) {
     <SidebarProvider>
       {sidebar}
       <SidebarInset>
-        <DashboardHeader />
-        <main className="flex-1 space-y-4 p-3 sm:p-4 md:p-6 lg:p-8 pt-4 sm:pt-6 overflow-hidden">
-          <div className="max-w-7xl mx-auto w-full">
-            {children}
-          </div>
-        </main>
+        <div className="flex flex-col min-h-[100dvh] h-[100dvh] overflow-hidden">
+          <DashboardHeader />
+          <main className="flex-1 relative overflow-y-auto">
+            <div className="h-full p-3 sm:p-4 md:p-6 lg:p-8 pt-4 sm:pt-6 pb-20 sm:pb-8">
+              <div className="max-w-7xl mx-auto w-full">
+                {children}
+              </div>
+            </div>
+          </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

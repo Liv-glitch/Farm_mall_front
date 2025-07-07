@@ -6,8 +6,9 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { StatsCard } from "@/components/shared/stats-card"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, TrendingUp, Calendar, DollarSign, Activity, Calculator, BarChart3, Leaf, HeartPulse } from "lucide-react"
+import { Plus, TrendingUp, Calendar, DollarSign, Activity, Calculator, BarChart3, Leaf, HeartPulse, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { CostCalculatorModal } from "@/components/modals/cost-calculator-modal"
 import { HarvestForecastModal } from "@/components/modals/harvest-forecast-modal"
 import { UserSidebar } from "@/components/user/user-sidebar"
@@ -16,6 +17,7 @@ import { apiClient } from "@/lib/api/client"
 import type { ProductionCycle } from "@/lib/types/production"
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [showCostCalculator, setShowCostCalculator] = useState(false)
   const [showHarvestForecast, setShowHarvestForecast] = useState(false)
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [showPlantHealth, setShowPlantHealth] = useState(false)
   const [cycles, setCycles] = useState<ProductionCycle[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeCard, setActiveCard] = useState(0)
 
   useEffect(() => {
     async function fetchData() {
@@ -86,185 +89,306 @@ export default function DashboardPage() {
     ? Math.max(0, Math.ceil((new Date(nextHarvest.estimatedHarvestDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
+  // Get the most recent activity
+  const mostRecentActivity = cycles
+    .flatMap(cycle => cycle.activities || [])
+    .sort((a, b) => {
+      const dateA = new Date(a.completedDate || a.scheduledDate).getTime();
+      const dateB = new Date(b.completedDate || b.scheduledDate).getTime();
+      return dateB - dateA;
+    })[0];
+
+  // Handle scroll snap
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollPosition = container.scrollLeft;
+    const cardWidth = container.offsetWidth;
+    const newActiveCard = Math.round(scrollPosition / cardWidth);
+    setActiveCard(newActiveCard);
+  };
+
+  // Navigate to add activity page
+  const handleAddActivity = () => {
+    if (cycles.filter(c => c.status === "active").length > 0) {
+      router.push("/dashboard/cycles?action=add-activity")
+    } else {
+      router.push("/dashboard/cycles/new")
+    }
+  }
+
   if (!user || loading) {
     return <div>Loading...</div>
   }
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
-      <div className="space-y-6">
+      <div className="flex flex-col space-y-4 pb-24 max-w-[100vw] overflow-x-hidden">
         {/* Header */}
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
+        <div className="flex flex-col space-y-2 px-4 pt-4 md:px-6 md:pt-6">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold truncate">Welcome back, {user.fullName}!</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">Here's what's happening with your farm today.</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate bg-gradient-to-r from-sage-800 to-sage-600 bg-clip-text text-transparent">
+              Welcome back, {user.fullName}!
+            </h1>
+            <p className="text-sm text-muted-foreground">Here's what's happening with your farm today.</p>
           </div>
-          <Link href="/dashboard/cycles/new" className="flex-shrink-0">
-            <Button className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              <span className="sm:hidden">New Cycle</span>
-              <span className="hidden sm:inline">New Production Cycle</span>
-            </Button>
-          </Link>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard 
-            title="Active Cycles" 
-            value={activeCycles} 
-            description="Currently running"
-            icon={Activity} 
-          />
-          <StatsCard
-            title="Total Investment"
-            value={formatLargeNumber(totalInvestment)}
-            description="Total cost of all activities"
-            icon={DollarSign}
-            prefix="KSh "
-            suffix={totalInvestment >= 1000000 ? "M" : totalInvestment >= 1000 ? "K" : ""}
-          />
-          <StatsCard 
-            title="Expected Revenue" 
-            value={formatLargeNumber(expectedRevenue)} 
-            description="Projected revenue from all cycles"
-            icon={TrendingUp}
-            prefix="KSh "
-            suffix={expectedRevenue >= 1000000 ? "M" : expectedRevenue >= 1000 ? "K" : ""}
-          />
-          <StatsCard 
-            title="Days to Harvest" 
-            value={daysToHarvest} 
-            description={nextHarvest ? `Next: ${nextHarvest.cropVariety?.name || 'Unknown crop'}` : 'No active cycles'}
-            icon={Calendar} 
-          />
+        {/* Highlight Cards - Scrollable */}
+        <div className="relative w-full">
+          <div 
+            className="flex space-x-4 overflow-x-auto px-4 pb-4 scrollbar-hide snap-x snap-mandatory"
+            onScroll={handleScroll}
+          >
+            {/* Quick Add Activity Card */}
+            <Button 
+              variant="ghost" 
+              className="p-0 h-auto flex-shrink-0 w-[85vw] sm:w-[300px] snap-center group"
+              onClick={handleAddActivity}
+            >
+              <Card className="w-full bg-gradient-to-br from-sage-500 to-sage-600 text-white group-hover:shadow-lg transition-all duration-300 border-0">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1 sm:space-y-2">
+                      <h3 className="font-semibold text-lg">Quick Add Activity</h3>
+                      <p className="text-sm text-white/80">Log your farming activities</p>
+                    </div>
+                    <div className="p-2 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors duration-300">
+                      <Plus className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Button>
+
+            {/* Latest Activity Card */}
+            <Button
+              variant="ghost"
+              className="p-0 h-auto flex-shrink-0 w-[85vw] sm:w-[300px] snap-center group"
+              onClick={() => router.push("/dashboard/cycles")}
+            >
+              <Card className="w-full bg-gradient-to-br from-blue-500 to-blue-600 text-white group-hover:shadow-lg transition-all duration-300 border-0">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <h3 className="font-semibold text-lg">Latest Activity</h3>
+                    <p className="text-sm text-white/80">
+                      {mostRecentActivity 
+                        ? mostRecentActivity.description
+                        : "No recent activities"}
+                    </p>
+                    {mostRecentActivity && (
+                      <p className="text-xs text-white/60">
+                        {new Date(mostRecentActivity.completedDate || mostRecentActivity.scheduledDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </Button>
+
+            {/* Next Harvest Card */}
+            <Button
+              variant="ghost"
+              className="p-0 h-auto flex-shrink-0 w-[85vw] sm:w-[300px] snap-center group"
+              onClick={() => setShowHarvestForecast(true)}
+            >
+              <Card className="w-full bg-gradient-to-br from-amber-500 to-amber-600 text-white group-hover:shadow-lg transition-all duration-300 border-0">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <h3 className="font-semibold text-lg">Next Harvest</h3>
+                    <p className="text-sm text-white/80">
+                      {nextHarvest 
+                        ? `${nextHarvest.cropVariety?.name} in ${daysToHarvest} days`
+                        : "No active harvests"}
+                    </p>
+                    {nextHarvest && (
+                      <p className="text-xs text-white/60">
+                        Expected: {new Date(nextHarvest.estimatedHarvestDate!).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </Button>
+          </div>
+          {/* Swipe Indicators */}
+          <div className="flex justify-center space-x-2 mt-2">
+            {[0, 1, 2].map((index) => (
+              <div
+                key={index}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  index === activeCard 
+                    ? "w-6 bg-sage-600" 
+                    : "w-1.5 bg-sage-600/30"
+                }`}
+              />
+            ))}
+          </div>
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none hidden md:block" />
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-3 px-4 md:px-6">
+          <Button
+            variant="ghost"
+            className="p-0 h-auto w-full group"
+            onClick={() => router.push("/dashboard/cycles")}
+          >
+            <StatsCard 
+              title="Active Cycles" 
+              value={activeCycles} 
+              description="Currently running"
+              icon={Activity}
+              className="w-full bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/50 dark:to-background/50 group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-300"
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            className="p-0 h-auto w-full group"
+            onClick={() => setShowCostCalculator(true)}
+          >
+            <StatsCard
+              title="Total Investment"
+              value={formatLargeNumber(totalInvestment)}
+              description="Total cost"
+              icon={DollarSign}
+              prefix="KSh "
+              suffix={totalInvestment >= 1000000 ? "M" : totalInvestment >= 1000 ? "K" : ""}
+              className="w-full bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/50 dark:to-background/50 group-hover:shadow-lg group-hover:scale-[1.02] transition-all duration-300"
+            />
+          </Button>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base sm:text-lg">Production Cycles</CardTitle>
-              <CardDescription className="text-sm">Manage your crop production cycles</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/dashboard/cycles">
-                <Button className="w-full">View All Cycles</Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <div className="px-4 md:px-6">
+          <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link href="/dashboard/cycles" className="block">
+              <Card className="group hover:shadow-lg transition-all duration-300 h-full bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="p-2 sm:p-3 rounded-full bg-sage-100 dark:bg-sage-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-sage-600" />
+                  </div>
+                  <h3 className="font-medium text-sm sm:text-base">Cycles</h3>
+                </CardContent>
+              </Card>
+            </Link>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-sage-600" />
-                <span>Cost Calculator</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Calculate production costs for your crops</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-sage-700 hover:bg-sage-800 text-white" 
-                onClick={() => setShowCostCalculator(true)}
-              >
-                Open Calculator
-              </Button>
-            </CardContent>
-          </Card>
+            <Button 
+              className="p-0 h-auto" 
+              variant="ghost"
+              onClick={() => setShowCostCalculator(true)}
+            >
+              <Card className="w-full group hover:shadow-lg transition-all duration-300 h-full bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="p-2 sm:p-3 rounded-full bg-sage-100 dark:bg-sage-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-sage-600" />
+                  </div>
+                  <h3 className="font-medium text-sm sm:text-base">Calculator</h3>
+                </CardContent>
+              </Card>
+            </Button>
 
-          <Card className="md:col-span-2 lg:col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-warm-600" />
-                <span>Harvest Forecast</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Predict your harvest yields and timing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="w-full bg-warm-600 hover:bg-warm-700 text-white"
-                onClick={() => setShowHarvestForecast(true)}
-              >
-                View Forecast
-              </Button>
-            </CardContent>
-          </Card>
+            <Button 
+              className="p-0 h-auto" 
+              variant="ghost"
+              onClick={() => setShowHarvestForecast(true)}
+            >
+              <Card className="w-full group hover:shadow-lg transition-all duration-300 h-full bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="p-2 sm:p-3 rounded-full bg-warm-100 dark:bg-warm-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-warm-600" />
+                  </div>
+                  <h3 className="font-medium text-sm sm:text-base">Forecast</h3>
+                </CardContent>
+              </Card>
+            </Button>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <Leaf className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                <span>Identify Plant</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Upload a plant image to identify its species</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowPlantIdentify(true)}>
-                Identify Plant
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-                <HeartPulse className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                <span>Assess Plant Health</span>
-              </CardTitle>
-              <CardDescription className="text-sm">Upload a plant image to assess health or disease</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => setShowPlantHealth(true)}>
-                Assess Health
-              </Button>
+            <Button 
+              className="p-0 h-auto" 
+              variant="ghost"
+              onClick={() => setShowPlantIdentify(true)}
+            >
+              <Card className="w-full group hover:shadow-lg transition-all duration-300 h-full bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="p-2 sm:p-3 rounded-full bg-green-100 dark:bg-green-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                  </div>
+                  <h3 className="font-medium text-sm sm:text-base">Identify</h3>
+                </CardContent>
+              </Card>
+            </Button>
+
+            <Button 
+              className="p-0 h-auto" 
+              variant="ghost"
+              onClick={() => setShowPlantHealth(true)}
+            >
+              <Card className="w-full group hover:shadow-lg transition-all duration-300 h-full bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center space-y-2">
+                  <div className="p-2 sm:p-3 rounded-full bg-red-100 dark:bg-red-900/20 group-hover:scale-110 transition-transform duration-300">
+                    <HeartPulse className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+                  </div>
+                  <h3 className="font-medium text-sm sm:text-base">Health</h3>
+                </CardContent>
+              </Card>
+            </Button>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="px-4 md:px-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Recent Activity</h2>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              View All <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+          <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-background dark:to-background/80">
+            <CardContent className="p-2 sm:p-4">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-background/80 transition-colors duration-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">Tomato seeds planted</p>
+                    <p className="text-xs text-muted-foreground">2 days ago</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-background/80 transition-colors duration-200">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">Fertilizer applied to maize field</p>
+                    <p className="text-xs text-muted-foreground">5 days ago</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center space-x-3 p-2 sm:p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-background/80 transition-colors duration-200">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">Irrigation system checked</p>
+                    <p className="text-xs text-muted-foreground">1 week ago</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
-            <CardDescription className="text-sm">Your latest farming activities and updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">Tomato seeds planted</p>
-                  <p className="text-xs text-muted-foreground">2 days ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">Fertilizer applied to maize field</p>
-                  <p className="text-xs text-muted-foreground">5 days ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">Irrigation system checked</p>
-                  <p className="text-xs text-muted-foreground">1 week ago</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Modals */}
+        <CostCalculatorModal open={showCostCalculator} onOpenChange={setShowCostCalculator} />
+        <HarvestForecastModal open={showHarvestForecast} onOpenChange={setShowHarvestForecast} />
+        <PlantAIModal 
+          open={showPlantIdentify} 
+          onOpenChange={setShowPlantIdentify}
+          mode="identify"
+        />
+        <PlantAIModal 
+          open={showPlantHealth} 
+          onOpenChange={setShowPlantHealth}
+          mode="health"
+        />
       </div>
-
-      {/* Calculator Modals */}
-      <CostCalculatorModal 
-        open={showCostCalculator} 
-        onOpenChange={setShowCostCalculator} 
-      />
-      <HarvestForecastModal 
-        open={showHarvestForecast} 
-        onOpenChange={setShowHarvestForecast} 
-      />
-      <PlantAIModal open={showPlantIdentify} onOpenChange={setShowPlantIdentify} mode="identify" />
-      <PlantAIModal open={showPlantHealth} onOpenChange={setShowPlantHealth} mode="health" />
     </DashboardLayout>
   )
 }

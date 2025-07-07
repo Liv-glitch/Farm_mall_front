@@ -198,15 +198,18 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-white p-0 text-gray-900 border-r border-gray-200 [&>button]:hidden shadow-xl"
+            className="w-[--sidebar-width] bg-white p-0 text-gray-900 border-r border-gray-200 [&>button]:hidden shadow-xl overflow-y-auto touch-pan-y"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                "--tw-shadow": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
               } as React.CSSProperties
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col bg-white">{children}</div>
+            <div className="flex h-full w-full flex-col bg-white">
+              {children}
+            </div>
           </SheetContent>
         </Sheet>
       )
@@ -316,14 +319,16 @@ SidebarRail.displayName = "SidebarRail"
 
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"main">
+  React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  const { state } = useSidebar()
+
   return (
-    <main
+    <div
       ref={ref}
+      data-variant="inset"
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
-        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        "relative flex h-screen w-0 flex-1 flex-col overflow-hidden",
         className
       )}
       {...props}
