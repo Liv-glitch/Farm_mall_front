@@ -142,20 +142,10 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
             </div>
             <Progress value={completionPercentage} className="h-2" />
           </div>
-          
-          <Button 
-            onClick={() => setShowAddModal(true)} 
-            size="sm" 
-            className="bg-sage-700 hover:bg-sage-800 w-full sm:w-auto sm:ml-4"
-          >
-            <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="sm:hidden">Add Activity</span>
-            <span className="hidden sm:inline">Add Activity</span>
-          </Button>
         </div>
 
         {/* Activities List */}
-        <div className="space-y-3">
+        <div className="space-y-3 pb-16 sm:pb-0">
           {sortedActivities.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8">
@@ -265,6 +255,30 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
               )
             })
           )}
+        </div>
+
+        {/* Fixed Add Button on Mobile */}
+        <div className="fixed bottom-4 left-0 right-0 px-4 sm:hidden z-50">
+          <Button 
+            onClick={() => setShowAddModal(true)} 
+            size="lg"
+            className="w-full bg-sage-700 hover:bg-sage-800 shadow-lg"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Activity
+          </Button>
+        </div>
+
+        {/* Desktop Add Button */}
+        <div className="hidden sm:block">
+          <Button 
+            onClick={() => setShowAddModal(true)} 
+            size="sm"
+            className="bg-sage-700 hover:bg-sage-800 w-auto ml-4"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Activity
+          </Button>
         </div>
       </div>
 

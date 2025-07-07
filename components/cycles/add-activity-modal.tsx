@@ -239,20 +239,20 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
+        <DialogHeader className="p-4 sm:p-6 sticky top-0 bg-white border-b">
           <DialogTitle>Add New Activity</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
           {/* Template Selection */}
           <div>
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
               <Button
                 type="button"
                 variant={useTemplate ? "default" : "outline"}
                 onClick={() => setUseTemplate(true)}
-                size="sm"
+                className="w-full sm:w-auto"
               >
                 Use Template
               </Button>
@@ -260,33 +260,25 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 type="button"
                 variant={!useTemplate ? "default" : "outline"}
                 onClick={() => setUseTemplate(false)}
-                size="sm"
+                className="w-full sm:w-auto"
               >
                 Custom Activity
               </Button>
             </div>
 
             {useTemplate && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {activityTemplates.map((template, index) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {activityTemplates.map((template) => (
                   <Card
-                    key={index}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedTemplate?.name === template.name ? "ring-2 ring-sage-500 bg-sage-50" : ""
+                    key={template.name}
+                    className={`cursor-pointer transition-colors hover:bg-muted ${
+                      selectedTemplate?.name === template.name ? "border-2 border-sage-600" : ""
                     }`}
                     onClick={() => handleTemplateSelect(template)}
                   >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">{template.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <p className="text-xs text-gray-600 mb-2">{template.description}</p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs">
-                          {template.type.replace("_", " ")}
-                        </Badge>
-                        <span className="text-xs font-medium">KSh {template.cost.toLocaleString()}</span>
-                      </div>
+                    <CardContent className="p-3">
+                      <h4 className="font-medium text-sm mb-1">{template.name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -294,24 +286,24 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
             )}
           </div>
 
-          {/* Activity Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+          {/* Form Fields */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="name">Activity Name</Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Initial Soil Preparation"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
               </div>
-              <div>
+
+              <div className="space-y-2">
                 <Label htmlFor="type">Activity Type</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value: Activity["type"]) => setFormData((prev) => ({ ...prev, type: value }))}
+                  onValueChange={(value: Activity["type"]) => setFormData({ ...formData, type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -320,45 +312,43 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     <SelectItem value="soil_preparation">Soil Preparation</SelectItem>
                     <SelectItem value="planting">Planting</SelectItem>
                     <SelectItem value="fertilization">Fertilization</SelectItem>
-                    <SelectItem value="irrigation">Irrigation</SelectItem>
+                    <SelectItem value="weeding">Weeding</SelectItem>
                     <SelectItem value="pest_control">Pest Control</SelectItem>
                     <SelectItem value="disease_control">Disease Control</SelectItem>
-                    <SelectItem value="weeding">Weeding</SelectItem>
+                    <SelectItem value="irrigation">Irrigation</SelectItem>
                     <SelectItem value="harvesting">Harvesting</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the activity in detail..."
-                rows={3}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="scheduledDate">Scheduled Date</Label>
                 <Input
                   id="scheduledDate"
                   type="date"
-                  value={formData.scheduledDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))}
+                  value={formatDateForInput(formData.scheduledDate)}
+                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
                   required
                 />
               </div>
-              <div>
+
+              <div className="space-y-2">
                 <Label htmlFor="laborType">Labor Type</Label>
                 <Select
                   value={formData.laborType}
-                  onValueChange={(value: Activity["laborType"]) => setFormData((prev) => ({ ...prev, laborType: value }))}
+                  onValueChange={(value: Activity["laborType"]) => setFormData({ ...formData, laborType: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -366,110 +356,76 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                   <SelectContent>
                     <SelectItem value="family">Family Labor</SelectItem>
                     <SelectItem value="hired">Hired Labor</SelectItem>
-                    <SelectItem value="cooperative">Cooperative Labor</SelectItem>
+                    <SelectItem value="cooperative">Cooperative</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="cost">Cost (KSh)</Label>
                 <Input
                   id="cost"
                   type="number"
-                  value={formData.cost}
-                  onChange={(e) => {
-                    const value = Number(e.target.value)
-                    try {
-                      validateNumericField(value, "Cost")
-                      setFormData((prev) => ({ ...prev, cost: value }))
-                    } catch (error: any) {
-                      toast({
-                        title: "Invalid Input",
-                        description: error.message,
-                        variant: "destructive",
-                      })
-                    }
-                  }}
-                  placeholder="15000"
                   min="0"
-                  max="999999999999.99"
                   step="0.01"
+                  value={formData.cost}
+                  onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
-              <div>
+
+              <div className="space-y-2">
                 <Label htmlFor="laborHours">Labor Hours</Label>
                 <Input
                   id="laborHours"
                   type="number"
-                  value={formData.laborHours}
-                  onChange={(e) => {
-                    const value = Number(e.target.value)
-                    try {
-                      validateNumericField(value, "Labor hours")
-                      setFormData((prev) => ({ ...prev, laborHours: value }))
-                    } catch (error: any) {
-                      toast({
-                        title: "Invalid Input",
-                        description: error.message,
-                        variant: "destructive",
-                      })
-                    }
-                  }}
-                  placeholder="8"
                   min="0"
-                  max="999999999999.99"
-                  step="0.5"
+                  step="0.1"
+                  value={formData.laborHours}
+                  onChange={(e) => setFormData({ ...formData, laborHours: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="inputs">Required Inputs</Label>
-              <Textarea
+              <Input
                 id="inputs"
                 value={formData.inputs}
-                onChange={(e) => setFormData((prev) => ({ ...prev, inputs: e.target.value }))}
-                placeholder="List any required materials, equipment, or inputs..."
-                rows={2}
+                onChange={(e) => setFormData({ ...formData, inputs: e.target.value })}
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="notes">Additional Notes</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Any additional notes or instructions..."
-                rows={2}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
+          </div>
 
-            {/* Form Actions */}
-            <div className="flex items-center justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading} className="bg-sage-700 hover:bg-sage-800">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Activity
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
+          {/* Submit Button */}
+          <div className="sticky bottom-0 bg-white border-t p-4 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 mt-8">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding Activity...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Activity
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   )
