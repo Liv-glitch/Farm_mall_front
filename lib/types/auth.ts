@@ -134,7 +134,7 @@ export const SUBSCRIPTION_FEATURES: Record<"free" | "premium", SubscriptionFeatu
   },
 }
 
-export type CollaboratorRole = 'manager' | 'worker' | 'family_member' | 'viewer';
+export type CollaboratorRole = 'viewer' | 'manager' | 'worker' | 'family_member' | 'admin';
 
 export interface RolePermissions {
   canCreateCycles: boolean;
@@ -209,6 +209,13 @@ export const ROLE_PERMISSIONS: Record<CollaboratorRole, RolePermissions> = {
     canDeleteCycles: false,
     canAssignTasks: false,
     canViewFinancials: false
+  },
+  admin: {
+    canCreateCycles: true,
+    canEditCycles: true,
+    canDeleteCycles: true,
+    canAssignTasks: true,
+    canViewFinancials: true
   }
 };
 
