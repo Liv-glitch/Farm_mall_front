@@ -1,11 +1,22 @@
 // Cost calculator types
+export interface CropVariety {
+  id: string
+  name: string
+  cropType: string
+  maturityPeriodDays: number
+  seedSize1BagsPerAcre: number
+  seedSize2BagsPerAcre: number
+  seedCostPerBag: number
+  createdAt: Date
+}
+
 export interface CostCalculationRequest {
   cropVarietyId: string
   landSizeAcres: number
   seedSize: 1 | 2
-  location?: {
-    county: string
-    subCounty: string
+  location: {
+    county: string | undefined
+    subCounty: string | undefined
   }
 }
 

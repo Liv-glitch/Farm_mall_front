@@ -41,66 +41,14 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      console.log("🌱 Loading crop varieties...")
-
-      const response = await apiClient.getCropVarieties()
-      console.log("🌱 Raw API response:", response)
-
-      // Handle different response structures
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
-
-      console.log("🌱 Processed varieties:", varieties)
-      console.log("🌱 Varieties count:", varieties.length)
-
-      // Convert string values to numbers for seedCostPerBag
-      const processedVarieties = varieties.map((variety) => ({
-        ...variety,
-        seedCostPerBag:
-          typeof variety.seedCostPerBag === "string"
-            ? Number.parseFloat(variety.seedCostPerBag)
-            : variety.seedCostPerBag,
-        createdAt: new Date(variety.createdAt),
-      }))
-
-      setCropVarieties(processedVarieties)
-      console.log("🌱 Final processed varieties:", processedVarieties)
+      const varieties = await apiClient.getCropVarieties()
+      setCropVarieties(varieties)
     } catch (error: any) {
-      console.error("🚨 Failed to load crop varieties:", error)
       toast({
-        title: "Failed to load crop varieties",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to load crop varieties",
         variant: "destructive",
       })
-      // Fallback to mock data as array
-      setCropVarieties([
-        {
-          id: "shangi-1",
-          name: "Shangi",
-          cropType: "Potato",
-          maturityPeriodDays: 85,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedCostPerBag: 2500,
-          createdAt: new Date(),
-        },
-        {
-          id: "markies-1",
-          name: "Markies",
-          cropType: "Potato",
-          maturityPeriodDays: 90,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedCostPerBag: 2800,
-          createdAt: new Date(),
-        },
-      ])
     } finally {
       setLoadingVarieties(false)
     }
@@ -118,62 +66,18 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
     setLoading(true)
     try {
-      console.log("💰 Sending cost calculation request:", formData)
       const response = await apiClient.getCostEstimate(formData)
-      console.log("💰 Cost calculation response:", response)
-
       setResult(response)
       toast({
         title: "Calculation Complete",
         description: "Cost estimate has been calculated successfully",
       })
     } catch (error: any) {
-      console.error("💥 Cost calculation failed:", error)
       toast({
         title: "Calculation Failed",
         description: error.message || "Failed to calculate costs",
         variant: "destructive",
       })
-
-      // Fallback calculation for demo
-      const selectedVariety = cropVarieties.find((v) => v.id === formData.cropVarietyId)
-      if (selectedVariety) {
-        const bagsNeeded =
-          formData.seedSize === 1
-            ? selectedVariety.seedSize1BagsPerAcre * formData.landSizeAcres
-            : selectedVariety.seedSize2BagsPerAcre * formData.landSizeAcres
-
-        const seedCost = bagsNeeded * selectedVariety.seedCostPerBag
-        const laborCost = formData.landSizeAcres * 15000
-        const fertilizerCost = formData.landSizeAcres * 25000
-        const pesticideCost = formData.landSizeAcres * 8000
-        const otherCost = formData.landSizeAcres * 5000
-
-        const mockResult: CostCalculationResponse = {
-          cropVarietyId: selectedVariety.id,
-          cropVarietyName: selectedVariety.name,
-          landSizeAcres: formData.landSizeAcres,
-          seedSize: formData.seedSize,
-          seedRequirement: {
-            bagsNeeded: bagsNeeded,
-            totalCost: seedCost,
-          },
-          estimatedTotalCost: seedCost + laborCost + fertilizerCost + pesticideCost + otherCost,
-          costBreakdown: {
-            seeds: seedCost,
-            labor: laborCost,
-            fertilizer: fertilizerCost,
-            pesticides: pesticideCost,
-            other: otherCost,
-          },
-          recommendations: [
-            "Consider bulk purchasing for seed cost savings",
-            "Plan labor activities during optimal weather conditions",
-            "Use certified seeds for better yields",
-          ],
-        }
-        setResult(mockResult)
-      }
     } finally {
       setLoading(false)
     }
@@ -217,18 +121,19 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     <Label htmlFor="cropVariety">Crop Variety</Label>
                     <Select
                       value={formData.cropVarietyId}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, cropVarietyId: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, cropVarietyId: value }))
+                      }
                     >
                       <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select crop variety" />
+                        <SelectValue placeholder="Select a crop variety" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(cropVarieties) &&
-                          cropVarieties.map((variety) => (
-                            <SelectItem key={variety.id} value={variety.id}>
-                              {variety.name} ({variety.maturityPeriodDays} days)
-                            </SelectItem>
-                          ))}
+                        {cropVarieties.map((variety) => (
+                          <SelectItem key={variety.id} value={variety.id}>
+                            {variety.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -238,13 +143,12 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     <Input
                       id="landSize"
                       type="number"
-                      step="0.1"
-                      placeholder="Enter acreage"
+                      placeholder="Enter land size"
                       value={formData.landSizeAcres || ""}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          landSizeAcres: Number.parseFloat(e.target.value) || 0,
+                          landSizeAcres: parseFloat(e.target.value) || 0,
                         }))
                       }
                       className="h-12"
@@ -258,7 +162,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                       onValueChange={(value) =>
                         setFormData((prev) => ({
                           ...prev,
-                          seedSize: Number.parseInt(value) as 1 | 2,
+                          seedSize: parseInt(value) as 1 | 2,
                         }))
                       }
                     >
@@ -266,8 +170,8 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Size 1</SelectItem>
-                        <SelectItem value="2">Size 2</SelectItem>
+                        <SelectItem value="1">Size 1 (16 bags per acre)</SelectItem>
+                        <SelectItem value="2">Size 2 (20 bags per acre)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
