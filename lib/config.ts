@@ -5,7 +5,7 @@ export const config = {
     version: "1.0.0",
   },
   api: {
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "https://0c75-105-160-13-204.ngrok-free.app",
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000",
     version: "v1",
   },
   auth: {

@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from "axios"
 import { config } from "@/lib/config"
-import type { User, LoginRequest, RegisterRequest } from "@/lib/types/auth"
+import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
 
 class ApiClient {
   private client: AxiosInstance
@@ -13,8 +13,11 @@ class ApiClient {
   }> = []
 
   constructor() {
+    // Ensure we have a valid base URL
+    const baseURL = config.api.baseUrl || 'http://localhost:3000'
+    
     this.client = axios.create({
-      baseURL: `${config.api.baseUrl}/api/${config.api.version}`,
+      baseURL: `${baseURL}/api/${config.api.version}`,
       timeout: 10000,
       headers: {
         "Content-Type": "application/json",
@@ -258,11 +261,41 @@ class ApiClient {
   }
 
   async register(data: RegisterRequest): Promise<any> {
-    return this.request({
-      method: "POST",
-      url: "/auth/register",
-      data,
-    })
+    try {
+      console.log('Attempting registration with data:', {
+        ...data,
+        password: '[REDACTED]' // Don't log the actual password
+      });
+      
+      const response = await this.request<{
+        token: string;
+        refreshToken: string;
+        user: User;
+      }>({
+        method: "POST",
+        url: "/auth/register",
+        data,
+      });
+      
+      console.log('Registration response:', {
+        ...response,
+        token: '[REDACTED]',
+        refreshToken: '[REDACTED]'
+      });
+      
+      return response;
+    } catch (error: any) {
+      console.error('Registration error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+        }
+      });
+      throw error;
+    }
   }
 
   async getProfile(): Promise<User> {
@@ -426,6 +459,109 @@ class ApiClient {
     } else {
       return this.client.put(`/production/activities/${activityOrFormData.id}`, activityOrFormData).then(r => r.data)
     }
+  }
+
+  // Collaboration endpoints
+  async getFarmCollaborators(farmId: string) {
+    return this.request({
+      method: "GET",
+      url: `/collaboration/farms/${farmId}/collaborators`,
+    })
+  }
+
+  async removeCollaborator(farmId: string, collaborationId: string) {
+    return this.request({
+      method: "DELETE",
+      url: `/collaboration/farms/${farmId}/collaborators/${collaborationId}`,
+    })
+  }
+
+  // Update role (high-level)
+  async updateCollaboratorRole(farmId: string, collaborationId: string, role: CollaboratorRole) {
+    console.log('Updating role:', { farmId, collaborationId, role }); // Debug log
+    return this.request({
+      method: "PATCH",
+      url: `/collaboration/farms/${farmId}/collaborators/${collaborationId}/role`,
+      data: { role },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+  }
+
+  // Get collaborator permissions
+  async getCollaboratorPermissions(farmId: string, collaborationId: string) {
+    const response = await this.request({
+      method: "GET",
+      url: `/collaboration/farms/${farmId}/collaborators`,
+    }) as any[]
+
+    const collaborator = response.find(c => c.id === collaborationId)
+    if (!collaborator) {
+      throw new Error("Collaborator not found")
+    }
+
+    return collaborator
+  }
+
+  // Update granular permissions
+  async updateCollaboratorPermissions(
+    farmId: string, 
+    collaborationId: string, 
+    permissions: {
+      canCreateCycles: boolean;
+      canEditCycles: boolean;
+      canDeleteCycles: boolean;
+      canAssignTasks: boolean;
+      canViewFinancials: boolean;
+    }
+  ) {
+    return this.request({
+      method: "PATCH",
+      url: `/collaboration/farms/${farmId}/collaborators/${collaborationId}/permissions`,
+      data: { permissions },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+  }
+
+  async inviteCollaborator(farmId: string, data: { email?: string; phoneNumber?: string; role: CollaboratorRole }) {
+    return this.request({
+      method: "POST",
+      url: `/collaboration/farms/${farmId}/invite`,
+      data,
+    })
+  }
+
+  async acceptInvite(token: string) {
+    return this.request({
+      method: "POST",
+      url: `/collaboration/invites/${token}/accept`,
+    })
+  }
+
+  async registerWithInvite(token: string, data: {
+    fullName: string;
+    password: string;
+    county: string;
+    subCounty: string;
+    email?: string;
+    phoneNumber?: string;
+  }) {
+    return this.request({
+      method: "POST",
+      url: `/collaboration/invites/${token}/register`,
+      data,
+    })
+  }
+
+  async getUserFarms(): Promise<any[]> {
+    const response = await this.request({
+      method: "GET",
+      url: "/collaboration/farms",
+    })
+    return Array.isArray(response) ? response : []
   }
 }
 
