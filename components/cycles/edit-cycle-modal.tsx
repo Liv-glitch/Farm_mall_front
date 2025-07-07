@@ -35,7 +35,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
     actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
     status: cycle.status,
-    cropStage: cycle.cropStage || "pre_planting" as const,
+    cropStage: cycle.cropStage,
     expectedYield: cycle.expectedYield || 0,
     actualYield: cycle.actualYield || 0,
     expectedPricePerKg: cycle.expectedPricePerKg || 0,
@@ -55,7 +55,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
       actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
       status: cycle.status,
-      cropStage: cycle.cropStage || "pre_planting" as const,
+      cropStage: cycle.cropStage,
       expectedYield: cycle.expectedYield || 0,
       actualYield: cycle.actualYield || 0,
       expectedPricePerKg: cycle.expectedPricePerKg || 0,
@@ -127,7 +127,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
         payload.append("estimatedHarvestDate", new Date(formData.estimatedHarvestDate).toISOString())
         if (formData.actualHarvestDate) payload.append("actualHarvestDate", new Date(formData.actualHarvestDate).toISOString())
         payload.append("status", formData.status)
-        payload.append("cropStage", formData.cropStage)
+        if (formData.cropStage) payload.append("cropStage", formData.cropStage)
         payload.append("expectedYield", formData.expectedYield.toString())
         payload.append("actualYield", formData.actualYield.toString())
         payload.append("expectedPricePerKg", formData.expectedPricePerKg.toString())
@@ -240,13 +240,13 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
             <div>
               <Label htmlFor="cropStage">Crop Stage</Label>
               <Select
-                value={formData.cropStage}
+                value={formData.cropStage || ""}
                 onValueChange={(value: NonNullable<ProductionCycle["cropStage"]>) =>
                   setFormData((prev) => ({ ...prev, cropStage: value }))
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select crop stage" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pre_planting">Pre-planting</SelectItem>
