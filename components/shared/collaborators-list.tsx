@@ -26,13 +26,15 @@ import type { Collaborator, CollaboratorRole } from "@/lib/types/auth"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import { InviteCollaboratorModal } from "@/components/modals/invite-collaborator-modal"
+import { useToast } from "@/components/ui/use-toast"
 
 interface CollaboratorsListProps {
   farmId: string;
-  onCollaboratorSelect?: (collaborator: Collaborator) => void;
+  onCollaboratorSelect: (collaborator: Collaborator) => void;
 }
 
 export function CollaboratorsList({ farmId, onCollaboratorSelect }: CollaboratorsListProps) {
+  const { toast } = useToast()
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [loading, setLoading] = useState(true)
   const [showInviteModal, setShowInviteModal] = useState(false)
@@ -44,15 +46,15 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
   const fetchCollaborators = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getFarmCollaborators(farmId) as Collaborator[]
-      console.log('Fetched collaborators:', response)
-      setCollaborators(response)
+      const response = await apiClient.getFarmCollaborators(farmId)
+      console.log('Fetched collaborators:', response) // Debug log
+      setCollaborators(Array.isArray(response) ? response : [])
     } catch (error: any) {
-      console.error("Failed to fetch collaborators:", error)
+      console.error('Error fetching collaborators:', error)
       toast({
         title: "Error Loading Collaborators",
         description: error.message || "Failed to load collaborators. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       })
       setCollaborators([])
     } finally {
@@ -131,33 +133,37 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
 
   const getRoleBadgeColor = (role: CollaboratorRole) => {
     switch (role) {
-      case "manager":
-        return "bg-blue-100 text-blue-800"
-      case "worker":
-        return "bg-green-100 text-green-800"
-      case "family_member":
-        return "bg-purple-100 text-purple-800"
-      case "viewer":
-        return "bg-gray-100 text-gray-800"
+      case 'admin':
+        return 'bg-purple-100 text-purple-800'
+      case 'manager':
+        return 'bg-blue-100 text-blue-800'
+      case 'family_member':
+        return 'bg-amber-100 text-amber-800'
+      case 'worker':
+        return 'bg-green-100 text-green-800'
+      case 'viewer':
+        return 'bg-gray-100 text-gray-800'
       default:
-        return "bg-gray-100 text-gray-800"
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getRoleLabel = (role: CollaboratorRole): string => {
     switch (role) {
-      case "manager":
-        return "Farm Manager"
-      case "worker":
-        return "Farm Worker"
-      case "family_member":
-        return "Family Member"
-      case "viewer":
-        return "Viewer"
+      case 'admin':
+        return 'Farm Admin'
+      case 'manager':
+        return 'Farm Manager'
+      case 'family_member':
+        return 'Family Member'
+      case 'worker':
+        return 'Farm Worker'
+      case 'viewer':
+        return 'Viewer'
       default:
-        return (role as string).replace(/_/g, " ").split(" ").map((word: string) => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(" ")
+        // Since we've handled all possible values in the switch,
+        // this should never be reached, but TypeScript requires it
+        return role
     }
   }
 
@@ -195,102 +201,87 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
     )
   }
 
+  if (collaborators.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <p className="text-muted-foreground">No collaborators found</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-4"
+            onClick={() => setShowInviteModal(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Invite Collaborator
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-medium">Farm Collaborators</CardTitle>
-          <Button onClick={() => setShowInviteModal(true)} size="sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Farm Collaborators</CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowInviteModal(true)}
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg animate-pulse">
-                  <div className="space-y-2">
-                    <div className="h-4 w-32 bg-muted-foreground/20 rounded"></div>
-                    <div className="h-3 w-48 bg-muted-foreground/20 rounded"></div>
-                  </div>
-                  <div className="h-8 w-8 bg-muted-foreground/20 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : collaborators.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No collaborators yet</p>
-              <Button 
-                onClick={() => setShowInviteModal(true)}
-                variant="outline" 
-                className="mt-2"
+          <div className="space-y-4">
+            {collaborators.map((collaborator) => (
+              <div
+                key={collaborator.id}
+                className="flex items-center justify-between p-4 rounded-lg hover:bg-sage-50 cursor-pointer"
+                onClick={() => {
+                  console.log('Selected collaborator:', collaborator) // Debug log
+                  onCollaboratorSelect(collaborator)
+                }}
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite Your First Collaborator
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {collaborators.map((collaborator) => (
-                <div
-                  key={collaborator.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors"
-                  onClick={() => onCollaboratorSelect?.(collaborator)}
-                >
-                  <div className="min-w-0">
-                    <h4 className="font-medium truncate">{collaborator.fullName}</h4>
-                    <p className="text-sm text-muted-foreground truncate">{collaborator.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={`${getRoleBadgeColor(collaborator.role)}`}>
-                        {getRoleLabel(collaborator.role)}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {collaborator.status}
-                      </Badge>
-                    </div>
+                <div>
+                  <h3 className="font-medium">{collaborator.fullName}</h3>
+                  <p className="text-sm text-muted-foreground">{collaborator.email}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={getRoleBadgeColor(collaborator.role)}>
+                      {getRoleLabel(collaborator.role)}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {collaborator.status}
+                    </Badge>
                   </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCollaborator(collaborator);
-                          setNewRole(collaborator.role);
-                          setShowRoleDialog(true);
-                        }}
-                      >
-                        <UserCog className="h-4 w-4 mr-2" />
-                        Change Role
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCollaborator(collaborator);
-                          setShowRemoveDialog(true);
-                        }}
-                        className="text-red-600"
-                      >
-                        <UserX className="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
-              ))}
-            </div>
-          )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onCollaboratorSelect(collaborator)
+                      }}
+                    >
+                      Manage Permissions
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
