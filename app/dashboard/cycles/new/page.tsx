@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
@@ -16,18 +15,17 @@ import { ArrowLeft, Loader2, Sprout, MapPin, Target, DollarSign } from "lucide-r
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { CropVariety, CreateProductionCycleRequest } from "@/lib/types/production"
+import { useAuth } from "@/lib/hooks/use-auth"
 
 export default function NewProductionCyclePage() {
   const router = useRouter()
+  const { farm } = useAuth()
   const [loading, setLoading] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
-  const [loadingFarms, setLoadingFarms] = useState(true)
-  const [farms, setFarms] = useState<any[]>([])
 
   const [formData, setFormData] = useState({
     cropVarietyId: "",
-    farmId: "",  // Add farmId to form data
     landSizeAcres: 0,
     farmLocation: "",
     farmLocationLat: null as number | null,
@@ -39,25 +37,7 @@ export default function NewProductionCyclePage() {
 
   useEffect(() => {
     loadCropVarieties()
-    loadFarms()
   }, [])
-
-  const loadFarms = async () => {
-    try {
-      setLoadingFarms(true)
-      const response = await apiClient.getFarms()
-      setFarms(Array.isArray(response) ? response : response.farms || [])
-    } catch (error) {
-      console.error("Failed to load farms:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load farms. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoadingFarms(false)
-    }
-  }
 
   const loadCropVarieties = async () => {
     try {
@@ -130,8 +110,8 @@ export default function NewProductionCyclePage() {
       if (!formData.cropVarietyId) {
         throw new Error("Please select a crop variety")
       }
-      if (!formData.farmId) {
-        throw new Error("Please select a farm")
+      if (!farm?.id) {
+        throw new Error("No farm found. Please contact support.")
       }
       if (!formData.landSizeAcres || formData.landSizeAcres <= 0) {
         throw new Error("Please enter a valid land size")
@@ -151,7 +131,7 @@ export default function NewProductionCyclePage() {
 
       const payload: CreateProductionCycleRequest = {
         cropVarietyId: formData.cropVarietyId,
-        farmId: formData.farmId,  // Add farmId to payload
+        farmId: farm.id,
         landSizeAcres: Number(formData.landSizeAcres),
         farmLocation: formData.farmLocation.trim(),
         plantingDate: new Date(formData.plantingDate).toISOString().split('T')[0], // Convert to YYYY-MM-DD
@@ -207,7 +187,7 @@ export default function NewProductionCyclePage() {
     }
   }
 
-  if (loadingVarieties || loadingFarms) {
+  if (loadingVarieties) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -248,25 +228,6 @@ export default function NewProductionCyclePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <Label htmlFor="farmId">Farm *</Label>
-                    <Select
-                      value={formData.farmId}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, farmId: value }))}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select farm" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {farms.map((farm) => (
-                          <SelectItem key={farm.id} value={farm.id}>
-                            {farm.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div>
                     <Label htmlFor="cropVarietyId">Crop Variety *</Label>
                     <Select
@@ -436,6 +397,28 @@ export default function NewProductionCyclePage() {
 
             {/* Summary Sidebar */}
             <div className="space-y-6">
+              {/* Farm Info */}
+              {farm && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Farm Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="font-medium text-lg">{farm.name}</div>
+                      <div className="text-sm text-muted-foreground">{farm.location}</div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total Size:</span>
+                        <span className="font-medium">{farm.size} acres</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Crop Info */}
               {selectedCropVariety && (
                 <Card>
@@ -522,7 +505,6 @@ export default function NewProductionCyclePage() {
                   disabled={
                     loading ||
                     !formData.cropVarietyId ||
-                    !formData.farmId ||
                     !formData.landSizeAcres ||
                     !formData.expectedYield ||
                     !formData.expectedPricePerKg
