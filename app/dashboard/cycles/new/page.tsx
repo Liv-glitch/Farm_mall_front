@@ -196,7 +196,7 @@ export default function NewProductionCyclePage() {
         router.push("/dashboard/cycles")
       }
     } catch (error: any) {
-      console.error("Error creating cycle:", error)
+      console.error("Error creating this cycle:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to create production cycle. Please try again.",
