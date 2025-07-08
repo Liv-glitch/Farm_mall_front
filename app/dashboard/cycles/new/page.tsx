@@ -129,7 +129,7 @@ export default function NewProductionCyclePage() {
         cropVarietyId: formData.cropVarietyId,
         landSizeAcres: Number(formData.landSizeAcres),
         farmLocation: formData.farmLocation.trim(),
-        plantingDate: formData.plantingDate,
+        plantingDate: new Date(formData.plantingDate).toISOString().split('T')[0], // Convert to YYYY-MM-DD
         expectedYield: Number(formData.expectedYield),
         expectedPricePerKg: Number(formData.expectedPricePerKg),
       }
@@ -139,25 +139,21 @@ export default function NewProductionCyclePage() {
         const plantingDate = new Date(formData.plantingDate);
         const estimatedHarvestDate = new Date(plantingDate);
         estimatedHarvestDate.setDate(plantingDate.getDate() + selectedCropVariety.maturityPeriodDays);
-        payload.estimatedHarvestDate = estimatedHarvestDate.toISOString();
+        payload.estimatedHarvestDate = estimatedHarvestDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
       }
 
-      // Only include coordinates if they are valid and within reasonable ranges
-      if (formData.farmLocationLat !== null && !isNaN(formData.farmLocationLat)) {
+      // Only include coordinates if they are valid numbers
+      if (formData.farmLocationLat !== null && !isNaN(Number(formData.farmLocationLat))) {
         const lat = Number(formData.farmLocationLat)
         if (lat >= -90 && lat <= 90) {
           payload.farmLocationLat = lat
-        } else {
-          throw new Error("Latitude must be between -90 and 90 degrees")
         }
       }
       
-      if (formData.farmLocationLng !== null && !isNaN(formData.farmLocationLng)) {
+      if (formData.farmLocationLng !== null && !isNaN(Number(formData.farmLocationLng))) {
         const lng = Number(formData.farmLocationLng)
         if (lng >= -180 && lng <= 180) {
           payload.farmLocationLng = lng
-        } else {
-          throw new Error("Longitude must be between -180 and 180 degrees")
         }
       }
 
