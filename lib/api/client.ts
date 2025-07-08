@@ -427,7 +427,7 @@ class ApiClient {
     if (latitude !== undefined) formData.append("latitude", latitude.toString());
     if (longitude !== undefined) formData.append("longitude", longitude.toString());
     if (similar_images === true) formData.append("similar_images", "true");
-    return this.client.post("/v3/health_assessment/upload", formData, {
+    return this.client.post("/plantid-health/health_assessment/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }).then(r => r.data);
   }
