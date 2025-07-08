@@ -14,6 +14,7 @@ import {
 import { Bell, Settings, LogOut, User } from "lucide-react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { ThemeToggle } from "@/components/theme-toggle"
+import Link from "next/link"
 
 export function DashboardHeader() {
   const { user, logout } = useAuth()
@@ -25,9 +26,11 @@ export function DashboardHeader() {
 
       <div className="flex flex-1 items-center justify-between gap-4 min-w-0">
         <div className="flex items-center space-x-2 min-w-0">
-          <h1 className="text-sm sm:text-lg font-semibold truncate">
-            {user?.role === "admin" ? "Admin Dashboard" : "Farm Dashboard"}
-          </h1>
+          <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
+            <h1 className="text-sm sm:text-lg font-semibold truncate">
+              {user?.role === "admin" ? "Admin Dashboard" : "Farm Dashboard"}
+            </h1>
+          </Link>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
