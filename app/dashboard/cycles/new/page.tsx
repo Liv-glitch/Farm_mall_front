@@ -22,9 +22,12 @@ export default function NewProductionCyclePage() {
   const [loading, setLoading] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
+  const [loadingFarms, setLoadingFarms] = useState(true)
+  const [farms, setFarms] = useState<any[]>([])
 
   const [formData, setFormData] = useState({
     cropVarietyId: "",
+    farmId: "",  // Add farmId to form data
     landSizeAcres: 0,
     farmLocation: "",
     farmLocationLat: null as number | null,
@@ -36,7 +39,25 @@ export default function NewProductionCyclePage() {
 
   useEffect(() => {
     loadCropVarieties()
+    loadFarms()
   }, [])
+
+  const loadFarms = async () => {
+    try {
+      setLoadingFarms(true)
+      const response = await apiClient.getFarms()
+      setFarms(Array.isArray(response) ? response : response.farms || [])
+    } catch (error) {
+      console.error("Failed to load farms:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load farms. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingFarms(false)
+    }
+  }
 
   const loadCropVarieties = async () => {
     try {
@@ -109,6 +130,9 @@ export default function NewProductionCyclePage() {
       if (!formData.cropVarietyId) {
         throw new Error("Please select a crop variety")
       }
+      if (!formData.farmId) {
+        throw new Error("Please select a farm")
+      }
       if (!formData.landSizeAcres || formData.landSizeAcres <= 0) {
         throw new Error("Please enter a valid land size")
       }
@@ -127,6 +151,7 @@ export default function NewProductionCyclePage() {
 
       const payload: CreateProductionCycleRequest = {
         cropVarietyId: formData.cropVarietyId,
+        farmId: formData.farmId,  // Add farmId to payload
         landSizeAcres: Number(formData.landSizeAcres),
         farmLocation: formData.farmLocation.trim(),
         plantingDate: new Date(formData.plantingDate).toISOString().split('T')[0], // Convert to YYYY-MM-DD
@@ -182,13 +207,13 @@ export default function NewProductionCyclePage() {
     }
   }
 
-  if (loadingVarieties) {
+  if (loadingVarieties || loadingFarms) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Loading crop varieties...</p>
+            <p>Loading...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -223,6 +248,25 @@ export default function NewProductionCyclePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="farmId">Farm *</Label>
+                    <Select
+                      value={formData.farmId}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, farmId: value }))}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select farm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {farms.map((farm) => (
+                          <SelectItem key={farm.id} value={farm.id}>
+                            {farm.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label htmlFor="cropVarietyId">Crop Variety *</Label>
                     <Select
@@ -478,6 +522,7 @@ export default function NewProductionCyclePage() {
                   disabled={
                     loading ||
                     !formData.cropVarietyId ||
+                    !formData.farmId ||
                     !formData.landSizeAcres ||
                     !formData.expectedYield ||
                     !formData.expectedPricePerKg

@@ -54,6 +54,7 @@ export interface ProductionCycle {
 
 export interface CreateProductionCycleRequest {
   cropVarietyId: string
+  farmId: string  // Add required farmId
   landSizeAcres: number
   farmLocation: string
   farmLocationLat?: number

@@ -563,6 +563,14 @@ class ApiClient {
     })
     return Array.isArray(response) ? response : []
   }
+
+  // Farm endpoints
+  async getFarms() {
+    return this.request({
+      method: "GET",
+      url: "/farms",
+    })
+  }
 }
 
 export const apiClient = new ApiClient()
