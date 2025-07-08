@@ -150,12 +150,12 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] md:max-h-[80vh]">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
           <DialogTitle>Edit {formData.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div>
             <Label htmlFor="type">Activity Type</Label>
             <Select
@@ -326,7 +326,7 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
             />
           </div>
 
-          <div className="flex items-center justify-end space-x-2 pt-4">
+          <div className="flex items-center justify-end space-x-2 pt-6">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

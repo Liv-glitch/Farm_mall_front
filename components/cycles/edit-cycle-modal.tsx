@@ -34,7 +34,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
     estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
     actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
-    status: cycle.status,
+    status: cycle.status || "planning",
     cropStage: cycle.cropStage,
     expectedYield: cycle.expectedYield || 0,
     actualYield: cycle.actualYield || 0,
@@ -54,7 +54,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
       estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
       actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
-      status: cycle.status,
+      status: cycle.status || "planning",
       cropStage: cycle.cropStage,
       expectedYield: cycle.expectedYield || 0,
       actualYield: cycle.actualYield || 0,
@@ -126,7 +126,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
         payload.append("plantingDate", new Date(formData.plantingDate).toISOString())
         payload.append("estimatedHarvestDate", new Date(formData.estimatedHarvestDate).toISOString())
         if (formData.actualHarvestDate) payload.append("actualHarvestDate", new Date(formData.actualHarvestDate).toISOString())
-        payload.append("status", formData.status)
+        payload.append("status", formData.status || "planning")
         if (formData.cropStage) payload.append("cropStage", formData.cropStage)
         payload.append("expectedYield", formData.expectedYield.toString())
         payload.append("actualYield", formData.actualYield.toString())
@@ -144,7 +144,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           plantingDate: new Date(formData.plantingDate).toISOString(),
           estimatedHarvestDate: new Date(formData.estimatedHarvestDate).toISOString(),
           actualHarvestDate: formData.actualHarvestDate ? new Date(formData.actualHarvestDate).toISOString() : undefined,
-          status: formData.status,
+          status: formData.status || "planning",
           cropStage: formData.cropStage,
           expectedYield: formData.expectedYield,
           actualYield: formData.actualYield,
@@ -222,6 +222,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
                 onValueChange={(value: ProductionCycle["status"]) =>
                   setFormData((prev) => ({ ...prev, status: value }))
                 }
+                required
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -240,10 +241,11 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
             <div>
               <Label htmlFor="cropStage">Crop Stage</Label>
               <Select
-                value={formData.cropStage || ""}
-                onValueChange={(value: NonNullable<ProductionCycle["cropStage"]>) =>
-                  setFormData((prev) => ({ ...prev, cropStage: value }))
-                }
+                value={formData.cropStage || "pre_planting"}
+                onValueChange={(value) => {
+                  const cropStage = value as ProductionCycle["cropStage"]
+                  setFormData((prev) => ({ ...prev, cropStage }))
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select crop stage" />
