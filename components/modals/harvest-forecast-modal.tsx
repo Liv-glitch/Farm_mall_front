@@ -60,7 +60,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       console.log("🌱 Varieties count:", varieties.length)
 
       // Convert string values to numbers for seedCostPerBag
-      const processedVarieties = varieties.map((variety) => ({
+      const processedVarieties = varieties.map((variety: any) => ({
         ...variety,
         seedCostPerBag:
           typeof variety.seedCostPerBag === "string"
@@ -72,35 +72,12 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       setCropVarieties(processedVarieties)
       console.log("🌱 Final processed varieties:", processedVarieties)
     } catch (error: any) {
-      console.error("🚨 Failed to load crop varieties:", error)
+      console.error("Failed to load crop varieties:", error)
       toast({
-        title: "Failed to load crop varieties",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to load crop varieties",
         variant: "destructive",
       })
-      // Fallback to mock data as array
-      setCropVarieties([
-        {
-          id: "shangi-1",
-          name: "Shangi",
-          cropType: "Potato",
-          maturityPeriodDays: 85,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedCostPerBag: 2500,
-          createdAt: new Date(),
-        },
-        {
-          id: "markies-1",
-          name: "Markies",
-          cropType: "Potato",
-          maturityPeriodDays: 90,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedCostPerBag: 2800,
-          createdAt: new Date(),
-        },
-      ])
     } finally {
       setLoadingVarieties(false)
     }
@@ -110,7 +87,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
     if (!formData.cropVarietyId || !formData.plantingDate) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please select a crop variety and planting date",
         variant: "destructive",
       })
       return
@@ -118,25 +95,18 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
 
     setLoading(true)
     try {
-      console.log("🌾 Sending harvest prediction request:", formData)
       const response = await apiClient.getHarvestPrediction(formData)
-      console.log("🌾 Harvest prediction response:", response)
-
-      setResult(response)
+      setResult(response as HarvestPredictionResponse)
       toast({
-        title: "Prediction Complete",
-        description: "Harvest forecast has been generated successfully",
+        title: "Success",
+        description: "Harvest prediction calculated successfully",
       })
     } catch (error: any) {
-      console.error("💥 Harvest prediction failed:", error)
-      toast({
-        title: "Prediction Failed",
-        description: error.message || "Failed to predict harvest",
-        variant: "destructive",
-      })
+      console.error("Failed to predict harvest:", error)
 
-      // Fallback calculation for demo
+      // Fallback to mock data for demo
       const selectedVariety = cropVarieties.find((v) => v.id === formData.cropVarietyId)
+
       if (selectedVariety) {
         const plantingDate = new Date(formData.plantingDate)
         const harvestDate = new Date(plantingDate)
@@ -189,9 +159,24 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
     setResult(null)
   }
 
+  const handleLocationChange = (field: 'latitude' | 'longitude', value: string) => {
+    const numValue = Number.parseFloat(value) || 0
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        latitude: field === 'latitude' ? numValue : (prev.location?.latitude ?? 0),
+        longitude: field === 'longitude' ? numValue : (prev.location?.longitude ?? 0),
+      }
+    }))
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-sage-600" />
@@ -214,7 +199,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
               ) : (
                 <>
                   <div>
-                    <Label htmlFor="cropVariety">Crop Variety</Label>
+                    <Label htmlFor="cropVariety">Crop Variety *</Label>
                     <Select
                       value={formData.cropVarietyId}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, cropVarietyId: value }))}
@@ -223,28 +208,22 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                         <SelectValue placeholder="Select crop variety" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(cropVarieties) &&
-                          cropVarieties.map((variety) => (
-                            <SelectItem key={variety.id} value={variety.id}>
-                              {variety.name} ({variety.maturityPeriodDays} days)
-                            </SelectItem>
-                          ))}
+                        {cropVarieties.map((variety) => (
+                          <SelectItem key={variety.id} value={variety.id}>
+                            {variety.name} ({variety.cropType})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="plantingDate">Planting Date</Label>
+                    <Label htmlFor="plantingDate">Planting Date *</Label>
                     <Input
                       id="plantingDate"
                       type="date"
                       value={formData.plantingDate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          plantingDate: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, plantingDate: e.target.value }))}
                       className="h-12"
                     />
                   </div>
@@ -275,13 +254,8 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                         type="number"
                         step="0.0001"
                         placeholder="-0.4031"
-                        value={formData.location?.latitude || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, latitude: Number.parseFloat(e.target.value) || 0 },
-                          }))
-                        }
+                        value={formData.location?.latitude ?? ""}
+                        onChange={(e) => handleLocationChange('latitude', e.target.value)}
                         className="h-12"
                       />
                     </div>
@@ -292,13 +266,8 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                         type="number"
                         step="0.0001"
                         placeholder="36.9378"
-                        value={formData.location?.longitude || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, longitude: Number.parseFloat(e.target.value) || 0 },
-                          }))
-                        }
+                        value={formData.location?.longitude ?? ""}
+                        onChange={(e) => handleLocationChange('longitude', e.target.value)}
                         className="h-12"
                       />
                     </div>

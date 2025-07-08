@@ -67,7 +67,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
     setLoading(true)
     try {
       const response = await apiClient.getCostEstimate(formData)
-      setResult(response)
+      setResult(response as CostCalculationResponse)
       toast({
         title: "Calculation Complete",
         description: "Cost estimate has been calculated successfully",
@@ -95,7 +95,11 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Calculator className="w-5 h-5 text-sage-600" />
@@ -118,20 +122,18 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
               ) : (
                 <>
                   <div>
-                    <Label htmlFor="cropVariety">Crop Variety</Label>
+                    <Label htmlFor="cropVariety">Crop Variety *</Label>
                     <Select
                       value={formData.cropVarietyId}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, cropVarietyId: value }))
-                      }
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, cropVarietyId: value }))}
                     >
                       <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select a crop variety" />
+                        <SelectValue placeholder="Select crop variety" />
                       </SelectTrigger>
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name}
+                            {variety.name} ({variety.cropType})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -139,16 +141,17 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                   </div>
 
                   <div>
-                    <Label htmlFor="landSize">Land Size (Acres)</Label>
+                    <Label htmlFor="landSize">Land Size (Acres) *</Label>
                     <Input
                       id="landSize"
                       type="number"
-                      placeholder="Enter land size"
+                      step="0.1"
+                      placeholder="Enter acreage"
                       value={formData.landSizeAcres || ""}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          landSizeAcres: parseFloat(e.target.value) || 0,
+                          landSizeAcres: Number.parseFloat(e.target.value) || 0,
                         }))
                       }
                       className="h-12"
@@ -159,19 +162,17 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     <Label htmlFor="seedSize">Seed Size</Label>
                     <Select
                       value={formData.seedSize.toString()}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          seedSize: parseInt(value) as 1 | 2,
-                        }))
-                      }
+                      onValueChange={(value) => setFormData((prev) => ({ 
+                        ...prev, 
+                        seedSize: Number(value) === 2 ? 2 : 1 
+                      }))}
                     >
                       <SelectTrigger className="h-12">
-                        <SelectValue />
+                        <SelectValue placeholder="Select seed size" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Size 1 (16 bags per acre)</SelectItem>
-                        <SelectItem value="2">Size 2 (20 bags per acre)</SelectItem>
+                        <SelectItem value="1">Size 1 (16 bags/acre)</SelectItem>
+                        <SelectItem value="2">Size 2 (20 bags/acre)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
