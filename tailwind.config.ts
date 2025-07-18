@@ -75,30 +75,56 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Professional muted colors inspired by the reference image
-        sage: {
-          50: "#f8faf7",
-          100: "#f1f5ef",
-          200: "#e3ebde",
-          300: "#d1dcc8",
-          400: "#b8c7a8",
-          500: "#9bb088",
-          600: "#7d9668",
-          700: "#6b8e23", // Main sage green from reference
-          800: "#5a7a1e",
-          900: "#4a6619",
+        // Agricultural green colors - tea green and maize green
+        agri: {
+          50: "#f0f9f0",
+          100: "#dcf2dc",
+          200: "#bce4bc",
+          300: "#8fd18f",
+          400: "#5bb55b",
+          500: "#3a9a3a", // Main tea green
+          600: "#2d7a2d",
+          700: "#256125",
+          800: "#1f4e1f",
+          900: "#1a411a",
         },
+        maize: {
+          50: "#fefdf0",
+          100: "#fef9dc",
+          200: "#fdf2bc",
+          300: "#fbe78f",
+          400: "#f7d55b",
+          500: "#f2c23a", // Main maize green
+          600: "#e6a82d",
+          700: "#c98a25",
+          800: "#a46e1f",
+          900: "#855a1a",
+        },
+        // Keep sage for backward compatibility but update to agricultural theme
+        sage: {
+          50: "#f0f9f0",
+          100: "#dcf2dc",
+          200: "#bce4bc",
+          300: "#8fd18f",
+          400: "#5bb55b",
+          500: "#3a9a3a", // Updated to tea green
+          600: "#2d7a2d",
+          700: "#256125",
+          800: "#1f4e1f",
+          900: "#1a411a",
+        },
+        // Keep warm for backward compatibility but update to maize
         warm: {
-          50: "#fefcf9",
-          100: "#fef7f0",
-          200: "#fdeee1",
-          300: "#fbe0c7",
-          400: "#f8cca3",
-          500: "#f4b47a",
-          600: "#ed9455", // Warm orange from reference
-          700: "#e17b2c",
-          800: "#c96821",
-          900: "#a8551c",
+          50: "#fefdf0",
+          100: "#fef9dc",
+          200: "#fdf2bc",
+          300: "#fbe78f",
+          400: "#f7d55b",
+          500: "#f2c23a", // Updated to maize green
+          600: "#e6a82d",
+          700: "#c98a25",
+          800: "#a46e1f",
+          900: "#855a1a",
         },
       },
       borderRadius: {
