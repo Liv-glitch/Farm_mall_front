@@ -434,7 +434,9 @@ class ApiClient {
 
   // Production cycles and activities endpoints
   async getCycles() {
-    return this.client.get("/production/cycles").then(r => r.data)
+    const response = await this.client.get("/production/cycles")
+    console.log("getCycles raw response:", response)
+    return response.data
   }
   async getCycle(cycleId: string) {
     return this.client.get(`/production/cycles/${cycleId}`).then(r => r.data)
