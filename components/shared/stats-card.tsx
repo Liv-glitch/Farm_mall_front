@@ -28,9 +28,9 @@ export function StatsCard({
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-center space-x-2">
           <div className="p-2 rounded-lg bg-background/80 group-hover:scale-110 transition-transform duration-300">
-            <Icon className="h-4 w-4 text-sage-600" />
+            <Icon className="h-4 w-4 text-agri-600" />
           </div>
-          <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+          <h3 className="text-sm font-medium text-agri-700">{title}</h3>
         </div>
         <div className="mt-3 space-y-1">
           <p className="text-2xl font-bold tracking-tight">
@@ -40,7 +40,7 @@ export function StatsCard({
             </span>
             {suffix}
           </p>
-          <p className="text-xs text-muted-foreground/80">{description}</p>
+          <p className="text-xs text-agri-600">{description}</p>
         </div>
       </CardContent>
     </Card>
