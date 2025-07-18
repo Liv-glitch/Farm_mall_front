@@ -228,19 +228,19 @@ export default function CyclesPage() {
         </div>
 
         {/* Filters Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 bg-agri-50 border border-agri-100 p-4 rounded-lg shadow-sm">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-agri-500" />
             <Input
               placeholder="Search cycles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10"
+              className="pl-9 h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
             />
           </div>
           <div className="flex gap-3">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] h-10">
+              <SelectTrigger className="w-[140px] h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +253,7 @@ export default function CyclesPage() {
             </Select>
             
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-10">
+              <SelectTrigger className="w-[140px] h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -269,7 +269,7 @@ export default function CyclesPage() {
         {/* Cycles Grid */}
         <div className="grid gap-4">
           {error && (
-            <Card>
+            <Card className="bg-red-50 border-red-100">
               <CardContent className="flex items-center justify-center py-8 text-red-600">
                 <p>{error}</p>
               </CardContent>
@@ -277,22 +277,22 @@ export default function CyclesPage() {
           )}
 
           {loading ? (
-            <Card>
+            <Card className="bg-agri-50 border-agri-100">
               <CardContent className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agri-600"></div>
               </CardContent>
             </Card>
           ) : filteredCycles.length === 0 ? (
-            <Card>
+            <Card className="bg-agri-50 border-agri-100">
               <CardContent className="flex flex-col items-center justify-center py-12 px-4">
-                <Sprout className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center">No production cycles found</h3>
-                <p className="text-gray-600 text-center mb-4">
+                <Sprout className="h-12 w-12 text-agri-400 mb-4" />
+                <h3 className="text-lg font-semibold text-agri-800 mb-2 text-center">No production cycles found</h3>
+                <p className="text-agri-600 text-center mb-4">
                   {searchTerm || statusFilter !== "all"
                     ? "Try adjusting your search or filter criteria"
                     : "Get started by creating your first production cycle"}
                 </p>
-                <Button onClick={() => router.push("/dashboard/cycles/new")} className="bg-sage-700 hover:bg-sage-800">
+                <Button onClick={() => router.push("/dashboard/cycles/new")} className="bg-agri-700 hover:bg-agri-800">
                   <Plus className="mr-2 h-4 w-4" />
                   Create First Cycle
                 </Button>
