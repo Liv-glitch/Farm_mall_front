@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Calculator, Calendar, BarChart3, Settings, Leaf, TrendingUp, Activity, Brain } from "lucide-react"
+import { Home, Calculator, Calendar, BarChart3, Settings, Leaf, TrendingUp, Activity, Brain, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -47,9 +47,9 @@ const menuItems = [
 
 const toolsItems = [
   {
-    title: "Profit Analysis",
-    url: "/dashboard/profit",
-    icon: TrendingUp,
+    title: "Profile",
+    url: "/dashboard/profile",
+    icon: User,
   },
   {
     title: "Settings",

@@ -1,85 +1,29 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { User, MapPin, Phone, Mail, Calendar, Crown } from "lucide-react"
-import { useAuth } from "@/lib/hooks/use-auth"
-import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
+import { apiClient } from "@/lib/api/client"
+import type { User } from "@/lib/types/auth"
 
-interface ProfileModalProps {
+export interface ProfileModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  user: User
 }
 
-const kenyanCounties = [
-  "Baringo",
-  "Bomet",
-  "Bungoma",
-  "Busia",
-  "Elgeyo-Marakwet",
-  "Embu",
-  "Garissa",
-  "Homa Bay",
-  "Isiolo",
-  "Kajiado",
-  "Kakamega",
-  "Kericho",
-  "Kiambu",
-  "Kilifi",
-  "Kirinyaga",
-  "Kisii",
-  "Kisumu",
-  "Kitui",
-  "Kwale",
-  "Laikipia",
-  "Lamu",
-  "Machakos",
-  "Makueni",
-  "Mandera",
-  "Marsabit",
-  "Meru",
-  "Migori",
-  "Mombasa",
-  "Murang'a",
-  "Nairobi",
-  "Nakuru",
-  "Nandi",
-  "Narok",
-  "Nyamira",
-  "Nyandarua",
-  "Nyeri",
-  "Samburu",
-  "Siaya",
-  "Taita-Taveta",
-  "Tana River",
-  "Tharaka-Nithi",
-  "Trans Nzoia",
-  "Turkana",
-  "Uasin Gishu",
-  "Vihiga",
-  "Wajir",
-  "West Pokot",
-]
-
-export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
-  const { user } = useAuth()
+export function ProfileModal({ open, onOpenChange, user }: ProfileModalProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: user?.fullName || "",
-    email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-    county: user?.county || "",
-    subCounty: user?.subCounty || "",
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
+    county: user?.county || '',
+    subCounty: user?.subCounty || '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,15 +32,18 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
 
     try {
       await apiClient.updateProfile(formData)
+      
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
+        title: "Success",
+        description: "Profile updated successfully",
       })
+      
       onOpenChange(false)
     } catch (error: any) {
+      console.error("Error updating profile:", error)
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update profile",
+        title: "Error",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -104,153 +51,92 @@ export function ProfileModal({ open, onOpenChange }: ProfileModalProps) {
     }
   }
 
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <User className="w-5 h-5 text-sage-600" />
-            <span>Profile Settings</span>
-          </DialogTitle>
+          <DialogTitle className="text-agri-800">Edit Profile</DialogTitle>
         </DialogHeader>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Profile Info */}
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">Profile Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col items-center space-y-4">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={user?.profilePictureUrl || "/placeholder.svg"} alt={user?.fullName} />
-                  <AvatarFallback className="text-lg">
-                    {user?.fullName
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="sm">
-                  Change Photo
-                </Button>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="fullName" className="text-agri-700">Full Name</Label>
+              <Input
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email" className="text-agri-700">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phoneNumber" className="text-agri-700">Phone Number</Label>
+              <Input
+                id="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                placeholder="+254..."
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="county" className="text-agri-700">County</Label>
+                <Input
+                  id="county"
+                  value={formData.county}
+                  onChange={(e) => setFormData(prev => ({ ...prev, county: e.target.value }))}
+                  className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                  required
+                />
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Crown className="w-4 h-4 text-warm-600" />
-                  <Badge variant={user?.subscriptionType === "premium" ? "default" : "secondary"}>
-                    {user?.subscriptionType?.toUpperCase()}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>Joined {new Date(user?.createdAt || "").toLocaleDateString()}</span>
-                </div>
-
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <MapPin className="w-4 h-4" />
-                  <span>
-                    {user?.county}, {user?.subCounty}
-                  </span>
-                </div>
+              
+              <div>
+                <Label htmlFor="subCounty" className="text-agri-700">Sub County</Label>
+                <Input
+                  id="subCounty"
+                  value={formData.subCounty}
+                  onChange={(e) => setFormData(prev => ({ ...prev, subCounty: e.target.value }))}
+                  className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                  required
+                />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Edit Form */}
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg">Edit Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => handleChange("fullName", e.target.value)}
-                    className="h-10"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        className="h-10 pl-10"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={(e) => handleChange("phoneNumber", e.target.value)}
-                        className="h-10 pl-10"
-                        placeholder="+254 700 000 000"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="county">County</Label>
-                    <Select value={formData.county} onValueChange={(value) => handleChange("county", value)}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select county" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {kenyanCounties.map((county) => (
-                          <SelectItem key={county} value={county}>
-                            {county}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subCounty">Sub County</Label>
-                    <Input
-                      id="subCounty"
-                      value={formData.subCounty}
-                      onChange={(e) => handleChange("subCounty", e.target.value)}
-                      className="h-10"
-                      placeholder="Enter sub county"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="bg-sage-700 hover:bg-sage-800" disabled={loading}>
-                    {loading ? "Updating..." : "Update Profile"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-agri-200 text-agri-700 hover:bg-agri-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-agri-700 hover:bg-agri-800"
+            >
+              {loading ? "Updating..." : "Update Profile"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   )
