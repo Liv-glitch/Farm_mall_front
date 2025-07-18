@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,12 @@ interface InviteCollaboratorModalProps {
 }
 
 export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaboratorInvited }: InviteCollaboratorModalProps) {
+  console.log('InviteCollaboratorModal props:', { isOpen, farmId })
+  
+  useEffect(() => {
+    console.log('InviteCollaboratorModal isOpen changed to:', isOpen)
+  }, [isOpen])
+  
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -62,7 +68,7 @@ export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaborato
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Invite Collaborator</DialogTitle>
+          <DialogTitle className="text-agri-800">Invite Collaborator</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,10 +120,10 @@ export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaborato
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} className="border-agri-200 text-agri-700 hover:bg-agri-50">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-agri-600 hover:bg-agri-700">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
