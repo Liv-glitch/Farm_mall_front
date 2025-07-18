@@ -205,13 +205,13 @@ export default function NewProductionCyclePage() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/cycles")}>
+          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/cycles")} className="text-agri-700 hover:bg-agri-50">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Cycles
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create New Production Cycle</h1>
-            <p className="text-muted-foreground">Set up a new farming cycle with activities and projections</p>
+            <h1 className="text-3xl font-bold tracking-tight text-agri-800">Create New Production Cycle</h1>
+            <p className="text-agri-600">Set up a new farming cycle with activities and projections</p>
           </div>
         </div>
 
@@ -220,10 +220,10 @@ export default function NewProductionCyclePage() {
             {/* Main Form */}
             <div className="lg:col-span-2 space-y-6">
               {/* Basic Information */}
-              <Card>
+              <Card className="bg-agri-50 border-agri-100">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sprout className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-agri-800">
+                    <Sprout className="h-5 w-5 text-agri-600" />
                     Basic Information
                   </CardTitle>
                 </CardHeader>
@@ -234,7 +234,7 @@ export default function NewProductionCyclePage() {
                       value={formData.cropVarietyId}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, cropVarietyId: value }))}
                     >
-                      <SelectTrigger className="mt-2">
+                      <SelectTrigger className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
                         <SelectValue placeholder="Select crop variety" />
                       </SelectTrigger>
                       <SelectContent>
@@ -249,7 +249,7 @@ export default function NewProductionCyclePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="landSizeAcres">Land Size (Acres) *</Label>
+                      <Label htmlFor="landSizeAcres" className="text-agri-700">Land Size (Acres) *</Label>
                       <Input
                         id="landSizeAcres"
                         type="number"
@@ -260,12 +260,12 @@ export default function NewProductionCyclePage() {
                           setFormData((prev) => ({ ...prev, landSizeAcres: Number.parseFloat(e.target.value) || 0 }))
                         }
                         placeholder="e.g., 2.5"
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="plantingDate">Planting Date *</Label>
+                      <Label htmlFor="plantingDate" className="text-agri-700">Planting Date *</Label>
                       <Input
                         id="plantingDate"
                         type="date"
@@ -274,7 +274,7 @@ export default function NewProductionCyclePage() {
                           ...prev, 
                           plantingDate: new Date(e.target.value).toISOString() 
                         }))}
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                         required
                       />
                     </div>
@@ -283,29 +283,29 @@ export default function NewProductionCyclePage() {
               </Card>
 
               {/* Location */}
-              <Card>
+              <Card className="bg-maize-50 border-maize-100">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-agri-800">
+                    <MapPin className="h-5 w-5 text-agri-600" />
                     Farm Location
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="farmLocation">Farm Location *</Label>
+                    <Label htmlFor="farmLocation" className="text-agri-700">Farm Location *</Label>
                     <Input
                       id="farmLocation"
                       value={formData.farmLocation}
                       onChange={(e) => setFormData((prev) => ({ ...prev, farmLocation: e.target.value }))}
                       placeholder="e.g., Meru County, Kenya"
-                      className="mt-2"
+                      className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="farmLocationLat">Latitude (Optional)</Label>
+                      <Label htmlFor="farmLocationLat" className="text-agri-700">Latitude (Optional)</Label>
                       <Input
                         id="farmLocationLat"
                         type="number"
@@ -321,12 +321,12 @@ export default function NewProductionCyclePage() {
                           }))
                         }}
                         placeholder="e.g., -0.2367"
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Range: -90 to 90 degrees</p>
+                      <p className="text-xs text-agri-500 mt-1">Range: -90 to 90 degrees</p>
                     </div>
                     <div>
-                      <Label htmlFor="farmLocationLng">Longitude (Optional)</Label>
+                      <Label htmlFor="farmLocationLng" className="text-agri-700">Longitude (Optional)</Label>
                       <Input
                         id="farmLocationLng"
                         type="number"
@@ -342,26 +342,26 @@ export default function NewProductionCyclePage() {
                           }))
                         }}
                         placeholder="e.g., 37.6531"
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Range: -180 to 180 degrees</p>
+                      <p className="text-xs text-agri-500 mt-1">Range: -180 to 180 degrees</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Yield & Pricing */}
-              <Card>
+              <Card className="bg-tea-50 border-tea-100">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-agri-800">
+                    <Target className="h-5 w-5 text-agri-600" />
                     Yield & Pricing Projections
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="expectedYield">Expected Yield (kg) *</Label>
+                      <Label htmlFor="expectedYield" className="text-agri-700">Expected Yield (kg) *</Label>
                       <Input
                         id="expectedYield"
                         type="number"
@@ -371,12 +371,12 @@ export default function NewProductionCyclePage() {
                           setFormData((prev) => ({ ...prev, expectedYield: Number.parseInt(e.target.value) || 0 }))
                         }
                         placeholder="e.g., 8000"
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="expectedPricePerKg">Expected Price per Kg (KSh) *</Label>
+                      <Label htmlFor="expectedPricePerKg" className="text-agri-700">Expected Price per Kg (KSh) *</Label>
                       <Input
                         id="expectedPricePerKg"
                         type="number"
@@ -386,7 +386,7 @@ export default function NewProductionCyclePage() {
                           setFormData((prev) => ({ ...prev, expectedPricePerKg: Number.parseInt(e.target.value) || 0 }))
                         }
                         placeholder="e.g., 45"
-                        className="mt-2"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                         required
                       />
                     </div>
@@ -399,14 +399,14 @@ export default function NewProductionCyclePage() {
             <div className="space-y-6">
               {/* Farm Info */}
               {farm && (
-                <Card>
+                <Card className="bg-agri-50 border-agri-100">
                   <CardHeader>
-                    <CardTitle className="text-lg">Farm Information</CardTitle>
+                    <CardTitle className="text-lg text-agri-800">Farm Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <div className="font-medium text-lg">{farm.name}</div>
-                      <div className="text-sm text-muted-foreground">{farm.location}</div>
+                      <div className="font-medium text-lg text-agri-800">{farm.name}</div>
+                      <div className="text-sm text-agri-600">{farm.location}</div>
                     </div>
                     <Separator />
                     <div className="space-y-3 text-sm">
@@ -421,14 +421,14 @@ export default function NewProductionCyclePage() {
 
               {/* Crop Info */}
               {selectedCropVariety && (
-                <Card>
+                <Card className="bg-maize-50 border-maize-100">
                   <CardHeader>
-                    <CardTitle className="text-lg">Crop Information</CardTitle>
+                    <CardTitle className="text-lg text-agri-800">Crop Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <div className="font-medium text-lg">{selectedCropVariety.name}</div>
-                      <div className="text-sm text-muted-foreground capitalize">{selectedCropVariety.cropType}</div>
+                      <div className="font-medium text-lg text-agri-800">{selectedCropVariety.name}</div>
+                      <div className="text-sm text-agri-600 capitalize">{selectedCropVariety.cropType}</div>
                     </div>
                     <Separator />
                     <div className="space-y-3 text-sm">
@@ -450,10 +450,10 @@ export default function NewProductionCyclePage() {
               )}
 
               {/* Financial Summary */}
-              <Card>
+              <Card className="bg-tea-50 border-tea-100">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
+                  <CardTitle className="text-lg flex items-center gap-2 text-agri-800">
+                    <DollarSign className="h-5 w-5 text-agri-600" />
                     Financial Projection
                   </CardTitle>
                 </CardHeader>
@@ -501,7 +501,7 @@ export default function NewProductionCyclePage() {
               <div className="space-y-3">
                 <Button
                   type="submit"
-                  className="w-full bg-sage-700 hover:bg-sage-800"
+                  className="w-full bg-agri-700 hover:bg-agri-800"
                   disabled={
                     loading ||
                     !formData.cropVarietyId ||
@@ -522,7 +522,7 @@ export default function NewProductionCyclePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full bg-transparent"
+                  className="w-full bg-transparent border-agri-200 text-agri-700 hover:bg-agri-50"
                   onClick={() => router.push("/dashboard/cycles")}
                 >
                   Cancel

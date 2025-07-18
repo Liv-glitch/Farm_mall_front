@@ -81,7 +81,7 @@ export default function CycleDetailPage() {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agri-600"></div>
         </div>
       </DashboardLayout>
     )
@@ -198,28 +198,28 @@ export default function CycleDetailPage() {
         {/* Header */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
           <div className="space-y-3 min-w-0 flex-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => router.push("/dashboard/cycles")}
-              className="w-fit"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Cycles
-            </Button>
+                      <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => router.push("/dashboard/cycles")}
+            className="w-fit text-agri-700 hover:bg-agri-50"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Cycles
+          </Button>
             
             <div className="space-y-2">
               <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Sprout className="h-5 w-5 sm:h-6 sm:w-6 text-sage-600 flex-shrink-0" />
-                  <h1 className="text-xl sm:text-2xl font-bold truncate">{cycle.cropVariety?.name || "Unknown Variety"}</h1>
+                  <Sprout className="h-5 w-5 sm:h-6 sm:w-6 text-agri-600 flex-shrink-0" />
+                  <h1 className="text-xl sm:text-2xl font-bold truncate text-agri-800">{cycle.cropVariety?.name || "Unknown Variety"}</h1>
                 </div>
                 <Badge className={`${getStatusColor(cycle.status)} text-xs px-2 py-1 flex-shrink-0`}>
                   {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
                 </Badge>
               </div>
               
-              <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600">
+              <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-agri-600">
                 <div className="flex items-center gap-1 min-w-0">
                   <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                   <span className="truncate">{cycle.farmLocation}</span>
@@ -234,7 +234,7 @@ export default function CycleDetailPage() {
           
           <Button 
             onClick={() => setShowEditModal(true)} 
-            className="w-full sm:w-auto flex-shrink-0"
+            className="w-full sm:w-auto flex-shrink-0 bg-agri-700 hover:bg-agri-800"
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit Cycle
@@ -242,10 +242,10 @@ export default function CycleDetailPage() {
         </div>
 
         {/* Progress Overview */}
-        <Card>
+        <Card className="bg-agri-50 border-agri-100">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-agri-800">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-agri-600" />
               Progress Overview
             </CardTitle>
           </CardHeader>
