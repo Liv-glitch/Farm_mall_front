@@ -63,7 +63,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-green-50 via-secondary-50 to-brown-50 flex flex-col items-stretch justify-between p-4 sm:items-center sm:justify-center">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-agri-50 via-maize-50 to-agri-100 flex flex-col items-stretch justify-between p-4 sm:items-center sm:justify-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -73,17 +73,17 @@ export default function LoginPage() {
         <div className="flex-shrink-0 text-center mb-6 sm:mb-8">
           <Link 
             href="/" 
-            className="inline-flex items-center text-green-600 hover:text-green-700 mb-6 text-sm sm:text-base"
+            className="inline-flex items-center text-agri-600 hover:text-agri-700 mb-6 text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Link>
 
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-secondary-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-agri-500 to-maize-500 rounded-xl flex items-center justify-center">
               <Leaf className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-secondary-600 bg-clip-text text-transparent">
+            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-agri-600 to-maize-600 bg-clip-text text-transparent">
               Farm Mall
             </span>
           </div>
@@ -148,7 +148,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Link 
                   href="/auth/forgot-password" 
-                  className="text-sm text-green-600 hover:text-green-700"
+                  className="text-sm text-agri-600 hover:text-agri-700"
                 >
                   Forgot password?
                 </Link>
@@ -156,7 +156,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full h-11 sm:h-12 bg-gradient-to-r from-green-500 to-secondary-500 hover:from-green-600 hover:to-secondary-600 text-base"
+                className="w-full h-11 sm:h-12 bg-gradient-to-r from-agri-500 to-maize-500 hover:from-agri-600 hover:to-maize-600 text-base"
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
@@ -166,7 +166,7 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <p className="text-sm sm:text-base text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/auth/register" className="text-green-600 hover:text-green-700 font-medium">
+                <Link href="/auth/register" className="text-agri-600 hover:text-agri-700 font-medium">
                   Sign up
                 </Link>
               </p>

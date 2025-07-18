@@ -189,7 +189,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-secondary-50 to-brown-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-agri-50 via-maize-50 to-agri-100 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -197,16 +197,16 @@ export default function RegisterPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center text-green-600 hover:text-green-700 mb-6">
+          <Link href="/" className="inline-flex items-center text-agri-600 hover:text-agri-700 mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Link>
 
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-secondary-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-agri-500 to-maize-500 rounded-xl flex items-center justify-center">
               <Leaf className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-secondary-600 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold bg-gradient-to-r from-agri-600 to-maize-600 bg-clip-text text-transparent">
               Farm Mall
             </span>
           </div>
