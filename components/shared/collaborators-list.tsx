@@ -38,6 +38,11 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [loading, setLoading] = useState(true)
   const [showInviteModal, setShowInviteModal] = useState(false)
+
+  const handleInviteClick = () => {
+    console.log('Invite button clicked! Setting showInviteModal to true')
+    setShowInviteModal(true)
+  }
   const [selectedCollaborator, setSelectedCollaborator] = useState<Collaborator | null>(null)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [showRoleDialog, setShowRoleDialog] = useState(false)
@@ -195,7 +200,7 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agri-600"></div>
         </CardContent>
       </Card>
     )
@@ -209,8 +214,8 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
           <Button 
             variant="outline" 
             size="sm" 
-            className="mt-4"
-            onClick={() => setShowInviteModal(true)}
+            className="mt-4 border-agri-200 text-agri-700 hover:bg-agri-50"
+            onClick={handleInviteClick}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite Collaborator
@@ -228,7 +233,8 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setShowInviteModal(true)}
+            className="border-agri-200 text-agri-700 hover:bg-agri-50"
+            onClick={handleInviteClick}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Invite
@@ -239,7 +245,7 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
             {collaborators.map((collaborator) => (
               <div
                 key={collaborator.id}
-                className="flex items-center justify-between p-4 rounded-lg hover:bg-sage-50 cursor-pointer"
+                className="flex items-center justify-between p-4 rounded-lg hover:bg-agri-50 cursor-pointer"
                 onClick={() => {
                   console.log('Selected collaborator:', collaborator) // Debug log
                   onCollaboratorSelect(collaborator)
@@ -288,7 +294,10 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
       {/* Invite Modal */}
       <InviteCollaboratorModal
         isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
+        onClose={() => {
+          console.log('Closing invite modal')
+          setShowInviteModal(false)
+        }}
         farmId={farmId}
         onCollaboratorInvited={fetchCollaborators}
       />
