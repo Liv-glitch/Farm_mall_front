@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Calculator, Calendar, BarChart3, Settings, Leaf, TrendingUp, Activity } from "lucide-react"
+import { Home, Calculator, Calendar, BarChart3, Settings, Leaf, TrendingUp, Activity, Brain } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -29,14 +29,14 @@ const menuItems = [
     icon: Activity,
   },
   {
-    title: "Cost Calculator",
-    url: "/dashboard/calculator",
-    icon: Calculator,
+    title: "Farm Intelligence",
+    url: "/dashboard/farm-intelligence",
+    icon: Brain,
   },
   {
-    title: "Harvest Forecast",
-    url: "/dashboard/forecast",
-    icon: Calendar,
+    title: "Farm Tools",
+    url: "/dashboard/farm-tools",
+    icon: Calculator,
   },
   {
     title: "Analytics",
