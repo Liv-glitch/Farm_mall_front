@@ -30,10 +30,14 @@ export default function CyclesPage() {
       setError(null)
       try {
         const res = await apiClient.getCycles() as { data: ProductionCycle[] } | ProductionCycle[]
-        setCycles(Array.isArray(res) ? res : res.data || [])
+        console.log("Cycles page response:", res)
+        const cyclesData = Array.isArray(res) ? res : res.data || []
+        console.log("Processed cycles data:", cyclesData)
+        setCycles(cyclesData)
       } catch (err: any) {
         setError("Failed to load cycles")
         console.error("Error fetching cycles:", err)
+        setCycles([])
       } finally {
         setLoading(false)
       }
@@ -174,12 +178,12 @@ export default function CyclesPage() {
         <div className="grid gap-4">
           <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Production Cycles</h1>
-              <p className="text-sm text-muted-foreground sm:text-base">Manage your farming cycles and track progress</p>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-agri-800">Production Cycles</h1>
+              <p className="text-sm text-agri-600 sm:text-base">Manage your farming cycles and track progress</p>
             </div>
             <Button 
               onClick={() => router.push("/dashboard/cycles/new")} 
-              className="bg-sage-700 hover:bg-sage-800 w-full sm:w-auto"
+              className="bg-agri-700 hover:bg-agri-800 w-full sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
               New Cycle
@@ -193,14 +197,14 @@ export default function CyclesPage() {
               value={totalCycles}
               description="All production cycles"
               icon={Sprout}
-              className="bg-white"
+              className="bg-agri-50 border-agri-100"
             />
             <StatsCard
               title="Active Cycles"
               value={activeCycles}
               description="Currently running"
               icon={TrendingUp}
-              className="bg-white"
+              className="bg-maize-50 border-maize-100"
             />
             <StatsCard
               title="Total Investment"
@@ -209,7 +213,7 @@ export default function CyclesPage() {
               prefix="KSh "
               description="Across all cycles"
               icon={DollarSign}
-              className="bg-white"
+              className="bg-tea-50 border-tea-100"
             />
             <StatsCard
               title="Expected Revenue"
@@ -218,7 +222,7 @@ export default function CyclesPage() {
               prefix="KSh "
               description="Projected earnings"
               icon={BarChart3}
-              className="bg-white"
+              className="bg-agri-50 border-agri-100"
             />
           </div>
         </div>
