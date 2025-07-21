@@ -19,10 +19,12 @@ import { useAuth } from "@/lib/hooks/use-auth"
 
 export default function NewProductionCyclePage() {
   const router = useRouter()
-  const { farm } = useAuth()
+  const { farm, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
+
+
 
   const [formData, setFormData] = useState({
     cropVarietyId: "",
@@ -187,13 +189,13 @@ export default function NewProductionCyclePage() {
     }
   }
 
-  if (loadingVarieties) {
+  if (loadingVarieties || authLoading) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Loading...</p>
+            <p>{authLoading ? "Loading user data..." : "Loading crop varieties..."}</p>
           </div>
         </div>
       </DashboardLayout>

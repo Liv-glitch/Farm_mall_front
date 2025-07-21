@@ -3,11 +3,14 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Leaf, Instagram, Twitter, Facebook, Linkedin, Calculator, Clock, Sprout } from "lucide-react"
+import { Leaf, Instagram, Twitter, Facebook, Linkedin, Calculator, Clock, Sprout, Menu, X } from "lucide-react"
 
 export default function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -23,6 +26,8 @@ export default function LandingPage() {
               <Leaf className="h-8 w-8 text-agri-700" />
               <span className="text-xl font-bold text-agri-800">Farm Mall</span>
             </motion.div>
+            
+            {/* Desktop Navigation */}
             <motion.div 
               className="hidden md:flex items-center space-x-8"
               initial={{ opacity: 0, y: -20 }}
@@ -45,7 +50,70 @@ export default function LandingPage() {
                 <Button className="bg-agri-700 hover:bg-agri-800">Sign Up</Button>
               </Link>
             </motion.div>
+
+            {/* Mobile Menu Button */}
+            <motion.button
+              className="md:hidden p-2 rounded-md text-gray-700 hover:text-agri-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </motion.button>
           </nav>
+
+          {/* Mobile Navigation Menu */}
+          <motion.div
+            className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ 
+              opacity: mobileMenuOpen ? 1 : 0, 
+              height: mobileMenuOpen ? 'auto' : 0 
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="py-4 space-y-4 border-t border-gray-200 mt-4">
+              <Link 
+                href="#about" 
+                className="block text-gray-700 hover:text-agri-700 transition-colors font-medium py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                About Us
+              </Link>
+              <Link 
+                href="/calculator" 
+                className="block text-gray-700 hover:text-agri-700 transition-colors font-medium py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Cost Calculator
+              </Link>
+              <Link 
+                href="/forecast" 
+                className="block text-gray-700 hover:text-agri-700 transition-colors font-medium py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Harvest Estimator
+              </Link>
+              <Link 
+                href="/auth/login" 
+                className="block text-gray-700 hover:text-agri-700 transition-colors font-medium py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Login
+              </Link>
+              <Link 
+                href="/auth/register"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Button className="w-full bg-agri-700 hover:bg-agri-800">Sign Up</Button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </header>
 

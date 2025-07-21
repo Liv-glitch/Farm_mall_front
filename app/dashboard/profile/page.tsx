@@ -31,6 +31,11 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const [showEditModal, setShowEditModal] = useState(false)
 
+  const handleProfileUpdated = () => {
+    // Force a page refresh to get updated user data
+    window.location.reload()
+  }
+
   if (!user) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
@@ -229,6 +234,7 @@ export default function ProfilePage() {
         open={showEditModal} 
         onOpenChange={setShowEditModal}
         user={user}
+        onProfileUpdated={handleProfileUpdated}
       />
     </DashboardLayout>
   )

@@ -50,7 +50,7 @@ const formatDate = (date: string | Date) => {
 
 // User Profile Card Component
 const UserProfileCard = ({ user }: { user: any }) => {
-  console.log("UserProfileCard received user:", user) // Debug log
+
   
   // Force use the actual user data we know exists
   const displayName = user?.fullName || 'TONNY kim' // Fallback to known data
@@ -198,9 +198,7 @@ export default function DashboardPage() {
     async function fetchData() {
       try {
         const res = await apiClient.getCycles()
-        console.log("Dashboard cycles response:", res)
         const cyclesData = Array.isArray(res) ? res : (res?.data ? res.data : [])
-        console.log("Processed cycles data:", cyclesData)
         setCycles(cyclesData)
       } catch (err) {
         console.error("Error fetching cycles:", err)
@@ -228,7 +226,7 @@ export default function DashboardPage() {
   const hasCycles = cycles.length > 0
 
   // Debug: Log user data to see what's available
-  console.log("Dashboard user data:", user)
+  
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>

@@ -30,9 +30,9 @@ export default function CyclesPage() {
       setError(null)
       try {
         const res = await apiClient.getCycles() as { data: ProductionCycle[] } | ProductionCycle[]
-        console.log("Cycles page response:", res)
+        
         const cyclesData = Array.isArray(res) ? res : res.data || []
-        console.log("Processed cycles data:", cyclesData)
+
         setCycles(cyclesData)
       } catch (err: any) {
         setError("Failed to load cycles")
