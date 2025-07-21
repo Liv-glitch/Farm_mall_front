@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,9 +14,10 @@ export interface ProfileModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: User
+  onProfileUpdated?: () => void
 }
 
-export function ProfileModal({ open, onOpenChange, user }: ProfileModalProps) {
+export function ProfileModal({ open, onOpenChange, user, onProfileUpdated }: ProfileModalProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
@@ -25,6 +26,17 @@ export function ProfileModal({ open, onOpenChange, user }: ProfileModalProps) {
     county: user?.county || '',
     subCounty: user?.subCounty || '',
   })
+
+  // Update form data when user prop changes
+  useEffect(() => {
+    setFormData({
+      fullName: user?.fullName || '',
+      email: user?.email || '',
+      phoneNumber: user?.phoneNumber || '',
+      county: user?.county || '',
+      subCounty: user?.subCounty || '',
+    })
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,6 +49,11 @@ export function ProfileModal({ open, onOpenChange, user }: ProfileModalProps) {
         title: "Success",
         description: "Profile updated successfully",
       })
+      
+      // Call the callback to refresh user data
+      if (onProfileUpdated) {
+        onProfileUpdated()
+      }
       
       onOpenChange(false)
     } catch (error: any) {
@@ -56,6 +73,9 @@ export function ProfileModal({ open, onOpenChange, user }: ProfileModalProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-agri-800">Edit Profile</DialogTitle>
+          <DialogDescription>
+            Update your personal information and contact details.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">

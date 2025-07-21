@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -69,6 +69,9 @@ export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaborato
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-agri-800">Invite Collaborator</DialogTitle>
+          <DialogDescription>
+            Invite someone to collaborate on your farm by sending them an invitation.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
