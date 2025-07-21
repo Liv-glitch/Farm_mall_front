@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -153,6 +153,9 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] md:max-h-[80vh]">
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
           <DialogTitle>Edit {formData.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</DialogTitle>
+          <DialogDescription>
+            Update the details of this activity in your production cycle.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">

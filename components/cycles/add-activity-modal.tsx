@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -242,6 +242,9 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="p-4 sm:p-6 sticky top-0 bg-white border-b">
           <DialogTitle>Add New Activity</DialogTitle>
+          <DialogDescription>
+            Add a new activity to your production cycle. You can use predefined templates or create a custom activity.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
