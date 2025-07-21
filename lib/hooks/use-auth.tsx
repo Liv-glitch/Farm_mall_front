@@ -93,7 +93,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           size: firstFarm.sizeAcres || 0,
           userId: firstFarm.ownerId,
           createdAt: firstFarm.createdAt,
-          updatedAt: firstFarm.updatedAt
+          updatedAt: firstFarm.updatedAt,
+          owner: userData, // Use the current user as owner
+          collaborators: firstFarm.collaborators || [] // Use collaborators from farm data or empty array
         })
       }
     } catch (error) {
@@ -152,7 +154,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           size: firstFarm.sizeAcres || 0,
           userId: firstFarm.ownerId,
           createdAt: firstFarm.createdAt,
-          updatedAt: firstFarm.updatedAt
+          updatedAt: firstFarm.updatedAt,
+          owner: user,
+          collaborators: firstFarm.collaborators || []
         })
       }
 
@@ -171,11 +175,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
     } catch (error) {
       console.error("Login failed:", error)
-      toast({
-        title: "Login Failed",
-        description: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
-        variant: "destructive",
-      })
+      // Don't show toast here - let the login page handle error display
+      // The login page will catch this error and display it in the UI
       throw error
     }
   }

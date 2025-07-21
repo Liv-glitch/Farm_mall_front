@@ -118,36 +118,45 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
         
-        // Handle 401 errors
+        // Handle 401 errors - but don't try to refresh tokens for auth endpoints
         if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            // If already refreshing, queue this request
+          // Don't attempt token refresh for auth endpoints (login, register, etc.)
+          const isAuthEndpoint = originalRequest.url?.includes('/auth/')
+          
+          if (isAuthEndpoint) {
+            // For auth endpoints, just return the original error
+            console.log("Auth endpoint 401 - not attempting token refresh")
+          } else {
+            // For other endpoints, try token refresh
+            if (this.isRefreshing) {
+              // If already refreshing, queue this request
+              try {
+                const token = await new Promise<string>((resolve, reject) => {
+                  this.failedQueue.push({ resolve, reject })
+                })
+                this.setAuthHeader(token)
+                return this.client(originalRequest)
+              } catch (err) {
+                return Promise.reject(err)
+              }
+            }
+
+            originalRequest._retry = true
+            this.isRefreshing = true
+
             try {
-              const token = await new Promise<string>((resolve, reject) => {
-                this.failedQueue.push({ resolve, reject })
-              })
+              const token = await this.handleTokenRefresh()
+              this.processQueue(null, token)
               this.setAuthHeader(token)
               return this.client(originalRequest)
-            } catch (err) {
-              return Promise.reject(err)
+            } catch (refreshError) {
+              this.processQueue(refreshError, null)
+              this.clearTokens()
+              this.redirectToLogin()
+              return Promise.reject(refreshError)
+            } finally {
+              this.isRefreshing = false
             }
-          }
-
-          originalRequest._retry = true
-          this.isRefreshing = true
-
-          try {
-            const token = await this.handleTokenRefresh()
-            this.processQueue(null, token)
-            this.setAuthHeader(token)
-            return this.client(originalRequest)
-          } catch (refreshError) {
-            this.processQueue(refreshError, null)
-            this.clearTokens()
-            this.redirectToLogin()
-            return Promise.reject(refreshError)
-          } finally {
-            this.isRefreshing = false
           }
         }
 
@@ -435,7 +444,6 @@ class ApiClient {
   // Production cycles and activities endpoints
   async getCycles() {
     const response = await this.client.get("/production/cycles")
-    console.log("getCycles raw response:", response)
     return response.data
   }
   async getCycle(cycleId: string) {
