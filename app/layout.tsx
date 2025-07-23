@@ -9,9 +9,9 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AgriTech Platform",
+  title: "Farm Mall",
   description: "Modern agricultural technology platform for farmers",
-  generator: 'v0.dev',
+  generator: 'Tonnyb',
 }
 
 export const viewport: Viewport = {
