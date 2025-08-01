@@ -50,16 +50,17 @@ const formatDate = (date: string | Date) => {
 
 // User Profile Card Component
 const UserProfileCard = ({ user }: { user: any }) => {
-
+  const router = useRouter()
   
-  // Force use the actual user data we know exists
-  const displayName = user?.fullName || 'TONNY kim' // Fallback to known data
+  // Extract user data from potentially nested structure
+  const userData = user?.user || user
+  
+  const displayName = userData?.fullName || userData?.name || 'User'
   const initials = getUserInitials(displayName)
   
-  // Force use the actual location data we know exists
-  const location = user?.subCounty && user?.county 
-    ? `${user.subCounty}, ${user.county}` 
-    : 'NAIROBI, Nairobi' // Fallback to known data
+  const location = userData?.subCounty && userData?.county 
+    ? `${userData.subCounty}, ${userData.county}` 
+    : 'Location not set'
 
   return (
     <Card className="bg-white shadow-sm border-0">
@@ -67,9 +68,9 @@ const UserProfileCard = ({ user }: { user: any }) => {
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Profile Picture or Initials */}
           <div className="w-20 h-20 rounded-full bg-agri-100 flex items-center justify-center">
-            {user?.profilePictureUrl ? (
+            {userData?.profilePictureUrl ? (
               <img 
-                src={user.profilePictureUrl} 
+                src={userData.profilePictureUrl} 
                 alt={displayName}
                 className="w-20 h-20 rounded-full object-cover"
               />
@@ -89,6 +90,7 @@ const UserProfileCard = ({ user }: { user: any }) => {
             variant="outline" 
             size="sm"
             className="border-agri-200 text-agri-700 hover:bg-agri-50"
+            onClick={() => router.push('/dashboard/profile')}
           >
             <Edit className="w-4 h-4 mr-2" />
             Edit Profile
@@ -224,9 +226,11 @@ export default function DashboardPage() {
   }
 
   const hasCycles = cycles.length > 0
-
-  // Debug: Log user data to see what's available
   
+  // Extract user data from potentially nested structure  
+  const userData = user?.user || user
+  const displayName = userData?.fullName || userData?.name || 'User'
+  const firstName = displayName.split(' ')[0]
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
@@ -239,7 +243,7 @@ export default function DashboardPage() {
             {/* Welcome Message */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-agri-800">
-                {hasCycles ? `Welcome back, ${user?.fullName?.split(' ')[0] || 'TONNY'}!` : `Welcome, ${user?.fullName?.split(' ')[0] || 'TONNY'}!`}
+                {hasCycles ? `Welcome back, ${firstName}!` : `Welcome, ${firstName}!`}
               </h1>
             </div>
 

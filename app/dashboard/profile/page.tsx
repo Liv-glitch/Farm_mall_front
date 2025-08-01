@@ -28,12 +28,12 @@ const getUserInitials = (fullName: string) => {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const handleProfileUpdated = () => {
-    // Force a page refresh to get updated user data
-    window.location.reload()
+  const handleProfileUpdated = async () => {
+    // Refresh user data from the server
+    await refreshUser()
   }
 
   if (!user) {
@@ -49,10 +49,13 @@ export default function ProfilePage() {
     )
   }
 
-  const displayName = user.fullName || user.name || 'User'
+  // Extract user data from potentially nested structure
+  const userData = user?.user || user
+  
+  const displayName = userData?.fullName || userData?.name || 'User'
   const initials = getUserInitials(displayName)
-  const location = user.subCounty && user.county 
-    ? `${user.subCounty}, ${user.county}` 
+  const location = userData?.subCounty && userData?.county 
+    ? `${userData.subCounty}, ${userData.county}` 
     : 'Location not set'
 
   return (
@@ -93,9 +96,9 @@ export default function ProfilePage() {
                     <div className="flex flex-col items-center text-center space-y-4">
                       {/* Profile Picture or Initials */}
                       <div className="w-24 h-24 rounded-full bg-agri-100 flex items-center justify-center">
-                        {user.profilePictureUrl ? (
+                        {userData?.profilePictureUrl ? (
                           <img 
-                            src={user.profilePictureUrl} 
+                            src={userData.profilePictureUrl} 
                             alt={displayName}
                             className="w-24 h-24 rounded-full object-cover"
                           />
@@ -112,10 +115,10 @@ export default function ProfilePage() {
                       
                       {/* Subscription Badge */}
                       <Badge 
-                        variant={user.subscriptionType === 'premium' ? 'default' : 'secondary'}
-                        className={user.subscriptionType === 'premium' ? 'bg-agri-100 text-agri-800' : 'bg-gray-100 text-gray-600'}
+                        variant={userData?.subscriptionType === 'premium' ? 'default' : 'secondary'}
+                        className={userData?.subscriptionType === 'premium' ? 'bg-agri-100 text-agri-800' : 'bg-gray-100 text-gray-600'}
                       >
-                        {user.subscriptionType === 'premium' ? 'Premium' : 'Free'} Plan
+                        {userData?.subscriptionType === 'premium' ? 'Premium' : 'Free'} Plan
                       </Badge>
                     </div>
                   </CardContent>
@@ -142,14 +145,14 @@ export default function ProfilePage() {
                         <label className="text-sm font-medium text-gray-600">Email</label>
                         <p className="text-gray-900 mt-1 flex items-center gap-2">
                           <Mail className="h-4 w-4 text-gray-400" />
-                          {user.email}
+                          {userData?.email || 'Not provided'}
                         </p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Phone Number</label>
                         <p className="text-gray-900 mt-1 flex items-center gap-2">
                           <Phone className="h-4 w-4 text-gray-400" />
-                          {user.phoneNumber || 'Not provided'}
+                          {userData?.phoneNumber || 'Not provided'}
                         </p>
                       </div>
                       <div>
@@ -175,24 +178,24 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-gray-600">Account Type</label>
-                        <p className="text-gray-900 mt-1 capitalize">{user.role}</p>
+                        <p className="text-gray-900 mt-1 capitalize">{userData?.role || 'User'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Subscription</label>
-                        <p className="text-gray-900 mt-1 capitalize">{user.subscriptionType}</p>
+                        <p className="text-gray-900 mt-1 capitalize">{userData?.subscriptionType || 'Free'}</p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Member Since</label>
                         <p className="text-gray-900 mt-1 flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString() : 'Unknown'}
                         </p>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-600">Last Updated</label>
                         <p className="text-gray-900 mt-1 flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
-                          {new Date(user.updatedAt).toLocaleDateString()}
+                          {userData?.updatedAt ? new Date(userData.updatedAt).toLocaleDateString() : 'Unknown'}
                         </p>
                       </div>
                     </div>
