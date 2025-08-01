@@ -85,11 +85,6 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         console.group(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`)
-        console.log("📍 Full URL:", `${config.baseURL}${config.url}`)
-        console.log("📋 Headers:", config.headers)
-        if (config.data) {
-          console.log("📦 Payload:", config.data)
-        }
         console.groupEnd()
         return config
       },
@@ -102,15 +97,8 @@ class ApiClient {
     // Response interceptor for logging and error handling
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
-        console.group(`📡 API Response: ${response.status} ${response.config.url}`)
-        console.log("✅ Status:", response.status, response.statusText)
-        console.log("📊 Headers:", response.headers)
-        console.log("📄 Raw Response:", response.data)
-
         // Handle successful responses - extract data if it exists
         const result = response.data?.data || response.data
-        console.log("✅ Final Success Result:", result)
-        console.groupEnd()
 
         // Return the extracted data
         return { ...response, data: result }
@@ -125,7 +113,6 @@ class ApiClient {
           
           if (isAuthEndpoint) {
             // For auth endpoints, just return the original error
-            console.log("Auth endpoint 401 - not attempting token refresh")
           } else {
             // For other endpoints, try token refresh
             if (this.isRefreshing) {
@@ -201,8 +188,6 @@ class ApiClient {
           errorMessage = error.message || "Request failed"
         }
 
-        console.error("❌ Final Error Message:", errorMessage)
-        console.groupEnd()
 
         // Create a new error with the processed message
         const processedError = new Error(errorMessage)
@@ -286,11 +271,6 @@ class ApiClient {
         data,
       });
       
-      console.log('Registration response:', {
-        ...response,
-        token: '[REDACTED]',
-        refreshToken: '[REDACTED]'
-      });
       
       return response;
     } catch (error: any) {
@@ -488,7 +468,6 @@ class ApiClient {
 
   // Update role (high-level)
   async updateCollaboratorRole(farmId: string, collaborationId: string, role: CollaboratorRole) {
-    console.log('Updating role:', { farmId, collaborationId, role }); // Debug log
     return this.request({
       method: "PATCH",
       url: `/collaboration/farms/${farmId}/collaborators/${collaborationId}/role`,
@@ -580,6 +559,148 @@ class ApiClient {
       method: "GET",
       url: "/farms",
     })
+  }
+
+  // Media endpoints
+  async uploadUserProfile(file: File, isPublic: boolean = true) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('isPublic', isPublic.toString())
+
+    return this.client.post("/media/upload/user-profile", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then(r => r.data)
+  }
+
+  async uploadLivestockMedia(data: {
+    file: File;
+    farmId: string;
+    animalType: 'cattle' | 'poultry' | 'swine' | 'sheep' | 'goats';
+    recordId: string;
+    generateVariants?: boolean;
+  }) {
+    const formData = new FormData()
+    formData.append('file', data.file)
+    formData.append('farmId', data.farmId)
+    formData.append('animalType', data.animalType)
+    formData.append('recordId', data.recordId)
+    if (data.generateVariants) formData.append('generateVariants', 'true')
+
+    return this.client.post("/media/upload/livestock", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then(r => r.data)
+  }
+
+  async uploadCropMedia(data: {
+    file: File;
+    farmId: string;
+    purpose: 'identification' | 'health' | 'harvest' | 'treatment' | 'progress';
+    fieldId: string;
+    entityId?: string;
+    generateVariants?: boolean;
+  }) {
+    const formData = new FormData()
+    formData.append('file', data.file)
+    formData.append('farmId', data.farmId)
+    formData.append('purpose', data.purpose)
+    formData.append('fieldId', data.fieldId)
+    if (data.entityId) formData.append('entityId', data.entityId)
+    if (data.generateVariants) formData.append('generateVariants', 'true')
+
+    return this.client.post("/media/upload/crops", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then(r => r.data)
+  }
+
+  async uploadSoilAnalysis(data: {
+    file: File;
+    farmId: string;
+    analysisType: 'soil-test' | 'sand-analysis' | 'composition' | 'ph-test' | 'nutrient-analysis';
+    locationId: string;
+  }) {
+    const formData = new FormData()
+    formData.append('file', data.file)
+    formData.append('farmId', data.farmId)
+    formData.append('analysisType', data.analysisType)
+    formData.append('locationId', data.locationId)
+
+    return this.client.post("/media/upload/soil-analysis", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then(r => r.data)
+  }
+
+  async uploadGenericMedia(data: {
+    file: File;
+    category: string;
+    subcategory?: string;
+    contextId: string;
+    entityId?: string;
+    generateVariants?: boolean;
+    isPublic?: boolean;
+    expiresAt?: string;
+  }) {
+    const formData = new FormData()
+    formData.append('file', data.file)
+    formData.append('category', data.category)
+    if (data.subcategory) formData.append('subcategory', data.subcategory)
+    formData.append('contextId', data.contextId)
+    if (data.entityId) formData.append('entityId', data.entityId)
+    if (data.generateVariants) formData.append('generateVariants', 'true')
+    if (data.isPublic !== undefined) formData.append('isPublic', data.isPublic.toString())
+    if (data.expiresAt) formData.append('expiresAt', data.expiresAt)
+
+    return this.client.post("/media/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then(r => r.data)
+  }
+
+  async getMyMedia(params?: {
+    limit?: number;
+    offset?: number;
+    mimeType?: 'image' | 'video' | 'application';
+    status?: 'uploading' | 'processing' | 'ready' | 'failed';
+  }) {
+    const searchParams = new URLSearchParams()
+    if (params?.limit) searchParams.append('limit', params.limit.toString())
+    if (params?.offset) searchParams.append('offset', params.offset.toString())
+    if (params?.mimeType) searchParams.append('mimeType', params.mimeType)
+    if (params?.status) searchParams.append('status', params.status)
+
+    return this.client.get(`/media/my-media?${searchParams}`).then(r => r.data)
+  }
+
+  async associateMedia(mediaId: string, data: {
+    associatableType: string;
+    associatableId: string;
+    role: 'primary' | 'thumbnail' | 'attachment' | 'comparison' | 'before' | 'after' | 'evidence' | 'diagnostic';
+    category: string;
+    subcategory?: string;
+    contextId: string;
+    entityId?: string;
+    order?: number;
+  }) {
+    return this.request({
+      method: "POST",
+      url: `/media/${mediaId}/associate`,
+      data,
+    })
+  }
+
+  async getMediaByAssociation(associationType: string, associationId: string, role?: string) {
+    const params = role ? `?role=${role}` : ''
+    return this.client.get(`/media/by-association/${associationType}/${associationId}${params}`).then(r => r.data)
+  }
+
+  async getMediaAnalytics() {
+    return this.client.get("/media/analytics").then(r => r.data)
+  }
+
+  async generateMediaVariants(mediaId: string) {
+    return this.client.post(`/media/${mediaId}/variants`).then(r => r.data)
+  }
+
+  async deleteMedia(mediaId: string) {
+    return this.client.delete(`/media/${mediaId}`).then(r => r.data)
   }
 }
 

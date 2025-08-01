@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (credentials: LoginRequest) => Promise<void>
   register: (userData: RegisterRequest) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -79,7 +80,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchUserAndFarm = async () => {
     try {
-      const userData = await apiClient.getProfile() as User
+      const response = await apiClient.getProfile() as any
+      
+      // Extract user data from potentially nested structure
+      const userData = response?.user || response
+      
       setUser(userData)
 
       // Fetch user's farm
@@ -230,6 +235,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     router.push("/")
   }
 
+  const refreshUser = async () => {
+    try {
+      await fetchUserAndFarm()
+    } catch (error) {
+      console.error("Failed to refresh user data:", error)
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -239,6 +252,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         login,
         register,
         logout,
+        refreshUser,
       }}
     >
       {children}
