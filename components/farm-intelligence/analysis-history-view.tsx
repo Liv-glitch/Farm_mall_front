@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { AnalysisDetailModal } from "@/components/modals/analysis-detail-modal"
 
 interface AnalysisRecord {
   id: string
@@ -136,6 +137,98 @@ export function AnalysisHistoryView() {
   const [hasMore, setHasMore] = useState(false)
   const { toast } = useToast()
 
+  // Helper functions to generate titles and descriptions from API data
+  const generateTitle = (record: any) => {
+    console.log('🔍 Generating title for record:', record.type, record)
+    
+    switch (record.type) {
+      case 'plant_health':
+        if (record.result?.healthStatus?.overall) {
+          return `Plant Health Analysis - ${record.result.healthStatus.overall}`
+        }
+        if (record.result?.diseases?.[0]?.name) {
+          return `Plant Health - ${record.result.diseases[0].name} detected`
+        }
+        return "Plant Health Analysis"
+      case 'plant_identification':
+        if (record.result?.plants?.[0]?.commonName) {
+          return `Plant ID - ${record.result.plants[0].commonName}`
+        }
+        if (record.result?.plants?.[0]?.name) {
+          return `Plant ID - ${record.result.plants[0].name}`
+        }
+        return "Plant Identification"
+      case 'soil_analysis':
+        if (record.result?.soilHealth?.category) {
+          return `Soil Analysis - ${record.result.soilHealth.category} health`
+        }
+        if (record.result?.basicProperties?.ph) {
+          return `Soil Analysis - pH ${record.result.basicProperties.ph}`
+        }
+        return "Soil Analysis"
+      case 'yield_calculation':
+        if (record.result?.estimatedYield?.quantity) {
+          return `Yield Calculator - ${record.result.estimatedYield.quantity}${record.result.estimatedYield.unit || 'kg'} projected`
+        }
+        return "Yield Calculation"
+      default:
+        return "Analysis"
+    }
+  }
+
+  const generateDescription = (record: any) => {
+    console.log('🔍 Generating description for record:', record.type, record)
+    
+    // Use result field from API response instead of analysis
+    const analysis = record.result || record.analysis || record
+    
+    switch (record.type) {
+      case 'plant_health':
+        if (analysis?.healthStatus?.healthScore) {
+          return `Health Score: ${analysis.healthStatus.healthScore}%, ${analysis?.primaryConcerns?.[0] || 'Analysis completed'}`
+        }
+        if (analysis?.nutritionalDeficiencies?.length > 0) {
+          return `${analysis.nutritionalDeficiencies[0].nutrient} deficiency detected`
+        }
+        if (analysis?.diseases?.length > 0 && analysis.diseases[0]?.name) {
+          return `${analysis.diseases[0].name} detected with ${analysis.diseases[0].severity || 'unknown'} severity`
+        }
+        if (analysis?.pests?.length > 0 && analysis.pests[0]?.name) {
+          return `${analysis.pests[0].name} detected`
+        }
+        if (analysis?.healthStatus?.assessment) {
+          return analysis.healthStatus.assessment.substring(0, 100) + "..."
+        }
+        return record.isHealthy ? "Plant appears healthy" : "Issues detected in plant health"
+      case 'plant_identification':
+        if (analysis?.plants?.[0]) {
+          const plant = analysis.plants[0]
+          const scientificName = plant.scientificName || plant.species || plant.name
+          const commonName = plant.commonName || plant.common_name
+          return `${commonName || scientificName || 'Unknown species'} identified`
+        }
+        return "Plant species identification completed"
+      case 'soil_analysis':
+        if (analysis?.basicProperties?.ph) {
+          return `pH ${analysis.basicProperties.ph}, ${analysis?.soilHealth?.category || 'analyzed'}`
+        }
+        if (analysis?.soilHealth?.overallScore) {
+          return `Overall soil score: ${analysis.soilHealth.overallScore}%`
+        }
+        return "Soil composition and health analysis completed"
+      case 'yield_calculation':
+        if (analysis?.economicProjection?.roi) {
+          return `ROI ${analysis.economicProjection.roi}%, yield projection completed`
+        }
+        if (analysis?.estimatedYield?.quantity) {
+          return `Estimated yield: ${analysis.estimatedYield.quantity} ${analysis.estimatedYield.unit || 'kg'}`
+        }
+        return "Yield and economic projection completed"
+      default:
+        return "Analysis completed successfully"
+    }
+  }
+
   // Load analysis history on component mount
   useEffect(() => {
     loadAnalysisHistory()
@@ -149,27 +242,55 @@ export function AnalysisHistoryView() {
         offset: reset ? 0 : records.length
       })
       
+      console.log('🔍 Analysis History API Response:', response)
+      console.log('🔍 Response success:', response?.success)
+      console.log('🔍 Response data:', response?.data)
+      console.log('🔍 Response total:', response?.total)
+      
       if (response.success) {
-        const newRecords = response.data || []
+        const rawRecords = response.data || []
+        console.log('🔍 Raw records loaded:', rawRecords.length, rawRecords)
+        
+        // Transform API records to match UI expectations
+        const newRecords = rawRecords.map((record: any) => {
+          console.log('🔍 Transforming individual record:', record.id, record.type, record)
+          
+          return {
+            id: record.id,
+            type: record.type,
+            title: generateTitle(record),
+            description: generateDescription(record),
+            confidence: record.result?.healthStatus?.confidence || record.confidence,
+            status: "completed", // All returned records are completed
+            isHealthy: record.isHealthy || record.result?.healthStatus?.isHealthy,
+            createdAt: record.createdAt || record.created_at || new Date().toISOString(),
+            result: record.result || record.analysis || record,
+            media: record.media || record.mediaUrls,
+            location: record.location || record.metadata?.location,
+            cropType: record.cropType || record.crop_type || record.metadata?.cropType
+          }
+        })
+        
+        console.log('🔍 Transformed records:', newRecords)
         setRecords(reset ? newRecords : [...records, ...newRecords])
         setTotal(response.total || 0)
         setHasMore(newRecords.length === 20) // Has more if we got a full page
       } else {
-        // Fallback to mock data if API fails
-        setRecords(mockAnalysisData)
-        setTotal(mockAnalysisData.length)
+        console.log('🔍 API response success was false')
+        setRecords([])
+        setTotal(0)
         setHasMore(false)
       }
     } catch (error) {
       console.error('Failed to load analysis history:', error)
-      // Fallback to mock data
-      setRecords(mockAnalysisData)
-      setTotal(mockAnalysisData.length)
+      // Set empty array on error
+      setRecords([])
+      setTotal(0)
       setHasMore(false)
       
       toast({
         title: "Connection Error",
-        description: "Using offline data. Some features may be limited.",
+        description: "Could not load analysis history. Please check your connection and try again.",
         variant: "destructive"
       })
     } finally {
@@ -278,8 +399,38 @@ export function AnalysisHistoryView() {
     })
   }
 
-  const handleViewDetails = (record: AnalysisRecord) => {
-    setSelectedRecord(record)
+  const handleViewDetails = async (record: AnalysisRecord) => {
+    try {
+      console.log('🔍 Loading detailed analysis for:', record.id, record.type)
+      
+      // Fetch the full analysis details from the API
+      const detailResponse = await apiClient.getAnalysisById(record.id, record.type)
+      console.log('🔍 Detailed analysis response:', detailResponse)
+      
+      if (detailResponse.success && detailResponse.data) {
+        // Update the record with the full analysis data
+        const enhancedRecord = {
+          ...record,
+          result: detailResponse.data.analysis || detailResponse.data,
+          media: detailResponse.data.mediaUrls || detailResponse.data.media || record.media
+        }
+        console.log('🔍 Enhanced record with full data:', enhancedRecord)
+        setSelectedRecord(enhancedRecord)
+      } else {
+        // Fallback to showing the record as-is
+        console.log('🔍 Using existing record data')
+        setSelectedRecord(record)
+      }
+    } catch (error) {
+      console.error('Failed to load detailed analysis:', error)
+      // Fallback to showing the record as-is
+      setSelectedRecord(record)
+      toast({
+        title: "Warning",
+        description: "Could not load full analysis details. Showing available data.",
+        variant: "default"
+      })
+    }
   }
 
   const handleDeleteRecord = async (record: AnalysisRecord) => {
@@ -513,6 +664,15 @@ export function AnalysisHistoryView() {
           </div>
         </div>
       )}
+
+      {/* Analysis Detail Modal */}
+      <AnalysisDetailModal
+        open={!!selectedRecord}
+        onOpenChange={(open) => {
+          if (!open) setSelectedRecord(null)
+        }}
+        record={selectedRecord}
+      />
     </div>
   )
 }
