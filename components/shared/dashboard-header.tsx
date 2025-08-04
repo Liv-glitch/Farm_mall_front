@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Bell, Settings, LogOut, User } from "lucide-react"
 import { useAuth } from "@/lib/hooks/use-auth"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { ProfileModal } from "@/components/modals/profile-modal"
 import Link from "next/link"
 
@@ -48,9 +47,6 @@ export function DashboardHeader() {
             <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
 
-          <div className="hidden sm:block">
-            <ThemeToggle />
-          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -83,12 +79,6 @@ export function DashboardHeader() {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
-              <div className="sm:hidden">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span>Theme Settings</span>
-                </DropdownMenuItem>
-              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />

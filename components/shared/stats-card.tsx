@@ -36,7 +36,7 @@ export function StatsCard({
           <p className="text-2xl font-bold tracking-tight">
             {prefix}
             <span className="tabular-nums">
-              {typeof value === 'number' ? value.toLocaleString() : value}
+              {typeof value === 'number' && !isNaN(value) ? value.toLocaleString() : '0'}
             </span>
             {suffix}
           </p>

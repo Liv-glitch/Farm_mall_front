@@ -50,8 +50,16 @@ export default function AnalyticsPage() {
   
   // Financial calculations
   const totalInvestment = cycles.reduce((sum, cycle) => {
-    const activityCosts = cycle.activities?.reduce((acc, activity) => 
-      acc + (typeof activity.cost === 'string' ? parseFloat(activity.cost) : activity.cost || 0), 0) || 0
+    const activityCosts = cycle.activities?.reduce((acc, activity) => {
+      let cost = 0
+      if (typeof activity.cost === 'string') {
+        const parsed = parseFloat(activity.cost)
+        cost = isNaN(parsed) ? 0 : parsed
+      } else if (typeof activity.cost === 'number') {
+        cost = isNaN(activity.cost) ? 0 : activity.cost
+      }
+      return acc + cost
+    }, 0) || 0
     return sum + activityCosts
   }, 0)
 
