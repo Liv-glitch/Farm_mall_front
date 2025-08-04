@@ -515,7 +515,14 @@ class ApiClient {
     if (params?.offset) searchParams.append('offset', params.offset.toString());
     if (params?.search) searchParams.append('search', params.search);
 
-    return this.client.get(`/enhanced-plant/history?${searchParams}`).then(r => r.data);
+    // Use axios directly to bypass the interceptor that strips the response structure
+    const axiosResponse = await axios.get(`${this.client.defaults.baseURL}/enhanced-plant/history?${searchParams}`, {
+      headers: this.client.defaults.headers.common,
+      timeout: this.client.defaults.timeout
+    });
+    
+    // Return the full API response as-is
+    return axiosResponse.data;
   }
 
   async getAnalysisById(analysisId: string, type: string) {
