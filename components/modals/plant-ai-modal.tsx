@@ -148,7 +148,14 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
   // Helper functions to detect enhanced vs legacy format
   const isEnhancedResponse = (res: any) => {
     console.log('🔍 Checking response format:', res)
-    const hasEnhanced = res?.healthStatus || res?.plants || res?.data?.healthStatus || res?.data?.plants
+    console.log('🔍 res.data:', res?.data)
+    console.log('🔍 res.data.healthStatus:', res?.data?.healthStatus)
+    console.log('🔍 res.data.nutritionalDeficiencies:', res?.data?.nutritionalDeficiencies)
+    
+    // Check for enhanced Gemini format
+    const hasEnhanced = res?.healthStatus || res?.plants || 
+                       res?.data?.healthStatus || res?.data?.plants ||
+                       res?.data?.nutritionalDeficiencies || res?.data?.environmentalStress
     console.log('🔍 Is Enhanced Response:', hasEnhanced)
     return hasEnhanced
   }
@@ -424,13 +431,112 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
                       </CardContent>
                     </Card>
 
-                    {/* Disease Information */}
+                    {/* Assessment Description */}
+                    {getEnhancedData(result).healthStatus?.assessment && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                            Assessment Summary
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-gray-700">{getEnhancedData(result).healthStatus.assessment}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Nutritional Deficiencies */}
+                    {getEnhancedData(result).nutritionalDeficiencies && getEnhancedData(result).nutritionalDeficiencies.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <AlertCircle className="h-5 w-5 mr-2 text-orange-600" />
+                            Nutritional Deficiencies
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {getEnhancedData(result).nutritionalDeficiencies.map((deficiency: any, idx: number) => (
+                              <div key={idx} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-semibold text-lg">{deficiency.nutrient}</h4>
+                                  <Badge variant="destructive">
+                                    {deficiency.severity} severity
+                                  </Badge>
+                                </div>
+                                <div className="space-y-3">
+                                  {deficiency.symptoms && deficiency.symptoms.length > 0 && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-1">Symptoms:</h5>
+                                      <ul className="list-disc list-inside text-sm text-gray-600">
+                                        {deficiency.symptoms.map((symptom: string, sidx: number) => (
+                                          <li key={sidx}>{symptom}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {deficiency.causes && deficiency.causes.length > 0 && (
+                                    <div>
+                                      <h5 className="font-medium text-sm mb-1">Causes:</h5>
+                                      <ul className="list-disc list-inside text-sm text-gray-600">
+                                        {deficiency.causes.slice(0, 2).map((cause: string, cidx: number) => (
+                                          <li key={cidx}>{cause}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Environmental Stress */}
+                    {getEnhancedData(result).environmentalStress && getEnhancedData(result).environmentalStress.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center">
+                            <TrendingUp className="h-5 w-5 mr-2 text-yellow-600" />
+                            Environmental Stress
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {getEnhancedData(result).environmentalStress.map((stress: any, idx: number) => (
+                              <div key={idx} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-semibold text-lg capitalize">{stress.type.replace('_', ' ')}</h4>
+                                  <Badge variant="outline">
+                                    {stress.severity} severity
+                                  </Badge>
+                                </div>
+                                {stress.symptoms && stress.symptoms.length > 0 && (
+                                  <div>
+                                    <h5 className="font-medium text-sm mb-1">Symptoms:</h5>
+                                    <ul className="list-disc list-inside text-sm text-gray-600">
+                                      {stress.symptoms.map((symptom: string, sidx: number) => (
+                                        <li key={sidx}>{symptom}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Disease Information (if any) */}
                     {getEnhancedData(result).diseases && getEnhancedData(result).diseases.length > 0 && (
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center">
                             <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
-                            Detected Issues
+                            Detected Diseases
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
