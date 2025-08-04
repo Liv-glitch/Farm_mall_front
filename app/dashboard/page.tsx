@@ -31,6 +31,16 @@ const getUserInitials = (fullName: string) => {
 
 // Helper function to format currency
 const formatCurrency = (amount: number) => {
+  // Handle NaN, null, undefined
+  if (isNaN(amount) || amount == null) {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(0)
+  }
+  
   return new Intl.NumberFormat('en-KE', {
     style: 'currency',
     currency: 'KES',
@@ -105,8 +115,16 @@ const UserProfileCard = ({ user }: { user: any }) => {
 const ProductionCyclesSummary = ({ cycles }: { cycles: ProductionCycle[] }) => {
   const activeCycles = cycles.filter(c => c.status === "active").length
   const totalInvestment = cycles.reduce((sum, cycle) => {
-    const activityCosts = cycle.activities?.reduce((acc, activity) => 
-      acc + (typeof activity.cost === 'string' ? parseFloat(activity.cost) : activity.cost || 0), 0) || 0
+    const activityCosts = cycle.activities?.reduce((acc, activity) => {
+      let cost = 0
+      if (typeof activity.cost === 'string') {
+        const parsed = parseFloat(activity.cost)
+        cost = isNaN(parsed) ? 0 : parsed
+      } else if (typeof activity.cost === 'number') {
+        cost = isNaN(activity.cost) ? 0 : activity.cost
+      }
+      return acc + cost
+    }, 0) || 0
     return sum + activityCosts
   }, 0)
   const totalArea = Math.round(cycles.reduce((sum, cycle) => {
@@ -161,21 +179,34 @@ const ProductionCyclesList = ({ cycles }: { cycles: ProductionCycle[] }) => {
       </div>
       
       <div className="space-y-3">
-        {cycles.map((cycle) => (
-          <Card key={cycle.id} className="bg-white shadow-sm border border-gray-100">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-gray-900">{cycle.cropVariety?.name}</h4>
-                  <p className="text-sm text-gray-600">
-                    {cycle.landSizeAcres} Acres, {cycle.farmLocation}
-                  </p>
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>Planted on: {formatDate(cycle.plantingDate)}</p>
-                    <p>Expected Harvest: {formatDate(cycle.estimatedHarvestDate)}</p>
-                    <p>Total Cost: {formatCurrency(cycle.totalCost || 0)}</p>
+        {cycles.map((cycle) => {
+          // Calculate total cost from activities for this cycle
+          const cycleTotalCost = cycle.activities?.reduce((sum, activity) => {
+            let cost = 0
+            if (typeof activity.cost === 'string') {
+              const parsed = parseFloat(activity.cost)
+              cost = isNaN(parsed) ? 0 : parsed
+            } else if (typeof activity.cost === 'number') {
+              cost = isNaN(activity.cost) ? 0 : activity.cost
+            }
+            return sum + cost
+          }, 0) || 0
+
+          return (
+            <Card key={cycle.id} className="bg-white shadow-sm border border-gray-100">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-gray-900">{cycle.cropVariety?.name}</h4>
+                    <p className="text-sm text-gray-600">
+                      {cycle.landSizeAcres} Acres, {cycle.farmLocation}
+                    </p>
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <p>Planted on: {formatDate(cycle.plantingDate)}</p>
+                      <p>Expected Harvest: {formatDate(cycle.estimatedHarvestDate)}</p>
+                      <p>Total Cost: {formatCurrency(cycleTotalCost)}</p>
+                    </div>
                   </div>
-                </div>
                 <Link href={`/dashboard/cycles/${cycle.id}`}>
                   <Button variant="ghost" size="sm" className="text-agri-700 hover:bg-agri-50">
                     View Details
@@ -184,7 +215,8 @@ const ProductionCyclesList = ({ cycles }: { cycles: ProductionCycle[] }) => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

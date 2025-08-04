@@ -75,21 +75,40 @@ export default function CyclesPage() {
   
   // Calculate total investment (sum of all activities' costs)
   const totalInvestment = cycles.reduce((sum, cycle) => {
-    const activityCosts = cycle.activities?.reduce((acc, activity) => 
-      acc + (typeof activity.cost === 'string' ? parseFloat(activity.cost) : activity.cost || 0), 0) || 0;
-    return sum + activityCosts;
-  }, 0);
+    const activityCosts = cycle.activities?.reduce((acc, activity) => {
+      let cost = 0
+      if (typeof activity.cost === 'string') {
+        const parsed = parseFloat(activity.cost)
+        cost = isNaN(parsed) ? 0 : parsed
+      } else if (typeof activity.cost === 'number') {
+        cost = isNaN(activity.cost) ? 0 : activity.cost
+      }
+      return acc + cost
+    }, 0) || 0
+    return sum + activityCosts
+  }, 0)
 
   // Calculate expected revenue
   const expectedRevenue = cycles.reduce((sum, cycle) => {
-    const cycleRevenue = cycle.status === "harvested" && cycle.actualYield && cycle.actualPricePerKg
-      ? cycle.actualYield * cycle.actualPricePerKg
-      : (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0);
-    return sum + cycleRevenue;
-  }, 0);
+    let cycleRevenue = 0
+    if (cycle.status === "harvested" && cycle.actualYield && cycle.actualPricePerKg) {
+      const actualYield = isNaN(cycle.actualYield) ? 0 : cycle.actualYield
+      const actualPrice = isNaN(cycle.actualPricePerKg) ? 0 : cycle.actualPricePerKg
+      cycleRevenue = actualYield * actualPrice
+    } else {
+      const expectedYield = isNaN(cycle.expectedYield) ? 0 : cycle.expectedYield
+      const expectedPrice = isNaN(cycle.expectedPricePerKg) ? 0 : cycle.expectedPricePerKg
+      cycleRevenue = expectedYield * expectedPrice
+    }
+    return sum + cycleRevenue
+  }, 0)
 
   // Format large numbers to K/M format
   const formatLargeNumber = (num: number): number => {
+    // Handle NaN, null, undefined
+    if (isNaN(num) || num == null) {
+      return 0;
+    }
     if (num >= 1000000) {
       return Number((num / 1000000).toFixed(1));
     }
@@ -209,7 +228,7 @@ export default function CyclesPage() {
             <StatsCard
               title="Total Investment"
               value={formatLargeNumber(totalInvestment)}
-              suffix={totalInvestment >= 1000000 ? "M" : totalInvestment >= 1000 ? "K" : ""}
+              suffix={!isNaN(totalInvestment) && totalInvestment >= 1000000 ? "M" : (!isNaN(totalInvestment) && totalInvestment >= 1000 ? "K" : "")}
               prefix="KSh "
               description="Across all cycles"
               icon={DollarSign}
@@ -218,7 +237,7 @@ export default function CyclesPage() {
             <StatsCard
               title="Expected Revenue"
               value={formatLargeNumber(expectedRevenue)}
-              suffix={expectedRevenue >= 1000000 ? "M" : expectedRevenue >= 1000 ? "K" : ""}
+              suffix={!isNaN(expectedRevenue) && expectedRevenue >= 1000000 ? "M" : (!isNaN(expectedRevenue) && expectedRevenue >= 1000 ? "K" : "")}
               prefix="KSh "
               description="Projected earnings"
               icon={BarChart3}

@@ -81,6 +81,18 @@ export function ProductionCycleCard({
   const nextActivity = getNextActivity()
   const expectedRevenue = (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0)
   const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
+  
+  // Calculate total cost from all activities
+  const totalCost = cycle.activities?.reduce((sum, activity) => {
+    let cost = 0
+    if (typeof activity.cost === 'string') {
+      const parsed = parseFloat(activity.cost)
+      cost = isNaN(parsed) ? 0 : parsed
+    } else if (typeof activity.cost === 'number') {
+      cost = isNaN(activity.cost) ? 0 : activity.cost
+    }
+    return sum + cost
+  }, 0) || 0
 
   const handleViewDetails = () => {
     router.push(`/dashboard/cycles/${cycle.id}`)
@@ -218,13 +230,16 @@ export function ProductionCycleCard({
           <div className="grid grid-cols-2 gap-2 text-center">
             <div className="p-2 bg-gray-50 rounded-lg">
               <div className="text-sm font-semibold text-sage-700">
-                KSh {(cycle.totalCost / 1000).toFixed(0)}k
+                KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
               </div>
               <div className="text-xs text-gray-600">Cost</div>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg">
               <div className="text-sm font-semibold text-sage-700">
-                KSh {((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / 1000).toFixed(0)}k
+                KSh {(() => {
+                  const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
+                  return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
+                })()}k
               </div>
               <div className="text-xs text-gray-600">
                 {cycle.status === "harvested" && actualRevenue > 0 ? "Revenue" : "Est. Revenue"}

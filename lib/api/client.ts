@@ -18,7 +18,7 @@ class ApiClient {
     
     this.client = axios.create({
       baseURL: `${baseURL}/api/${config.api.version}`,
-      timeout: 10000,
+      timeout: 180000, // 3 minutes default timeout for AI operations
       headers: {
         "Content-Type": "application/json",
         // Add ngrok-specific header to bypass browser warning
@@ -398,8 +398,143 @@ class ApiClient {
     })
   }
 
-  // Plant AI endpoints
-  async identifyPlant({ image, latitude, longitude, similar_images }: { image: File, latitude?: number, longitude?: number, similar_images?: boolean }) {
+  // Enhanced Plant AI endpoints (Gemini + Plant.id)
+  async identifyPlant({ image, latitude, longitude, similar_images, plant_type, location }: { 
+    image: File, 
+    latitude?: number, 
+    longitude?: number, 
+    similar_images?: boolean,
+    plant_type?: string,
+    location?: string
+  }) {
+    const formData = new FormData();
+    formData.append("image1", image);
+    if (latitude !== undefined) formData.append("latitude", latitude.toString());
+    if (longitude !== undefined) formData.append("longitude", longitude.toString());
+    if (similar_images === true) formData.append("similar_images", "true");
+    if (plant_type) formData.append("plant_type", plant_type);
+    if (location) formData.append("location", location);
+    
+    // Use enhanced endpoint with Gemini AI
+    return this.client.post("/enhanced-plant/identify", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000, // 2 minutes for AI processing
+    }).then(r => r.data);
+  }
+
+  async assessPlantHealth({ image, latitude, longitude, similar_images, plant_type, symptoms, location }: { 
+    image: File, 
+    latitude?: number, 
+    longitude?: number, 
+    similar_images?: boolean,
+    plant_type?: string,
+    symptoms?: string,
+    location?: string
+  }) {
+    const formData = new FormData();
+    formData.append("image1", image);
+    if (latitude !== undefined) formData.append("latitude", latitude.toString());
+    if (longitude !== undefined) formData.append("longitude", longitude.toString());
+    if (similar_images === true) formData.append("similar_images", "true");
+    if (plant_type) formData.append("plant_type", plant_type);
+    if (symptoms) formData.append("symptoms", symptoms);
+    if (location) formData.append("location", location);
+    
+    // Use enhanced endpoint with Gemini AI
+    return this.client.post("/enhanced-plant/health", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000, // 2 minutes for AI processing
+    }).then(r => r.data);
+  }
+
+  // New Soil Analysis endpoint
+  async analyzeSoil({ document, location, crop_type, farm_size, budget }: {
+    document: File,
+    location?: string,
+    crop_type?: string,
+    farm_size?: string,
+    budget?: string
+  }) {
+    const formData = new FormData();
+    formData.append("document", document);
+    if (location) formData.append("location", location);
+    if (crop_type) formData.append("crop_type", crop_type);
+    if (farm_size) formData.append("farm_size", farm_size);
+    if (budget) formData.append("budget", budget);
+    
+    return this.client.post("/enhanced-plant/soil", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 150000, // 2.5 minutes for soil analysis
+    }).then(r => r.data);
+  }
+
+  // New Smart Yield Calculator endpoint
+  async calculateYield(data: {
+    cropType: string,
+    farmSize: number,
+    location: string,
+    variety?: string,
+    farmingSystem?: string,
+    irrigationType?: string,
+    fertilizationLevel?: string,
+    pestManagement?: string,
+    season?: string,
+    inputBudget?: number,
+    targetMarket?: string,
+    soilData?: {
+      ph?: number,
+      organicMatter?: number,
+      nitrogen?: number,
+      phosphorus?: number,
+      potassium?: number,
+      texture?: string,
+      drainage?: string
+    },
+    previousYields?: Array<{
+      year: number,
+      yield: number,
+      practices: string
+    }>
+  }) {
+    return this.client.post("/enhanced-plant/yield", data, {
+      headers: { "Content-Type": "application/json" },
+      timeout: 180000, // 3 minutes for complex yield calculations
+    }).then(r => r.data);
+  }
+
+  // Analysis History endpoints
+  async getAnalysisHistory(params?: {
+    type?: 'plant_identification' | 'plant_health' | 'soil_analysis' | 'yield_calculation',
+    limit?: number,
+    offset?: number,
+    search?: string
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.append('type', params.type);
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.offset) searchParams.append('offset', params.offset.toString());
+    if (params?.search) searchParams.append('search', params.search);
+
+    // Use axios directly to bypass the interceptor that strips the response structure
+    const axiosResponse = await axios.get(`${this.client.defaults.baseURL}/enhanced-plant/history?${searchParams}`, {
+      headers: this.client.defaults.headers.common,
+      timeout: this.client.defaults.timeout
+    });
+    
+    // Return the full API response as-is
+    return axiosResponse.data;
+  }
+
+  async getAnalysisById(analysisId: string, type: string) {
+    return this.client.get(`/enhanced-plant/analysis/${analysisId}?type=${type}`).then(r => r.data);
+  }
+
+  async deleteAnalysis(analysisId: string, type: string) {
+    return this.client.delete(`/enhanced-plant/analysis/${analysisId}?type=${type}`).then(r => r.data);
+  }
+
+  // Legacy endpoints (kept for backward compatibility)
+  async identifyPlantLegacy({ image, latitude, longitude, similar_images }: { image: File, latitude?: number, longitude?: number, similar_images?: boolean }) {
     const formData = new FormData();
     formData.append("image1", image);
     if (latitude !== undefined) formData.append("latitude", latitude.toString());
@@ -410,7 +545,7 @@ class ApiClient {
     }).then(r => r.data);
   }
 
-  async assessPlantHealth({ image, latitude, longitude, similar_images }: { image: File, latitude?: number, longitude?: number, similar_images?: boolean }) {
+  async assessPlantHealthLegacy({ image, latitude, longitude, similar_images }: { image: File, latitude?: number, longitude?: number, similar_images?: boolean }) {
     const formData = new FormData();
     formData.append("image", image);
     if (latitude !== undefined) formData.append("latitude", latitude.toString());

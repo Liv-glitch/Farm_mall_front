@@ -148,6 +148,18 @@ export default function CycleDetailPage() {
   const nextActivity = getNextActivity()
   const expectedRevenue = (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0)
   const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
+  
+  // Calculate total cost from all activities
+  const totalCost = activities.reduce((sum, activity) => {
+    let cost = 0
+    if (typeof activity.cost === 'string') {
+      const parsed = parseFloat(activity.cost)
+      cost = isNaN(parsed) ? 0 : parsed
+    } else if (typeof activity.cost === 'number') {
+      cost = isNaN(activity.cost) ? 0 : activity.cost
+    }
+    return sum + cost
+  }, 0)
   const completedActivities = cycle.activities?.filter((a) => a.status === "completed").length || 0
   const totalActivities = cycle.activities?.length || 0
 
@@ -327,12 +339,17 @@ export default function CycleDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-lg sm:text-xl font-bold text-red-600">KSh {(cycle.totalCost / 1000).toFixed(0)}k</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600">
+                    KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
+                  </p>
                   <p className="text-xs text-gray-600">Total Investment</p>
                 </div>
                 <div>
                   <p className="text-lg sm:text-xl font-bold text-blue-600">
-                    KSh {((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / 1000).toFixed(0)}k
+                    KSh {(() => {
+                      const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
+                      return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
+                    })()}k
                   </p>
                   <p className="text-xs text-gray-600">
                     {cycle.status === "harvested" && actualRevenue > 0 ? "Actual" : "Expected"} Revenue
@@ -344,15 +361,15 @@ export default function CycleDetailPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Net Profit:</span>
                   <span className={`text-lg sm:text-xl font-bold ${
-                    (cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - cycle.totalCost > 0
+                    (cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost > 0
                       ? "text-green-600"
                       : "text-red-600"
                   }`}>
-                    KSh {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - cycle.totalCost) / 1000).toFixed(0)}k
+                    KSh {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost) / 1000).toFixed(0)}k
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  ROI: {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / cycle.totalCost - 1) * 100).toFixed(1)}%
+                  ROI: {totalCost > 0 ? (((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / totalCost - 1) * 100).toFixed(1) : 0}%
                 </p>
               </div>
             </CardContent>
