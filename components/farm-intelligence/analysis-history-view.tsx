@@ -56,6 +56,20 @@ interface AnalysisRecord {
   cropType?: string
 }
 
+interface AnalysisData {
+  records: AnalysisRecord[]
+  loading: boolean
+  error: string | null
+  total: number
+  hasMore: boolean
+}
+
+interface AnalysisHistoryViewProps {
+  preloadedData?: AnalysisData
+  onLoadMore?: () => void
+  onRefresh?: () => void
+}
+
 // Mock data for development - replace with real API calls
 const mockAnalysisData: AnalysisRecord[] = [
   {
@@ -125,16 +139,31 @@ const mockAnalysisData: AnalysisRecord[] = [
   }
 ]
 
-export function AnalysisHistoryView() {
-  const [records, setRecords] = useState<AnalysisRecord[]>([])
+export function AnalysisHistoryView({ 
+  preloadedData, 
+  onLoadMore, 
+  onRefresh 
+}: AnalysisHistoryViewProps) {
+  // Use preloaded data if available, otherwise initialize empty state
+  const [records, setRecords] = useState<AnalysisRecord[]>(preloadedData?.records || [])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(preloadedData ? preloadedData.loading : true)
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(null)
-  const [total, setTotal] = useState(0)
-  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(preloadedData?.total || 0)
+  const [hasMore, setHasMore] = useState(preloadedData?.hasMore || false)
+  
+  // Update state when preloaded data changes
+  useEffect(() => {
+    if (preloadedData) {
+      setRecords(preloadedData.records)
+      setLoading(preloadedData.loading)
+      setTotal(preloadedData.total)
+      setHasMore(preloadedData.hasMore)
+    }
+  }, [preloadedData])
   const { toast } = useToast()
 
   // Helper functions to generate titles and descriptions from API data
@@ -229,72 +258,18 @@ export function AnalysisHistoryView() {
     }
   }
 
-  // Load analysis history on component mount
-  useEffect(() => {
-    loadAnalysisHistory()
-  }, [])
+  // No longer need to load data on mount - using preloaded data
+  // Load more data when requested
+  const handleLoadMore = () => {
+    if (onLoadMore && hasMore && !loading) {
+      onLoadMore()
+    }
+  }
 
-  const loadAnalysisHistory = async (reset = true) => {
-    try {
-      setLoading(true)
-      const response = await apiClient.getAnalysisHistory({
-        limit: 20,
-        offset: reset ? 0 : records.length
-      })
-      
-      console.log('🔍 Analysis History API Response:', response)
-      console.log('🔍 Response success:', response?.success)
-      console.log('🔍 Response data:', response?.data)
-      console.log('🔍 Response total:', response?.total)
-      
-      if (response.success) {
-        const rawRecords = response.data || []
-        console.log('🔍 Raw records loaded:', rawRecords.length, rawRecords)
-        
-        // Transform API records to match UI expectations
-        const newRecords = rawRecords.map((record: any) => {
-          console.log('🔍 Transforming individual record:', record.id, record.type, record)
-          
-          return {
-            id: record.id,
-            type: record.type,
-            title: generateTitle(record),
-            description: generateDescription(record),
-            confidence: record.result?.healthStatus?.confidence || record.confidence,
-            status: "completed", // All returned records are completed
-            isHealthy: record.isHealthy || record.result?.healthStatus?.isHealthy,
-            createdAt: record.createdAt || record.created_at || new Date().toISOString(),
-            result: record.result || record.analysis || record,
-            media: record.media || record.mediaUrls,
-            location: record.location || record.metadata?.location,
-            cropType: record.cropType || record.crop_type || record.metadata?.cropType
-          }
-        })
-        
-        console.log('🔍 Transformed records:', newRecords)
-        setRecords(reset ? newRecords : [...records, ...newRecords])
-        setTotal(response.total || 0)
-        setHasMore(newRecords.length === 20) // Has more if we got a full page
-      } else {
-        console.log('🔍 API response success was false')
-        setRecords([])
-        setTotal(0)
-        setHasMore(false)
-      }
-    } catch (error) {
-      console.error('Failed to load analysis history:', error)
-      // Set empty array on error
-      setRecords([])
-      setTotal(0)
-      setHasMore(false)
-      
-      toast({
-        title: "Connection Error",
-        description: "Could not load analysis history. Please check your connection and try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
+  // Refresh data when requested
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh()
     }
   }
 
@@ -451,16 +426,16 @@ export function AnalysisHistoryView() {
     }
   }
 
-  const handleRefresh = async () => {
-    await loadAnalysisHistory(true)
+  const handleRefreshWithToast = async () => {
+    handleRefresh()
     toast({
       title: "Refreshed",
       description: "Analysis history has been updated."
     })
   }
 
-  const handleLoadMore = () => {
-    loadAnalysisHistory(false)
+  const handleLoadMoreWithLoading = () => {
+    handleLoadMore()
   }
 
   return (

@@ -574,6 +574,13 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
   const renderPlantIdentificationResults = () => {
     const data = record.result
 
+    // Helper function to safely get string value from potentially nested object
+    const getSafeString = (value: any, fallback = 'Unknown') => {
+      if (typeof value === 'string') return value
+      if (typeof value === 'object' && value?.commonName) return value.commonName
+      return fallback
+    }
+
     return (
       <div className="space-y-6">
         {/* Primary Identification */}
@@ -620,82 +627,85 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {data.plants.map((plant: any, idx: number) => (
-                  <div key={idx} className={`border rounded-lg p-4 ${idx === 0 ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-semibold text-lg">
-                            {plant.commonName || plant.common_name || plant.name || 'Unknown'}
-                          </h4>
-                          {idx === 0 && (
-                            <Badge variant="default" className="bg-green-600">
-                              Primary Match
-                            </Badge>
+                {data.plants.map((plant: any, idx: number) => {
+                  const commonName = getSafeString(plant.commonName || plant.common_name || plant.name)
+                  const scientificName = plant.scientificName || plant.species || ''
+                  const confidence = plant.confidence || 0
+                  
+                  return (
+                    <div key={idx} className={`border rounded-lg p-4 ${idx === 0 ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <h4 className="font-semibold text-lg">{commonName}</h4>
+                            {idx === 0 && (
+                              <Badge variant="default" className="bg-green-600">
+                                Primary Match
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {scientificName && (
+                            <p className="text-sm italic text-gray-600 mb-2">
+                              <em>{scientificName}</em>
+                            </p>
+                          )}
+
+                          {plant.genus && (
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
+                              <span><strong>Genus:</strong> {plant.genus}</span>
+                              {plant.family && <span><strong>Family:</strong> {plant.family}</span>}
+                            </div>
                           )}
                         </div>
                         
-                        {(plant.scientificName || plant.species) && (
-                          <p className="text-sm italic text-gray-600 mb-2">
-                            <em>{plant.scientificName || plant.species}</em>
-                          </p>
-                        )}
-
-                        {plant.genus && (
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
-                            <span><strong>Genus:</strong> {plant.genus}</span>
-                            {plant.family && <span><strong>Family:</strong> {plant.family}</span>}
+                        {confidence > 0 && (
+                          <div className="text-right">
+                            <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                              confidence > 0.8 
+                                ? 'bg-green-100 text-green-700' 
+                                : confidence > 0.6 
+                                  ? 'bg-yellow-100 text-yellow-700' 
+                                  : 'bg-red-100 text-red-700'
+                            }`}>
+                              {(confidence * 100).toFixed(1)}%
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">confidence</p>
                           </div>
                         )}
                       </div>
-                      {plant.confidence && (
-                        <div className="text-right">
-                          <div className={`px-3 py-1 rounded-full text-sm font-bold ${
-                            plant.confidence > 0.8 
-                              ? 'bg-green-100 text-green-700' 
-                              : plant.confidence > 0.6 
-                                ? 'bg-yellow-100 text-yellow-700' 
-                                : 'bg-red-100 text-red-700'
-                          }`}>
-                            {(plant.confidence * 100).toFixed(1)}%
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">confidence</p>
+
+                      {plant.description && (
+                        <div className="mb-3">
+                          <h5 className="font-medium text-sm mb-1">Description:</h5>
+                          <p className="text-sm text-gray-600 leading-relaxed">{plant.description}</p>
+                        </div>
+                      )}
+
+                      {plant.cultivationTips && plant.cultivationTips.length > 0 && (
+                        <div className="mb-3">
+                          <h5 className="font-medium text-sm mb-2">Cultivation Tips:</h5>
+                          <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                            {plant.cultivationTips.slice(0, 3).map((tip: string, tipIdx: number) => (
+                              <li key={tipIdx}>{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {plant.usefulProperties && plant.usefulProperties.length > 0 && (
+                        <div>
+                          <h5 className="font-medium text-sm mb-1">Uses & Properties:</h5>
+                          <ul className="list-disc list-inside text-sm text-gray-600">
+                            {plant.usefulProperties.slice(0, 2).map((prop: string, propIdx: number) => (
+                              <li key={propIdx}>{prop}</li>
+                            ))}
+                          </ul>
                         </div>
                       )}
                     </div>
-
-                    {plant.description && (
-                      <div className="mb-3">
-                        <h5 className="font-medium text-sm mb-1">Description:</h5>
-                        <p className="text-sm text-gray-600 leading-relaxed">{plant.description}</p>
-                      </div>
-                    )}
-
-                    {plant.characteristics && plant.characteristics.length > 0 && (
-                      <div className="mb-3">
-                        <h5 className="font-medium text-sm mb-2">Key Characteristics:</h5>
-                        <div className="flex flex-wrap gap-2">
-                          {plant.characteristics.map((char: string, cidx: number) => (
-                            <Badge key={cidx} variant="outline" className="text-xs">
-                              {char}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {plant.uses && plant.uses.length > 0 && (
-                      <div>
-                        <h5 className="font-medium text-sm mb-1">Common Uses:</h5>
-                        <ul className="list-disc list-inside text-sm text-gray-600">
-                          {plant.uses.slice(0, 3).map((use: string, uidx: number) => (
-                            <li key={uidx}>{use}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -712,21 +722,31 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {data.alternativeIdentifications.map((alt: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <div>
-                      <h5 className="font-medium">{alt.name || alt}</h5>
-                      {alt.reason && (
-                        <p className="text-sm text-amber-700">{alt.reason}</p>
+                {data.alternativeIdentifications.map((alt: any, idx: number) => {
+                  const altName = getSafeString(alt.commonName || alt.name, 'Alternative identification')
+                  const altScientific = alt.scientificName || ''
+                  const altDescription = alt.description || alt.reason || ''
+                  const altConfidence = alt.confidence || 0
+                  
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div className="flex-1">
+                        <h5 className="font-medium">{altName}</h5>
+                        {altScientific && (
+                          <p className="text-xs italic text-amber-600">{altScientific}</p>
+                        )}
+                        {altDescription && (
+                          <p className="text-sm text-amber-700 mt-1">{altDescription}</p>
+                        )}
+                      </div>
+                      {altConfidence > 0 && (
+                        <Badge variant="outline" className="border-amber-500 text-amber-700">
+                          {(altConfidence * 100).toFixed(1)}%
+                        </Badge>
                       )}
                     </div>
-                    {alt.confidence && (
-                      <Badge variant="outline" className="border-amber-500 text-amber-700">
-                        {(alt.confidence * 100).toFixed(1)}%
-                      </Badge>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -746,46 +766,6 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                 <div className="whitespace-pre-line text-sm text-gray-700 leading-relaxed">
                   {data.regionalContext}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Growing Conditions */}
-        {data.growingConditions && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Activity className="h-5 w-5 mr-2 text-blue-600" />
-                Growing Conditions & Care
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {data.growingConditions.climate && (
-                  <div>
-                    <h5 className="font-medium text-sm mb-2 text-blue-700">Climate:</h5>
-                    <p className="text-sm text-gray-600">{data.growingConditions.climate}</p>
-                  </div>
-                )}
-                {data.growingConditions.soil && (
-                  <div>
-                    <h5 className="font-medium text-sm mb-2 text-blue-700">Soil Requirements:</h5>
-                    <p className="text-sm text-gray-600">{data.growingConditions.soil}</p>
-                  </div>
-                )}
-                {data.growingConditions.water && (
-                  <div>
-                    <h5 className="font-medium text-sm mb-2 text-blue-700">Water Needs:</h5>
-                    <p className="text-sm text-gray-600">{data.growingConditions.water}</p>
-                  </div>
-                )}
-                {data.growingConditions.sunlight && (
-                  <div>
-                    <h5 className="font-medium text-sm mb-2 text-blue-700">Sunlight:</h5>
-                    <p className="text-sm text-gray-600">{data.growingConditions.sunlight}</p>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
