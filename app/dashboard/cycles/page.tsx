@@ -14,6 +14,7 @@ import { UserSidebar } from "@/components/user/user-sidebar"
 import { StatsCard } from "@/components/shared/stats-card"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { config } from "@/lib/config"
 
 export default function CyclesPage() {
   const router = useRouter()
@@ -23,6 +24,31 @@ export default function CyclesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("newest")
+
+  // Handle URL token parameter for WhatsApp bot authentication
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const token = urlParams.get('token')
+    
+    if (token) {
+      // Set token in both localStorage and cookie for authentication
+      localStorage.setItem(config.auth.tokenKey, token)
+      document.cookie = `farm_mall_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`
+      
+      // Set token in API client
+      apiClient.setToken(token)
+      
+      // Clean URL by removing token parameter
+      const cleanUrl = new URL(window.location.href)
+      cleanUrl.searchParams.delete('token')
+      window.history.replaceState({}, document.title, cleanUrl.toString())
+      
+      toast({
+        title: "Authentication Successful",
+        description: "You've been authenticated from WhatsApp bot",
+      })
+    }
+  }, [])
 
   useEffect(() => {
     async function fetchCycles() {
