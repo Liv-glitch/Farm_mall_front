@@ -26,13 +26,7 @@ import {
   TrendingUp,
   Clock,
   Database,
-  CheckCircle,
-  Zap,
-  Shield,
-  Target,
-  Droplets,
-  Sun,
-  Wind
+  CheckCircle
 } from "lucide-react"
 
 export default function FarmIntelligencePage() {
@@ -41,7 +35,6 @@ export default function FarmIntelligencePage() {
   const [showPlantHealth, setShowPlantHealth] = useState(false)
   const [showSoilAnalysis, setShowSoilAnalysis] = useState(false)
   const [showYieldCalculator, setShowYieldCalculator] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
   
   // Analysis history state - preloaded for better UX
   const [analysisData, setAnalysisData] = useState({
@@ -54,7 +47,6 @@ export default function FarmIntelligencePage() {
 
   // Preload analysis history data on page mount
   useEffect(() => {
-    setIsVisible(true)
     loadAnalysisHistory()
   }, [])
 
@@ -204,467 +196,178 @@ export default function FarmIntelligencePage() {
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
-      <div className="min-h-screen bg-gradient-to-br from-sage-50 via-agri-50 to-tea-50 relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-agri-200/20 rounded-full animate-pulse"></div>
-          <div
-            className="absolute top-40 right-20 w-24 h-24 bg-tea-200/20 rounded-full animate-bounce"
-            style={{ animationDelay: "1s" }}
-          ></div>
-          <div
-            className="absolute bottom-40 left-1/4 w-40 h-40 bg-sage-200/20 rounded-full animate-pulse"
-            style={{ animationDelay: "2s" }}
-          ></div>
-          <div
-            className="absolute bottom-20 right-1/3 w-28 h-28 bg-maize-200/20 rounded-full animate-bounce"
-            style={{ animationDelay: "0.5s" }}
-          ></div>
-        </div>
-
-        {/* Enhanced Header */}
-        <header className="relative bg-gradient-to-r from-agri-800 via-agri-700 to-sage-700 shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-agri-800/90 to-sage-700/90 backdrop-blur-sm"></div>
-          <div className="relative max-w-7xl mx-auto px-6 py-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-agri-50">
+        {/* Simple Header */}
+        <header className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="w-14 h-14 bg-gradient-to-br from-tea-400 to-maize-500 rounded-2xl flex items-center justify-center transform rotate-12 shadow-lg">
-                    <Leaf className="w-8 h-8 text-white transform -rotate-12" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-agri-400 rounded-full animate-ping"></div>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-agri-600 rounded-lg flex items-center justify-center">
+                  <Leaf className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white tracking-tight">Farm Intelligence Hub</h1>
-                  <p className="text-agri-100 font-medium">Where nature meets technology</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Farm Intelligence</h1>
+                  <p className="text-sm text-gray-600">AI-powered farming insights</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <Badge className="bg-agri-500/20 text-agri-100 border-agri-400/30 backdrop-blur-sm">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  All Systems Thriving
-                </Badge>
-                <Button className="bg-gradient-to-r from-tea-500 to-maize-500 hover:from-tea-600 hover:to-maize-600 text-white shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Quick Analysis
-                </Button>
-              </div>
+              <Badge className="bg-green-100 text-green-800">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                All Systems Active
+              </Badge>
             </div>
           </div>
         </header>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-12">
-          {/* Hero Section with organic shape */}
-          <div
-            className={`relative mb-16 transform transition-all duration-1000 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
-          >
-            <div className="relative rounded-[3rem] overflow-hidden shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-agri-600 via-sage-600 to-tea-600"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-agri-900/20 via-transparent to-tea-900/20"></div>
-              <div className="relative p-12 flex items-center min-h-[320px]">
-                <div className="max-w-3xl">
-                  <h2 className="text-5xl font-bold text-white mb-6 leading-tight">
-                    Cultivate Intelligence,
-                    <span className="text-tea-300"> Harvest Success</span>
-                  </h2>
-                  <p className="text-xl text-agri-100 mb-8 leading-relaxed">
-                    Harness the power of AI to understand your land like never before. From soil whispers to plant songs, we translate nature's language into actionable insights.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <Button
-                      size="lg"
-                      className="bg-white text-agri-800 hover:bg-agri-50 shadow-lg transform hover:scale-105 transition-all duration-300"
-                      onClick={() => setActiveTab("services")}
-                    >
-                      <Leaf className="w-5 h-5 mr-2" />
-                      Begin Journey
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-2 border-white text-white hover:bg-white/10 bg-transparent backdrop-blur-sm"
-                      onClick={() => setActiveTab("history")}
-                    >
-                      <Database className="w-5 h-5 mr-2" />
-                      Explore History
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Organic Stats Cards */}
-          <div
-            className={`grid grid-cols-1 md:grid-cols-4 gap-8 mb-16 transform transition-all duration-1000 delay-300 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
-          >
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[
-              {
-                icon: BarChart3,
-                label: "Active Analyses",
-                value: "12",
-                color: "agri",
-                bgPattern: "from-agri-400 to-sage-500",
-              },
-              { icon: Clock, label: "Avg Processing", value: "28s", color: "tea", bgPattern: "from-tea-400 to-maize-500" },
-              {
-                icon: TrendingUp,
-                label: "Yield Increase",
-                value: "+23%",
-                color: "maize",
-                bgPattern: "from-maize-400 to-tea-500",
-              },
-              {
-                icon: Database,
-                label: "Records Stored",
-                value: "1.2K",
-                color: "sage",
-                bgPattern: "from-sage-400 to-agri-500",
-              },
-            ].map((stat, index) => (
-              <div
-                key={stat.label}
-                className="group relative transform hover:scale-105 transition-all duration-500"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Hexagonal background */}
-                <div className="absolute inset-0 transform rotate-6 group-hover:rotate-12 transition-transform duration-500">
-                  <div className={`w-full h-full bg-gradient-to-br ${stat.bgPattern} rounded-3xl opacity-10`}></div>
-                </div>
-
-                <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-white/20">
-                  <div className="flex items-center justify-between mb-4">
-                    <div
-                      className={`w-14 h-14 bg-gradient-to-br ${stat.bgPattern} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300`}
-                    >
-                      <stat.icon className="w-7 h-7 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
-                      <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                    </div>
+              { icon: BarChart3, label: "Active Analyses", value: "12", color: "blue" },
+              { icon: Clock, label: "Avg Processing", value: "28s", color: "green" },
+              { icon: TrendingUp, label: "Yield Increase", value: "+23%", color: "yellow" },
+              { icon: Database, label: "Records Stored", value: "1.2K", color: "purple" },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className={`w-10 h-10 bg-${stat.color}-100 rounded-lg flex items-center justify-center`}>
+                    <stat.icon className={`w-5 h-5 text-${stat.color}-600`} />
                   </div>
-                  <div
-                    className={`h-1 bg-gradient-to-r ${stat.bgPattern} rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}
-                  ></div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Tabs for Services/History */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg h-14 rounded-2xl border border-white/20">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 rounded-lg">
               <TabsTrigger 
                 value="services" 
-                className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 flex items-center space-x-2 rounded-2xl"
+                className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:text-agri-700 data-[state=active]:shadow-sm text-gray-600 hover:text-gray-900 transition-all duration-200 rounded-md py-3"
               >
                 <Brain className="h-4 w-4" />
-                <span>Nature's AI Toolkit</span>
+                <span className="font-medium">AI Tools</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="history" 
-                className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 flex items-center space-x-2 rounded-2xl"
+                className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:text-agri-700 data-[state=active]:shadow-sm text-gray-600 hover:text-gray-900 transition-all duration-200 rounded-md py-3"
               >
                 <History className="h-4 w-4" />
-                <span>Analysis History</span>
+                <span className="font-medium">History</span>
               </TabsTrigger>
             </TabsList>
 
             {/* AI Services Tab */}
-            <TabsContent value="services" className="space-y-8">
-              {/* Nature-inspired Service Cards */}
-              <div
-                className={`mb-16 transform transition-all duration-1000 delay-500 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
-              >
-                <div className="text-center mb-12">
-                  <h3 className="text-4xl font-bold bg-gradient-to-r from-agri-800 to-sage-700 bg-clip-text text-transparent mb-4">
-                    Nature's AI Toolkit
-                  </h3>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                    Each tool is crafted to work in harmony with Kenya's unique ecosystem and farming traditions
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Plant Health - Organic Shape */}
-                  <div className="group relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-agri-400/20 to-sage-500/20 transform rotate-3 group-hover:rotate-6 transition-transform duration-700 rounded-[2rem]"></div>
-                    <div className="relative bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 shadow-2xl border border-agri-100 transform group-hover:-translate-y-2 transition-all duration-500">
-                      <div className="flex items-start space-x-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 bg-gradient-to-br from-agri-500 to-sage-600 rounded-3xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                            <HeartPulse className="w-10 h-10 text-white" />
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-agri-400 rounded-full flex items-center justify-center">
-                            <Droplets className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-2xl font-bold text-gray-800 mb-3">Plant Health Oracle</h4>
-                          <p className="text-gray-600 mb-6 leading-relaxed">
-                            Like a wise farmer reading the signs, our AI detects plant diseases and suggests treatments rooted in Kenyan agricultural wisdom.
-                          </p>
-                          <div className="space-y-3 mb-6">
-                            {["Disease Detection", "Treatment Plans", "Progress Tracking"].map((feature, i) => (
-                              <div key={feature} className="flex items-center text-sm text-gray-700">
-                                <div
-                                  className="w-2 h-2 bg-agri-500 rounded-full mr-3 animate-pulse"
-                                  style={{ animationDelay: `${i * 200}ms` }}
-                                ></div>
-                                {feature}
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="bg-gradient-to-r from-agri-500 to-sage-600 hover:from-agri-600 hover:to-sage-700 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
-                            onClick={() => {
-                              console.log('🔍 Plant Health card clicked')
-                              setShowPlantHealth(true)
-                              console.log('🔍 showPlantHealth set to:', true)
-                            }}
-                          >
-                            Diagnose Plants
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Plant ID - Eye Shape */}
-                  <div className="group relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-tea-400/20 to-maize-500/20 transform -rotate-3 group-hover:-rotate-6 transition-transform duration-700 rounded-[2rem]"></div>
-                    <div className="relative bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 shadow-2xl border border-tea-100 transform group-hover:-translate-y-2 transition-all duration-500">
-                      <div className="flex items-start space-x-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 bg-gradient-to-br from-tea-500 to-maize-600 rounded-3xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
-                            <Search className="w-10 h-10 text-white" />
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-tea-400 rounded-full flex items-center justify-center">
-                            <Sun className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-2xl font-bold text-gray-800 mb-3">Plant Identifier</h4>
-                          <p className="text-gray-600 mb-6 leading-relaxed">
-                            Instantly recognize any plant species with cultivation tips tailored for Kenya's diverse climate zones and growing conditions.
-                          </p>
-                          <div className="space-y-3 mb-6">
-                            {["Species Recognition", "Local Varieties", "Growing Guidelines"].map((feature, i) => (
-                              <div key={feature} className="flex items-center text-sm text-gray-700">
-                                <div
-                                  className="w-2 h-2 bg-tea-500 rounded-full mr-3 animate-pulse"
-                                  style={{ animationDelay: `${i * 200}ms` }}
-                                ></div>
-                                {feature}
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="bg-gradient-to-r from-tea-500 to-maize-600 hover:from-tea-600 hover:to-maize-700 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
-                            onClick={() => {
-                              console.log('🔍 Plant ID card clicked')
-                              setShowPlantIdentify(true)
-                              console.log('🔍 showPlantIdentify set to:', true)
-                            }}
-                          >
-                            Identify Species
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Soil Analysis - Organic Blob */}
-                  <div className="group relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-maize-400/20 to-tea-500/20 transform rotate-2 group-hover:rotate-5 transition-transform duration-700 rounded-[2rem]"></div>
-                    <div className="relative bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 shadow-2xl border border-maize-100 transform group-hover:-translate-y-2 transition-all duration-500">
-                      <div className="flex items-start space-x-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 bg-gradient-to-br from-maize-500 to-tea-600 rounded-3xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                            <TestTube className="w-10 h-10 text-white" />
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-maize-400 rounded-full flex items-center justify-center">
-                            <Wind className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-2xl font-bold text-gray-800 mb-3">Soil Whisperer</h4>
-                          <p className="text-gray-600 mb-6 leading-relaxed">
-                            Upload your soil reports and receive AI-powered recommendations that understand the unique characteristics of Kenyan soils.
-                          </p>
-                          <div className="space-y-3 mb-6">
-                            {["PDF Report Analysis", "Fertilizer Plans", "Crop Suitability"].map((feature, i) => (
-                              <div key={feature} className="flex items-center text-sm text-gray-700">
-                                <div
-                                  className="w-2 h-2 bg-maize-500 rounded-full mr-3 animate-pulse"
-                                  style={{ animationDelay: `${i * 200}ms` }}
-                                ></div>
-                                {feature}
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="bg-gradient-to-r from-maize-500 to-tea-600 hover:from-maize-600 hover:to-tea-700 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
-                            onClick={() => setShowSoilAnalysis(true)}
-                          >
-                            Analyze Soil
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Yield Calculator - Spiral Shape */}
-                  <div className="group relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-sage-400/20 to-agri-500/20 transform -rotate-2 group-hover:-rotate-5 transition-transform duration-700 rounded-[2rem]"></div>
-                    <div className="relative bg-white/90 backdrop-blur-sm rounded-[2rem] p-8 shadow-2xl border border-sage-100 transform group-hover:-translate-y-2 transition-all duration-500">
-                      <div className="flex items-start space-x-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 bg-gradient-to-br from-sage-500 to-agri-600 rounded-3xl flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
-                            <Calculator className="w-10 h-10 text-white" />
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-sage-400 rounded-full flex items-center justify-center">
-                            <TrendingUp className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-2xl font-bold text-gray-800 mb-3">Harvest Prophet</h4>
-                          <p className="text-gray-600 mb-6 leading-relaxed">
-                            Predict your yields with advanced AI that considers weather patterns, soil conditions, and market trends specific to Kenya.
-                          </p>
-                          <div className="space-y-3 mb-6">
-                            {["AI-Driven Analysis", "Risk Assessment", "Profit Projections"].map((feature, i) => (
-                              <div key={feature} className="flex items-center text-sm text-gray-700">
-                                <div
-                                  className="w-2 h-2 bg-sage-500 rounded-full mr-3 animate-pulse"
-                                  style={{ animationDelay: `${i * 200}ms` }}
-                                ></div>
-                                {feature}
-                              </div>
-                            ))}
-                          </div>
-                          <Button 
-                            className="bg-gradient-to-r from-sage-500 to-agri-600 hover:from-sage-600 hover:to-agri-700 text-white shadow-lg transform hover:scale-105 transition-all duration-300"
-                            onClick={() => setShowYieldCalculator(true)}
-                          >
-                            Predict Yield
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+            <TabsContent value="services" className="space-y-6">
+              {/* Section Header */}
+              <div className="bg-agri-50 border border-agri-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-3">
+                  <Brain className="h-5 w-5 text-agri-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-agri-900">AI Analysis Tools</h3>
+                    <p className="text-sm text-agri-700">Choose a tool to analyze your farm data</p>
                   </div>
                 </div>
               </div>
 
-              {/* Enhanced AI Capabilities - Honeycomb Pattern */}
-              <div
-                className={`mb-16 transform transition-all duration-1000 delay-700 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
-              >
-                <div className="text-center mb-12">
-                  <h3 className="text-4xl font-bold bg-gradient-to-r from-agri-800 to-sage-700 bg-clip-text text-transparent mb-4">
-                    The Ecosystem Advantage
-                  </h3>
-                  <p className="text-xl text-gray-600 leading-relaxed">
-                    Powered by Gemini AI with continuous learning from Plant-Id for unmatched reliability
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
-                    {
-                      icon: Target,
-                      title: "Kenya-Rooted Wisdom",
-                      description:
-                        "Every recommendation is filtered through deep understanding of Kenyan climate, soil, and traditional farming knowledge.",
-                      gradient: "from-agri-500 to-sage-600",
-                      bgGradient: "from-agri-50 to-sage-50",
-                    },
-                    {
-                      icon: Shield,
-                      title: "Living Memory",
-                      description:
-                        "Your farm's story grows richer with every analysis, creating a personalized knowledge base that evolves with your land.",
-                      gradient: "from-tea-500 to-maize-600",
-                      bgGradient: "from-tea-50 to-maize-50",
-                    },
-                    {
-                      icon: Brain,
-                      title: "Holistic Intelligence",
-                      description:
-                        "From seed to harvest, our AI connects every aspect of farming into one unified intelligence system.",
-                      gradient: "from-sage-500 to-agri-600",
-                      bgGradient: "from-sage-50 to-agri-50",
-                    },
-                  ].map((capability) => (
-                    <div
-                      key={capability.title}
-                      className="group relative transform hover:scale-105 transition-all duration-500"
+              {/* Service Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Plant Health */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-green-200 hover:shadow-md hover:border-green-300 transition-all">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <HeartPulse className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900">Plant Health Oracle</h4>
+                        <p className="text-gray-600 text-sm">
+                          Like a wise farmer reading the signs, detect plant diseases and get treatment recommendations
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700 text-white w-full"
+                      onClick={() => setShowPlantHealth(true)}
                     >
-                      {/* Hexagonal background */}
-                      <div className="absolute inset-0 transform rotate-6 group-hover:rotate-12 transition-transform duration-500">
-                        <div
-                          className={`w-full h-full bg-gradient-to-br ${capability.bgGradient} rounded-3xl opacity-50`}
-                        ></div>
-                      </div>
-
-                      <div className="relative bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 text-center">
-                        <div
-                          className={`w-24 h-24 bg-gradient-to-br ${capability.gradient} rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-2xl transition-shadow duration-300`}
-                        >
-                          <capability.icon className="w-12 h-12 text-white" />
-                        </div>
-                        <h4 className="text-2xl font-bold text-gray-800 mb-4">{capability.title}</h4>
-                        <p className="text-gray-600 leading-relaxed">{capability.description}</p>
-                        <div
-                          className={`mt-6 h-1 bg-gradient-to-r ${capability.gradient} rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500`}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                      <HeartPulse className="w-4 h-4 mr-2" />
+                      Diagnose Plants
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Performance Dashboard - Organic Flow */}
-              <div
-                className={`transform transition-all duration-1000 delay-900 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}
-              >
-                <div className="relative bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-[3rem] p-10 shadow-2xl border border-gray-100">
-                  <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-agri-200/30 to-sage-300/30 rounded-full transform -translate-x-16 -translate-y-16"></div>
-                  <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-br from-tea-200/30 to-maize-300/30 rounded-full transform translate-x-20 translate-y-20"></div>
-
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
-                        <h4 className="text-3xl font-bold text-gray-800 mb-2">System Vitals</h4>
-                        <p className="text-gray-600 text-lg">All analyses flow seamlessly into your growing knowledge base</p>
+                {/* Plant ID */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-blue-200 hover:shadow-md hover:border-blue-300 transition-all">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Search className="w-6 h-6 text-blue-600" />
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-agri-500 rounded-full animate-pulse"></div>
-                        <span className="text-lg font-semibold text-agri-600">Ecosystem Thriving</span>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900">Species Sage</h4>
+                        <p className="text-gray-600 text-sm">
+                          Instantly recognize any plant species with cultivation tips for Kenya's diverse climate zones
+                        </p>
                       </div>
                     </div>
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                      onClick={() => setShowPlantIdentify(true)}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Identify Species
+                    </Button>
+                  </div>
+                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                      {[
-                        { label: "Plant Analysis", time: "~25 seconds", progress: 85, color: "agri" },
-                        { label: "Soil Analysis", time: "~30 seconds", progress: 75, color: "tea" },
-                        { label: "Yield Calculator", time: "~40 seconds", progress: 65, color: "sage" },
-                      ].map((metric) => (
-                        <div key={metric.label} className="group">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-lg font-semibold text-gray-700">{metric.label}</span>
-                            <span className="text-gray-600 font-medium">{metric.time}</span>
-                          </div>
-                          <div className="relative">
-                            <Progress
-                              value={metric.progress}
-                              className="h-3 bg-gray-200 group-hover:bg-gray-300 transition-colors duration-300"
-                            />
-                          </div>
-                        </div>
-                      ))}
+                {/* Soil Analysis */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-yellow-200 hover:shadow-md hover:border-yellow-300 transition-all">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <TestTube className="w-6 h-6 text-yellow-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900">Soil Whisperer</h4>
+                        <p className="text-gray-600 text-sm">
+                          Upload soil reports and receive AI-powered recommendations for Kenyan soils
+                        </p>
+                      </div>
                     </div>
+                    <Button 
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white w-full"
+                      onClick={() => setShowSoilAnalysis(true)}
+                    >
+                      <TestTube className="w-4 h-4 mr-2" />
+                      Analyze Soil
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Yield Calculator */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-purple-200 hover:shadow-md hover:border-purple-300 transition-all">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calculator className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-gray-900">Harvest Prophet</h4>
+                        <p className="text-gray-600 text-sm">
+                          Predict yields with AI that considers weather patterns and market trends specific to Kenya
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+                      onClick={() => setShowYieldCalculator(true)}
+                    >
+                      <Calculator className="w-4 h-4 mr-2" />
+                      Calculate Yield
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -672,6 +375,17 @@ export default function FarmIntelligencePage() {
 
             {/* Analysis History Tab */}
             <TabsContent value="history" className="space-y-6">
+              {/* Section Header */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-3">
+                  <History className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-900">Analysis History</h3>
+                    <p className="text-sm text-blue-700">View your past analysis results and insights</p>
+                  </div>
+                </div>
+              </div>
+
               <AnalysisHistoryView 
                 preloadedData={analysisData}
                 onLoadMore={() => loadAnalysisHistory(false)}
