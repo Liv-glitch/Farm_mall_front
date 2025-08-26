@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 
 import { PlantAIModal } from "@/components/modals/plant-ai-modal"
 import { SoilAnalysisModal } from "@/components/modals/soil-analysis-modal"

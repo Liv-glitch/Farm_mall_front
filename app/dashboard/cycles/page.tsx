@@ -290,7 +290,6 @@ export default function CyclesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="planning">Planning</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="harvested">Harvested</SelectItem>
                 <SelectItem value="archived">Archived</SelectItem>

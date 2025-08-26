@@ -103,8 +103,6 @@ export default function CycleDetailPage() {
 
   const getStatusColor = (status: ProductionCycle["status"]) => {
     switch (status) {
-      case "planning":
-        return "bg-blue-100 text-blue-800"
       case "active":
         return "bg-green-100 text-green-800"
       case "harvested":
@@ -139,7 +137,7 @@ export default function CycleDetailPage() {
   const getNextActivity = () => {
     if (!activities.length) return null
     return activities
-      .filter(activity => activity.status === "planned")
+      .filter(activity => activity.status === "in_progress")
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0]
   }
 
@@ -287,7 +285,7 @@ export default function CycleDetailPage() {
                   <span className="font-medium text-blue-800 text-xs sm:text-sm">Next Activity</span>
                 </div>
                 <div className="text-xs sm:text-sm text-blue-700">
-                  {nextActivity.name} - {format(new Date(nextActivity.scheduledDate), "MMM dd, yyyy")}
+                  {nextActivity.description} - {format(new Date(nextActivity.scheduledDate), "MMM dd, yyyy")}
                 </div>
               </div>
             )}

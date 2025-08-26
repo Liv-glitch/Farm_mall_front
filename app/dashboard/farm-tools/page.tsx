@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { CostCalculatorModal } from "@/components/modals/cost-calculator-modal"
 import { HarvestForecastModal } from "@/components/modals/harvest-forecast-modal"
+import { IncomeCalculatorModal } from "@/components/modals/income-calculator-modal"
+import { InvestmentCalculatorModal } from "@/components/modals/investment-calculator-modal"
 import { 
   Calculator, 
   Calendar, 
@@ -16,13 +18,14 @@ import {
   Clock,
   FileText,
   Target,
-  Zap,
-  Brain
+  Zap
 } from "lucide-react"
 
 export default function FarmToolsPage() {
   const [showCostCalculator, setShowCostCalculator] = useState(false)
   const [showHarvestForecast, setShowHarvestForecast] = useState(false)
+  const [showIncomeCalculator, setShowIncomeCalculator] = useState(false)
+  const [showInvestmentCalculator, setShowInvestmentCalculator] = useState(false)
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
@@ -55,7 +58,7 @@ export default function FarmToolsPage() {
               </div>
 
               {/* Tools Cards */}
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {/* Cost Calculator Card */}
                 <Card 
                   className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
@@ -124,6 +127,78 @@ export default function FarmToolsPage() {
                     <Button className="w-full mt-4 bg-agri-600 hover:bg-agri-700 text-white">
                       <Clock className="h-4 w-4 mr-2" />
                       Forecast Harvest
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Income Calculator Card */}
+                <Card 
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
+                    showIncomeCalculator ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+                  }`}
+                  onClick={() => setShowIncomeCalculator(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <DollarSign className="h-8 w-8 text-green-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Expected Income Calculator</h3>
+                    <p className="text-gray-600 mb-4">
+                      Calculate expected income based on acreage, yield, and market price
+                    </p>
+                    <div className="space-y-2 text-sm text-gray-500">
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Revenue Projection</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Yield Analysis</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Market Planning</span>
+                      </div>
+                    </div>
+                    <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Calculate Income
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Investment Calculator Card */}
+                <Card 
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
+                    showInvestmentCalculator ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => setShowInvestmentCalculator(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Target className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Investment Calculator</h3>
+                    <p className="text-gray-600 mb-4">
+                      Determine optimal acreage and yield based on your investment amount
+                    </p>
+                    <div className="space-y-2 text-sm text-gray-500">
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span>ROI Analysis</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span>Acreage Planning</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span>Crop Selection</span>
+                      </div>
+                    </div>
+                    <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">
+                      <Target className="h-4 w-4 mr-2" />
+                      Calculate Investment
                     </Button>
                   </CardContent>
                 </Card>
@@ -218,6 +293,8 @@ export default function FarmToolsPage() {
         {/* Modals */}
         <CostCalculatorModal open={showCostCalculator} onOpenChange={setShowCostCalculator} />
         <HarvestForecastModal open={showHarvestForecast} onOpenChange={setShowHarvestForecast} />
+        <IncomeCalculatorModal open={showIncomeCalculator} onOpenChange={setShowIncomeCalculator} />
+        <InvestmentCalculatorModal open={showInvestmentCalculator} onOpenChange={setShowInvestmentCalculator} />
       </div>
     </DashboardLayout>
   )
