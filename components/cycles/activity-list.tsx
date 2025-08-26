@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -26,6 +26,8 @@ interface ActivityListProps {
   cycleId: string
   onActivityUpdate: (cycleId: string, activity: Activity) => void
   onActivityAdd: (cycleId: string, activity: Activity) => void
+  onActivityDelete?: (cycleId: string, activityId: string) => void
+  onDeleteAllActivities?: (cycleId: string) => void
 }
 
 type ActivityStatusWithOverdue = Activity["status"] | "overdue"
@@ -58,7 +60,7 @@ const formatLaborType = (laborType: string | undefined): string => {
   ).join(" ");
 };
 
-export function ActivityList({ activities, cycleId, onActivityUpdate, onActivityAdd }: ActivityListProps) {
+export function ActivityList({ activities, cycleId, onActivityUpdate, onActivityAdd, onActivityDelete, onDeleteAllActivities }: ActivityListProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
 
@@ -82,8 +84,6 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
 
   const getStatusColor = (status: ActivityStatusWithOverdue) => {
     switch (status) {
-      case "planned":
-        return "bg-blue-100 text-blue-800"
       case "in_progress":
         return "bg-yellow-100 text-yellow-800"
       case "completed":
@@ -96,7 +96,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
   }
 
   const getStatusIcon = (activity: Activity) => {
-    const isOverdue = activity.status === "planned" && isPast(activity.scheduledDate)
+    const isOverdue = activity.status === "in_progress" && isPast(activity.scheduledDate)
     
     if (activity.status === "completed") {
       return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
@@ -104,7 +104,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
     if (isOverdue) {
       return <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
     }
-    return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+    return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
   }
 
   const completedActivities = activities.filter(a => a.status === "completed").length
@@ -114,9 +114,8 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
   const sortedActivities = [...activities].sort((a, b) => {
     // Sort by status priority, then by date
     const statusPriority: Record<Activity["status"], number> = { 
-      planned: 1, 
-      in_progress: 2, 
-      completed: 3
+      in_progress: 1, 
+      completed: 2
     }
     
     const aPriority = statusPriority[a.status] || 99
@@ -163,7 +162,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
             </Card>
           ) : (
             sortedActivities.map((activity) => {
-              const isOverdue = activity.status === "planned" && isPast(activity.scheduledDate)
+              const isOverdue = activity.status === "in_progress" && isPast(activity.scheduledDate)
               const actualStatus: ActivityStatusWithOverdue = isOverdue ? "overdue" : activity.status
 
               return (

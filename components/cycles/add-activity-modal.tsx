@@ -160,16 +160,17 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
   const handleTemplateSelect = (template: (typeof activityTemplates)[0]) => {
     setSelectedTemplate(template)
+    // Only set the type, keep other fields empty but use template values as placeholders
     setFormData({
-      name: template.name,
+      name: "",
       type: template.type,
-      description: template.description,
+      description: "",
       scheduledDate: "",
-      cost: template.cost,
-      laborHours: template.laborHours,
-      laborType: template.laborType,
-      inputs: template.inputs,
-      notes: template.notes,
+      cost: 0,
+      laborHours: 0,
+      laborType: "family",
+      inputs: "",
+      notes: "",
     })
   }
 
@@ -194,7 +195,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         type: formData.type,
         description: formData.description,
         scheduledDate: scheduledDate.toISOString(),
-        status: "planned",
+        status: "in_progress",
         cost: validatedCost.toFixed(2),
         laborHours: validatedLaborHours.toFixed(1),
         laborType: formData.laborType,
@@ -270,8 +271,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
             </div>
 
             {useTemplate && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {activityTemplates.map((template) => (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-[300px] sm:max-h-none overflow-y-auto">
+                {activityTemplates.slice(0, 6).map((template) => (
                   <Card
                     key={template.name}
                     className={`cursor-pointer transition-colors hover:bg-muted ${
@@ -279,9 +280,9 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     }`}
                     onClick={() => handleTemplateSelect(template)}
                   >
-                    <CardContent className="p-3">
-                      <h4 className="font-medium text-sm mb-1">{template.name}</h4>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
+                    <CardContent className="p-2 sm:p-3">
+                      <h4 className="font-medium text-xs sm:text-sm mb-1 line-clamp-1">{template.name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 hidden sm:block">{template.description}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -297,6 +298,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 <Input
                   id="name"
                   value={formData.name}
+                  placeholder={selectedTemplate ? selectedTemplate.name : "Enter activity name"}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
@@ -311,7 +313,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[200px] sm:max-h-none overflow-y-auto">
                     <SelectItem value="soil_preparation">Soil Preparation</SelectItem>
                     <SelectItem value="planting">Planting</SelectItem>
                     <SelectItem value="fertilization">Fertilization</SelectItem>
@@ -320,6 +322,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     <SelectItem value="disease_control">Disease Control</SelectItem>
                     <SelectItem value="irrigation">Irrigation</SelectItem>
                     <SelectItem value="harvesting">Harvesting</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -330,6 +333,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
               <Textarea
                 id="description"
                 value={formData.description}
+                placeholder={selectedTemplate ? selectedTemplate.description : "Describe the activity"}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
@@ -373,7 +377,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.cost}
+                  value={formData.cost || ""}
+                  placeholder={selectedTemplate ? `e.g., ${selectedTemplate.cost}` : "Enter cost"}
                   onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                   required
                 />
@@ -386,7 +391,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                   type="number"
                   min="0"
                   step="0.1"
-                  value={formData.laborHours}
+                  value={formData.laborHours || ""}
+                  placeholder={selectedTemplate ? `e.g., ${selectedTemplate.laborHours}` : "Enter hours"}
                   onChange={(e) => setFormData({ ...formData, laborHours: parseFloat(e.target.value) || 0 })}
                   required
                 />
@@ -398,6 +404,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
               <Input
                 id="inputs"
                 value={formData.inputs}
+                placeholder={selectedTemplate ? selectedTemplate.inputs : "e.g., Seeds, fertilizer, tools"}
                 onChange={(e) => setFormData({ ...formData, inputs: e.target.value })}
               />
             </div>
@@ -407,6 +414,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
               <Textarea
                 id="notes"
                 value={formData.notes}
+                placeholder={selectedTemplate ? selectedTemplate.notes : "Any additional notes or reminders"}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>

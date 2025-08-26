@@ -44,8 +44,6 @@ export function ProductionCycleCard({
 
   const getStatusColor = (status: ProductionCycle["status"]) => {
     switch (status) {
-      case "planning":
-        return "bg-blue-100 text-blue-800"
       case "active":
         return "bg-green-100 text-green-800"
       case "harvested":
@@ -72,7 +70,7 @@ export function ProductionCycleCard({
   const getNextActivity = () => {
     if (!cycle.activities) return null
     return cycle.activities
-      .filter((activity) => activity.status === "planned")
+      .filter((activity) => activity.status === "in_progress")
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0]
   }
 
@@ -253,7 +251,7 @@ export function ProductionCycleCard({
               <div className="flex items-center gap-1.5 text-xs text-blue-800">
                 <TrendingUp className="h-3 w-3 text-blue-600" />
                 <span className="font-medium">Next:</span>
-                <span className="truncate">{nextActivity.name}</span>
+                <span className="truncate">{nextActivity.description}</span>
                 <span className="ml-auto font-medium">
                   {format(nextActivity.scheduledDate, "MMM dd")}
                 </span>

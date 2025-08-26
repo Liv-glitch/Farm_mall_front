@@ -34,7 +34,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
     estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
     actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
-    status: cycle.status || "planning",
+    status: cycle.status || "active",
     cropStage: cycle.cropStage,
     expectedYield: cycle.expectedYield || 0,
     actualYield: cycle.actualYield || 0,
@@ -54,7 +54,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
       estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
       actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
-      status: cycle.status || "planning",
+      status: cycle.status || "active",
       cropStage: cycle.cropStage,
       expectedYield: cycle.expectedYield || 0,
       actualYield: cycle.actualYield || 0,
@@ -231,7 +231,6 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="planning">Planning</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="harvested">Harvested</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>

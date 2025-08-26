@@ -228,7 +228,6 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="planned">Planned</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
