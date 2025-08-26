@@ -28,7 +28,9 @@ import {
   Droplets,
   Zap,
   Users,
-  BarChart3
+  BarChart3,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
@@ -151,6 +153,7 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
   const [result, setResult] = useState<YieldCalculationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("basic")
+  const [showOptionalFields, setShowOptionalFields] = useState(false)
 
   const reset = () => {
     setCropType("")
@@ -180,6 +183,7 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
     setError(null)
     setProgress(0)
     setActiveTab("basic")
+    setShowOptionalFields(false)
   }
 
   const validateRequiredFields = () => {
@@ -474,191 +478,234 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
               </TabsList>
 
               {/* Basic Information Tab */}
-              <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Required Fields */}
-                  <div className="space-y-2">
-                    <Label htmlFor="crop-type" className="flex items-center">
-                      Crop Type *
-                      <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
-                    </Label>
-                    <Select value={cropType} onValueChange={setCropType} disabled={loading} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select crop" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="maize">Maize</SelectItem>
-                        <SelectItem value="beans">Beans</SelectItem>
-                        <SelectItem value="potato">Potato</SelectItem>
-                        <SelectItem value="wheat">Wheat</SelectItem>
-                        <SelectItem value="barley">Barley</SelectItem>
-                        <SelectItem value="rice">Rice</SelectItem>
-                        <SelectItem value="tomato">Tomato</SelectItem>
-                        <SelectItem value="cabbage">Cabbage</SelectItem>
-                        <SelectItem value="onion">Onion</SelectItem>
-                        <SelectItem value="carrot">Carrot</SelectItem>
-                        <SelectItem value="coffee">Coffee</SelectItem>
-                        <SelectItem value="tea">Tea</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <TabsContent value="basic" className="space-y-6">
+                {/* Required Fields Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h4 className="font-medium text-gray-900 flex items-center">
+                      <Target className="h-4 w-4 mr-2 text-red-600" />
+                      Required Information
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">Fill these fields to get basic yield predictions</p>
                   </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="crop-type" className="flex items-center">
+                        Crop Type *
+                        <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
+                      </Label>
+                      <Select value={cropType} onValueChange={setCropType} disabled={loading} required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select crop" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="maize">Maize</SelectItem>
+                          <SelectItem value="beans">Beans</SelectItem>
+                          <SelectItem value="potato">Potato</SelectItem>
+                          <SelectItem value="wheat">Wheat</SelectItem>
+                          <SelectItem value="barley">Barley</SelectItem>
+                          <SelectItem value="rice">Rice</SelectItem>
+                          <SelectItem value="tomato">Tomato</SelectItem>
+                          <SelectItem value="cabbage">Cabbage</SelectItem>
+                          <SelectItem value="onion">Onion</SelectItem>
+                          <SelectItem value="carrot">Carrot</SelectItem>
+                          <SelectItem value="coffee">Coffee</SelectItem>
+                          <SelectItem value="tea">Tea</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="farm-size" className="flex items-center">
-                      Farm Size (Acres) *
-                      <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
-                    </Label>
-                    <Input
-                      id="farm-size"
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      placeholder="e.g., 2.5"
-                      value={farmSize}
-                      onChange={(e) => setFarmSize(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="farm-size" className="flex items-center">
+                        Farm Size (Acres) *
+                        <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
+                      </Label>
+                      <Input
+                        id="farm-size"
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        placeholder="e.g., 2.5"
+                        value={farmSize}
+                        onChange={(e) => setFarmSize(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location" className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        Location *
+                        <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
+                      </Label>
+                      <Input
+                        id="location"
+                        type="text"
+                        placeholder="e.g., Nakuru County"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="location" className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      Location *
-                      <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
-                    </Label>
-                    <Input
-                      id="location"
-                      type="text"
-                      placeholder="e.g., Nakuru County"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </div>
+                {/* Optional Fields Section */}
+                <div className="space-y-4">
+                  <div className="border rounded-lg bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => setShowOptionalFields(!showOptionalFields)}
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <Zap className="h-4 w-4 mr-2 text-blue-600" />
+                        <span className="font-medium text-gray-900">Optional Settings</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          For Better Accuracy
+                        </Badge>
+                      </div>
+                      {showOptionalFields ? (
+                        <ChevronUp className="h-4 w-4 text-gray-600" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-600" />
+                      )}
+                    </button>
+                    
+                    {showOptionalFields && (
+                      <div className="px-4 pb-4">
+                        <p className="text-sm text-gray-600 mb-4">
+                          These fields are optional but help improve prediction accuracy. You can skip them and still get good results.
+                        </p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="variety">Crop Variety</Label>
+                            <Input
+                              id="variety"
+                              type="text"
+                              placeholder="e.g., H614, DH04"
+                              value={variety}
+                              onChange={(e) => setVariety(e.target.value)}
+                              disabled={loading}
+                            />
+                          </div>
 
-                  {/* Optional Basic Fields */}
-                  <div className="space-y-2">
-                    <Label htmlFor="variety">Crop Variety</Label>
-                    <Input
-                      id="variety"
-                      type="text"
-                      placeholder="e.g., H614, DH04"
-                      value={variety}
-                      onChange={(e) => setVariety(e.target.value)}
-                      disabled={loading}
-                    />
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="farming-system">Farming System</Label>
+                            <Select value={farmingSystem} onValueChange={setFarmingSystem} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select system" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="organic">Organic</SelectItem>
+                                <SelectItem value="conventional">Conventional</SelectItem>
+                                <SelectItem value="mixed">Mixed/Integrated</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="farming-system">Farming System</Label>
-                    <Select value={farmingSystem} onValueChange={setFarmingSystem} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select system" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="organic">Organic</SelectItem>
-                        <SelectItem value="conventional">Conventional</SelectItem>
-                        <SelectItem value="mixed">Mixed/Integrated</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="irrigation">
+                              <Droplets className="h-4 w-4 inline mr-1" />
+                              Irrigation Type
+                            </Label>
+                            <Select value={irrigationType} onValueChange={setIrrigationType} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select irrigation" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="rainfed">Rain-fed</SelectItem>
+                                <SelectItem value="drip">Drip Irrigation</SelectItem>
+                                <SelectItem value="sprinkler">Sprinkler</SelectItem>
+                                <SelectItem value="furrow">Furrow Irrigation</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="irrigation">
-                      <Droplets className="h-4 w-4 inline mr-1" />
-                      Irrigation Type
-                    </Label>
-                    <Select value={irrigationType} onValueChange={setIrrigationType} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select irrigation" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rainfed">Rain-fed</SelectItem>
-                        <SelectItem value="drip">Drip Irrigation</SelectItem>
-                        <SelectItem value="sprinkler">Sprinkler</SelectItem>
-                        <SelectItem value="furrow">Furrow Irrigation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="fertilization">Fertilization Level</Label>
+                            <Select value={fertilizationLevel} onValueChange={setFertilizationLevel} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="optimal">Optimal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="fertilization">Fertilization Level</Label>
-                    <Select value={fertilizationLevel} onValueChange={setFertilizationLevel} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="optimal">Optimal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="pest-management">Pest Management</Label>
+                            <Select value={pestManagement} onValueChange={setPestManagement} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select approach" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="minimal">Minimal</SelectItem>
+                                <SelectItem value="moderate">Moderate</SelectItem>
+                                <SelectItem value="intensive">Intensive</SelectItem>
+                                <SelectItem value="ipm">IPM (Integrated)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="pest-management">Pest Management</Label>
-                    <Select value={pestManagement} onValueChange={setPestManagement} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select approach" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                        <SelectItem value="moderate">Moderate</SelectItem>
-                        <SelectItem value="intensive">Intensive</SelectItem>
-                        <SelectItem value="ipm">IPM (Integrated)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="season">
+                              <Calendar className="h-4 w-4 inline mr-1" />
+                              Season
+                            </Label>
+                            <Select value={season} onValueChange={setSeason} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select season" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="main">Main Season (Long Rains)</SelectItem>
+                                <SelectItem value="short">Short Season (Short Rains)</SelectItem>
+                                <SelectItem value="dry">Dry Season (Irrigated)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="season">
-                      <Calendar className="h-4 w-4 inline mr-1" />
-                      Season
-                    </Label>
-                    <Select value={season} onValueChange={setSeason} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select season" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="main">Main Season (Long Rains)</SelectItem>
-                        <SelectItem value="short">Short Season (Short Rains)</SelectItem>
-                        <SelectItem value="dry">Dry Season (Irrigated)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="input-budget">
+                              <DollarSign className="h-4 w-4 inline mr-1" />
+                              Input Budget (KES)
+                            </Label>
+                            <Input
+                              id="input-budget"
+                              type="number"
+                              min="0"
+                              placeholder="e.g., 50000"
+                              value={inputBudget}
+                              onChange={(e) => setInputBudget(e.target.value)}
+                              disabled={loading}
+                            />
+                          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="input-budget">
-                      <DollarSign className="h-4 w-4 inline mr-1" />
-                      Input Budget (KES)
-                    </Label>
-                    <Input
-                      id="input-budget"
-                      type="number"
-                      min="0"
-                      placeholder="e.g., 50000"
-                      value={inputBudget}
-                      onChange={(e) => setInputBudget(e.target.value)}
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="target-market">Target Market</Label>
-                    <Select value={targetMarket} onValueChange={setTargetMarket} disabled={loading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select market" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="local">Local Market</SelectItem>
-                        <SelectItem value="regional">Regional Market</SelectItem>
-                        <SelectItem value="export">Export Market</SelectItem>
-                      </SelectContent>
-                    </Select>
+                          <div className="space-y-2">
+                            <Label htmlFor="target-market">Target Market</Label>
+                            <Select value={targetMarket} onValueChange={setTargetMarket} disabled={loading}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select market" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="local">Local Market</SelectItem>
+                                <SelectItem value="regional">Regional Market</SelectItem>
+                                <SelectItem value="export">Export Market</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>

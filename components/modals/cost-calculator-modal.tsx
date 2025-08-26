@@ -55,10 +55,10 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   }
 
   const calculateCost = async () => {
-    if (!formData.cropVarietyId || !formData.landSizeAcres) {
+    if (!formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in crop variety, land size, and county",
         variant: "destructive",
       })
       return
@@ -66,8 +66,19 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
     setLoading(true)
     try {
-      const response = await apiClient.getCostEstimate(formData)
-      setResult(response as CostCalculationResponse)
+      // Ensure subCounty has a default value
+      const requestData = {
+        ...formData,
+        location: {
+          county: formData.location?.county || "",
+          subCounty: formData.location?.subCounty || "General"
+        }
+      }
+      
+      const response = await apiClient.getCostEstimate(requestData)
+      // Handle wrapped API response
+      const result = (response as any).data || response
+      setResult(result as CostCalculationResponse)
       toast({
         title: "Calculation Complete",
         description: "Cost estimate has been calculated successfully",
@@ -177,43 +188,42 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     </Select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="county">County</Label>
-                      <Input
-                        id="county"
-                        placeholder="County"
-                        value={formData.location?.county || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, county: e.target.value },
-                          }))
-                        }
-                        className="h-12"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="subCounty">Sub County</Label>
-                      <Input
-                        id="subCounty"
-                        placeholder="Sub County"
-                        value={formData.location?.subCounty || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            location: { ...prev.location, subCounty: e.target.value },
-                          }))
-                        }
-                        className="h-12"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="county">County *</Label>
+                    <Input
+                      id="county"
+                      placeholder="Enter your county"
+                      value={formData.location?.county || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          location: { ...prev.location, county: e.target.value },
+                        }))
+                      }
+                      className="h-12"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="subCounty">Sub County (Optional)</Label>
+                    <Input
+                      id="subCounty"
+                      placeholder="Sub County (optional)"
+                      value={formData.location?.subCounty || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          location: { ...prev.location, subCounty: e.target.value },
+                        }))
+                      }
+                      className="h-12"
+                    />
                   </div>
 
                   <Button
                     onClick={calculateCost}
                     className="w-full h-12 bg-sage-700 hover:bg-sage-800"
-                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres}
+                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county}
                   >
                     {loading ? (
                       <>
