@@ -17,7 +17,7 @@ export interface Activity {
   description: string
   scheduledDate: string | Date
   completedDate?: string | Date | null
-  status: "planned" | "in_progress" | "completed"
+  status: "in_progress" | "completed"
   cost: string | number
   laborHours: string | number
   laborType: "family" | "hired" | "cooperative"
@@ -40,7 +40,7 @@ export interface ProductionCycle {
   plantingDate: Date
   estimatedHarvestDate: Date
   actualHarvestDate?: Date
-  status: "planning" | "active" | "harvested" | "archived"
+  status: "active" | "harvested" | "archived"
   cropStage?: "pre_planting" | "planting" | "vegetative" | "flowering" | "fruiting" | "harvesting" | "post_harvest"
   expectedYield: number
   actualYield?: number
