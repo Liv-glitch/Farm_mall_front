@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { DashboardHeader } from "./dashboard-header"
+import { WhatsAppBackButton } from "./whatsapp-back-button"
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -22,6 +23,8 @@ export function DashboardLayout({ children, sidebar }: DashboardLayoutProps) {
                 {children}
               </div>
             </div>
+            {/* WhatsApp back button - shows only for users who came from WhatsApp */}
+            <WhatsAppBackButton />
           </main>
         </div>
       </SidebarInset>
