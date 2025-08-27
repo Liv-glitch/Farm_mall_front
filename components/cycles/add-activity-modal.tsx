@@ -341,7 +341,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduledDate">Scheduled Date</Label>
+                <Label htmlFor="scheduledDate">Date</Label>
                 <Input
                   id="scheduledDate"
                   type="date"
