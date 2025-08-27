@@ -9,6 +9,15 @@ export interface CropVariety {
   createdAt?: Date
 }
 
+export interface ActivityInput {
+  name: string
+  quantity: number
+  unit: string
+  cost: number
+  brand?: string
+  supplier?: string
+}
+
 export interface Activity {
   id: string
   userId: string
@@ -21,7 +30,8 @@ export interface Activity {
   cost: string | number
   laborHours: string | number
   laborType: "family" | "hired" | "cooperative"
-  inputs: string
+  laborCost?: number
+  inputs: string | ActivityInput[]
   notes: string
   weather?: string | null
   createdAt?: string | Date
@@ -80,6 +90,20 @@ export interface UpdateProductionCycleRequest {
   actualYield?: number
   expectedPricePerKg?: number
   actualPricePerKg?: number
+}
+
+export interface CreateActivityRequest {
+  type: string
+  activityType?: string // legacy field
+  description?: string
+  scheduledDate: Date
+  activityDate?: Date // legacy field
+  cost?: number
+  laborHours?: number
+  laborType?: 'hired' | 'family' | 'cooperative'
+  laborCost?: number
+  inputs?: ActivityInput[]
+  notes?: string
 }
 
 export interface ApiClient {

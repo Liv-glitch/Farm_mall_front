@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Plus } from "lucide-react"
-import type { Activity } from "@/lib/types/production"
+import type { Activity, ActivityInput, CreateActivityRequest } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 
@@ -136,12 +136,49 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
     type: "soil_preparation" as Activity["type"],
     description: "",
     scheduledDate: "",
-    cost: 0,
     laborHours: 0,
     laborType: "family" as Activity["laborType"],
-    inputs: "",
+    laborCost: 0,
     notes: "",
   })
+
+  const [inputs, setInputs] = useState<ActivityInput[]>([{
+    name: "",
+    quantity: 0,
+    unit: "kg",
+    cost: 0,
+    brand: "",
+    supplier: ""
+  }])
+
+  const addInput = () => {
+    setInputs([...inputs, {
+      name: "",
+      quantity: 0,
+      unit: "kg",
+      cost: 0,
+      brand: "",
+      supplier: ""
+    }])
+  }
+
+  const updateInput = (index: number, field: keyof ActivityInput, value: string | number) => {
+    const updatedInputs = [...inputs]
+    updatedInputs[index] = { ...updatedInputs[index], [field]: value }
+    setInputs(updatedInputs)
+  }
+
+  const removeInput = (index: number) => {
+    if (inputs.length > 1) {
+      setInputs(inputs.filter((_, i) => i !== index))
+    }
+  }
+
+  const calculateTotalCost = () => {
+    const inputsCost = inputs.reduce((sum, input) => sum + (input.quantity * input.cost), 0)
+    const laborCost = formData.laborCost || 0
+    return inputsCost + laborCost
+  }
 
   // Add validation for numeric fields
   const validateNumericField = (value: number, fieldName: string) => {
@@ -166,10 +203,9 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
       type: template.type,
       description: "",
       scheduledDate: "",
-      cost: 0,
       laborHours: 0,
       laborType: "family",
-      inputs: "",
+      laborCost: 0,
       notes: "",
     })
   }
@@ -180,8 +216,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
     try {
       // Validate numeric fields
-      const validatedCost = validateNumericField(formData.cost, "Cost")
       const validatedLaborHours = validateNumericField(formData.laborHours, "Labor hours")
+      const validatedLaborCost = validateNumericField(formData.laborCost || 0, "Labor cost")
 
       // Validate dates
       const scheduledDate = new Date(formData.scheduledDate)
@@ -189,22 +225,37 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         throw new Error("Invalid scheduled date")
       }
 
-      const activityData = {
-        cycleId,
-        name: formData.name,
+      // Validate inputs
+      const validatedInputs = inputs.filter(input => input.name.trim() !== "")
+      if (validatedInputs.length === 0) {
+        throw new Error("At least one input is required")
+      }
+
+      const totalCost = calculateTotalCost()
+
+      const activityData: CreateActivityRequest = {
         type: formData.type,
         description: formData.description,
-        scheduledDate: scheduledDate.toISOString(),
-        status: "in_progress",
-        cost: validatedCost.toFixed(2),
-        laborHours: validatedLaborHours.toFixed(1),
+        scheduledDate: scheduledDate,
+        cost: totalCost,
+        laborHours: validatedLaborHours,
         laborType: formData.laborType,
-        inputs: formData.inputs,
+        laborCost: validatedLaborCost,
+        inputs: validatedInputs,
         notes: formData.notes,
       }
 
       // Call the API to create the activity
-      const newActivity = await apiClient.addActivity(cycleId, activityData)
+      const newActivity = await apiClient.addActivity(cycleId, {
+        ...activityData,
+        cycleId,
+        name: formData.name,
+        status: "in_progress",
+        scheduledDate: scheduledDate.toISOString(),
+        cost: totalCost.toFixed(2),
+        laborHours: validatedLaborHours.toFixed(1),
+        inputs: JSON.stringify(validatedInputs), // Convert to string for backward compatibility
+      })
 
       onActivityAdd(cycleId, newActivity)
       onClose()
@@ -215,12 +266,19 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         type: "soil_preparation",
         description: "",
         scheduledDate: "",
-        cost: 0,
         laborHours: 0,
         laborType: "family",
-        inputs: "",
+        laborCost: 0,
         notes: "",
       })
+      setInputs([{
+        name: "",
+        quantity: 0,
+        unit: "kg",
+        cost: 0,
+        brand: "",
+        supplier: ""
+      }])
       setSelectedTemplate(null)
 
       toast({
@@ -290,9 +348,11 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
             )}
           </div>
 
-          {/* Form Fields */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Activity Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Activity Details</h3>
+              
               <div className="space-y-2">
                 <Label htmlFor="name">Activity Name</Label>
                 <Input
@@ -314,7 +374,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px] sm:max-h-none overflow-y-auto">
-                    <SelectItem value="soil_preparation">Soil Preparation</SelectItem>
+                    <SelectItem value="soil_preparation">Soil Testing</SelectItem>
                     <SelectItem value="planting">Planting</SelectItem>
                     <SelectItem value="fertilization">Fertilization</SelectItem>
                     <SelectItem value="weeding">Weeding</SelectItem>
@@ -326,20 +386,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                placeholder={selectedTemplate ? selectedTemplate.description : "Describe the activity"}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="scheduledDate">Date</Label>
                 <Input
@@ -361,80 +408,163 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="hired">Manual</SelectItem>
                     <SelectItem value="family">Family Labor</SelectItem>
-                    <SelectItem value="hired">Hired Labor</SelectItem>
                     <SelectItem value="cooperative">Cooperative</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cost">Cost (KSh)</Label>
+                <Label htmlFor="laborCost">Labor Cost (KSh)</Label>
                 <Input
-                  id="cost"
+                  id="laborCost"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.cost || ""}
-                  placeholder={selectedTemplate ? `e.g., ${selectedTemplate.cost}` : "Enter cost"}
-                  onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-                  required
+                  value={formData.laborCost || ""}
+                  placeholder="Enter labor cost"
+                  onChange={(e) => setFormData({ ...formData, laborCost: parseFloat(e.target.value) || 0 })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="laborHours">Labor Hours</Label>
-                <Input
-                  id="laborHours"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.laborHours || ""}
-                  placeholder={selectedTemplate ? `e.g., ${selectedTemplate.laborHours}` : "Enter hours"}
-                  onChange={(e) => setFormData({ ...formData, laborHours: parseFloat(e.target.value) || 0 })}
-                  required
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  placeholder={selectedTemplate ? selectedTemplate.notes : "Additional notes about this activity..."}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="min-h-[100px]"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="inputs">Required Inputs</Label>
-              <Input
-                id="inputs"
-                value={formData.inputs}
-                placeholder={selectedTemplate ? selectedTemplate.inputs : "e.g., Seeds, fertilizer, tools"}
-                onChange={(e) => setFormData({ ...formData, inputs: e.target.value })}
-              />
-            </div>
+            {/* Inputs Used */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Inputs Used</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addInput}
+                  className="text-xs"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Input
+                </Button>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                placeholder={selectedTemplate ? selectedTemplate.notes : "Any additional notes or reminders"}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
+              <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                {inputs.map((input, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-medium text-sm">Input #{index + 1}</h4>
+                      {inputs.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeInput(index)}
+                          className="text-red-500 hover:text-red-700 p-1 h-auto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Item Name</Label>
+                        <Input
+                          placeholder="e.g., NPK Fertilizer"
+                          value={input.name}
+                          onChange={(e) => updateInput(index, "name", e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Quantity</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={input.quantity || ""}
+                          onChange={(e) => updateInput(index, "quantity", parseFloat(e.target.value) || 0)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Unit Cost (KSh)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="Cost per unit"
+                          value={input.cost || ""}
+                          onChange={(e) => updateInput(index, "cost", parseFloat(e.target.value) || 0)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Brand (Optional)</Label>
+                        <Input
+                          placeholder="Brand name"
+                          value={input.brand || ""}
+                          onChange={(e) => updateInput(index, "brand", e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <Label className="text-xs font-medium">Supplier (Optional)</Label>
+                        <Input
+                          placeholder="Supplier name"
+                          value={input.supplier || ""}
+                          onChange={(e) => updateInput(index, "supplier", e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span>Total Cost:</span>
+                  <span>KSh {calculateTotalCost().toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Buttons */}
           <div className="sticky bottom-0 bg-white border-t p-4 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 mt-8">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding Activity...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Activity
-                </>
-              )}
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                type="submit" 
+                className="flex-1 bg-green-600 hover:bg-green-700" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding Activity...
+                  </>
+                ) : (
+                  "Add Activity"
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
