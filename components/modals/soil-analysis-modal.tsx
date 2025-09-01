@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,16 +15,17 @@ import {
   TestTube, 
   FileText, 
   Image as ImageIcon,
-  MapPin,
   AlertCircle,
   CheckCircle2,
   Download,
   Sparkles,
   TrendingUp,
-  Leaf
+  Leaf,
+  Recycle
 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
+import { ProductionCycle } from "@/lib/types/production"
 
 interface SoilAnalysisModalProps {
   open: boolean
@@ -70,10 +71,10 @@ interface SoilAnalysisResult {
 
 export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps) {
   const [document, setDocument] = useState<File | null>(null)
-  const [location, setLocation] = useState("")
+  const [selectedCycle, setSelectedCycle] = useState<string>("")
+  const [cycles, setCycles] = useState<ProductionCycle[]>([])
+  const [loadingCycles, setLoadingCycles] = useState(false)
   const [cropType, setCropType] = useState("")
-  const [farmSize, setFarmSize] = useState("")
-  const [budget, setBudget] = useState("")
   const [additionalInfo, setAdditionalInfo] = useState("")
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -81,12 +82,33 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (open) {
+      loadCycles()
+    }
+  }, [open])
+
+  const loadCycles = async () => {
+    setLoadingCycles(true)
+    try {
+      const cyclesData = await apiClient.getCycles()
+      setCycles(cyclesData || [])
+    } catch (error) {
+      console.error('Failed to load cycles:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load production cycles",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingCycles(false)
+    }
+  }
+
   const reset = () => {
     setDocument(null)
-    setLocation("")
+    setSelectedCycle("")
     setCropType("")
-    setFarmSize("")
-    setBudget("")
     setAdditionalInfo("")
     setResult(null)
     setError(null)
@@ -138,13 +160,15 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
       let analysisResult: SoilAnalysisResult
       
       try {
+        const selectedCycleData = selectedCycle ? cycles.find(c => c.id === selectedCycle) : null
+        
         // Use the new enhanced soil analysis API
         const res = await apiClient.analyzeSoil({
           document,
-          location,
           crop_type: cropType,
-          farm_size: farmSize,
-          budget
+          cycle_id: selectedCycle || undefined,
+          farm_location: selectedCycleData?.farmLocation || undefined,
+          farm_size: selectedCycleData?.landSizeAcres || undefined
         })
         
         if (res.success && res.data) {
@@ -352,22 +376,29 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
               </div>
             </div>
 
-            {/* Location - Required */}
+            {/* Production Cycle Selection */}
             <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1" />
-                Farm Location *
-                <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
+              <Label htmlFor="cycle" className="flex items-center">
+                <Recycle className="h-4 w-4 mr-1" />
+                Production Cycle (Optional)
               </Label>
-              <Input
-                id="location"
-                type="text"
-                placeholder="e.g., Nakuru County, Central Kenya"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                disabled={loading}
-                required
-              />
+              <Select value={selectedCycle} onValueChange={setSelectedCycle} disabled={loading || loadingCycles}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCycles ? "Loading cycles..." : "Select a production cycle"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cycles.map((cycle) => (
+                    <SelectItem key={cycle.id} value={cycle.id}>
+                      {cycle.cropVariety?.name} - {cycle.farmLocation} ({cycle.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCycle && (
+                <div className="text-xs text-gray-600 mt-1">
+                  <p>Selected cycle will provide context for soil analysis and recommendations.</p>
+                </div>
+              )}
             </div>
 
             {/* Crop Type */}
@@ -391,35 +422,6 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
               </Select>
             </div>
 
-            {/* Farm Size and Budget */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farm-size">Farm Size (Acres)</Label>
-                <Input
-                  id="farm-size"
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  placeholder="e.g., 2.5"
-                  value={farmSize}
-                  onChange={(e) => setFarmSize(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget">Input Budget</Label>
-                <Select value={budget} onValueChange={setBudget} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Budget range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low (&lt; KES 20,000/acre)</SelectItem>
-                    <SelectItem value="medium">Medium (KES 20,000-50,000/acre)</SelectItem>
-                    <SelectItem value="high">High (&gt; KES 50,000/acre)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
             {/* Additional Information */}
             <div className="space-y-2">
@@ -462,7 +464,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
             <Button 
               type="submit" 
               className="w-full bg-amber-700 hover:bg-amber-800" 
-              disabled={loading || !document || !location}
+              disabled={loading || !document}
             >
               {loading ? (
                 <>

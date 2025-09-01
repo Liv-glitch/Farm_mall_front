@@ -19,12 +19,8 @@ import {
   Search, 
   TestTube, 
   Brain,
-  BarChart3,
   History,
   Calculator,
-  TrendingUp,
-  Clock,
-  Database,
   CheckCircle
 } from "lucide-react"
 
@@ -218,28 +214,6 @@ export default function FarmIntelligencePage() {
         </header>
 
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[
-              { icon: BarChart3, label: "Active Analyses", value: "12", color: "blue" },
-              { icon: Clock, label: "Avg Processing", value: "28s", color: "green" },
-              { icon: TrendingUp, label: "Yield Increase", value: "+23%", color: "yellow" },
-              { icon: Database, label: "Records Stored", value: "1.2K", color: "purple" },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className={`w-10 h-10 bg-${stat.color}-100 rounded-lg flex items-center justify-center`}>
-                    <stat.icon className={`w-5 h-5 text-${stat.color}-600`} />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-sm text-gray-600">{stat.label}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {/* Tabs for Services/History */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 rounded-lg">

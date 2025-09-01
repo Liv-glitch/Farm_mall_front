@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,17 +17,18 @@ import {
   Sparkles,
   AlertCircle,
   CheckCircle2,
-  MapPin,
   Camera,
   Zap,
   ShieldCheck,
   Target,
   Activity,
   TrendingUp,
-  FileText
+  FileText,
+  Recycle
 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
+import { ProductionCycle } from "@/lib/types/production"
 
 interface PlantAIModalProps {
   open: boolean
@@ -37,11 +38,9 @@ interface PlantAIModalProps {
 
 export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
   const [image, setImage] = useState<File | null>(null)
-  const [latitude, setLatitude] = useState<string>("")
-  const [longitude, setLongitude] = useState<string>("")
-  const [location, setLocation] = useState<string>("")
-  const [plantType, setPlantType] = useState<string>("")
-  const [symptoms, setSymptoms] = useState<string>("")
+  const [selectedCycle, setSelectedCycle] = useState<string>("")
+  const [cycles, setCycles] = useState<ProductionCycle[]>([])
+  const [loadingCycles, setLoadingCycles] = useState(false)
   const [similarImages, setSimilarImages] = useState(false)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -50,13 +49,32 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [zoomImage, setZoomImage] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (open) {
+      loadCycles()
+    }
+  }, [open])
+
+  const loadCycles = async () => {
+    setLoadingCycles(true)
+    try {
+      const cyclesData = await apiClient.getCycles()
+      setCycles(cyclesData || [])
+    } catch (error) {
+      console.error('Failed to load cycles:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load production cycles",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingCycles(false)
+    }
+  }
+
   const reset = () => {
     setImage(null)
-    setLatitude("")
-    setLongitude("")
-    setLocation("")
-    setPlantType("")
-    setSymptoms("")
+    setSelectedCycle("")
     setSimilarImages(false)
     setResult(null)
     setError(null)
@@ -83,28 +101,22 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
         setProgress(prev => Math.min(prev + 2, 85)) // Slower increment, stops at 85%
       }, 1500)
 
-      const lat = latitude ? parseFloat(latitude) : undefined
-      const lng = longitude ? parseFloat(longitude) : undefined
+      const selectedCycleData = selectedCycle ? cycles.find(c => c.id === selectedCycle) : null
       
       let res
       if (mode === "identify") {
         res = await apiClient.identifyPlant({ 
           image, 
-          latitude: lat, 
-          longitude: lng, 
           similar_images: similarImages,
-          plant_type: plantType,
-          location: location
+          cycle_id: selectedCycle || undefined,
+          crop_variety: selectedCycleData?.cropVariety?.name || undefined
         })
       } else {
         res = await apiClient.assessPlantHealth({ 
           image, 
-          latitude: lat, 
-          longitude: lng, 
           similar_images: similarImages,
-          plant_type: plantType,
-          symptoms: symptoms,
-          location: location
+          cycle_id: selectedCycle || undefined,
+          crop_variety: selectedCycleData?.cropVariety?.name || undefined
         })
       }
       
@@ -234,108 +246,31 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
               </div>
             </div>
 
-            {/* Location Information */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  Location (Optional but Recommended)
-                </Label>
-                <Input
-                  id="location"
-                  type="text"
-                  placeholder="e.g., Nakuru County, Kenya"
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    min={-90}
-                    max={90}
-                    placeholder="e.g. -1.2921"
-                    value={latitude}
-                    onChange={e => setLatitude(e.target.value)}
-                    disabled={loading}
-                  />
+            {/* Production Cycle Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="cycle" className="flex items-center">
+                <Recycle className="h-4 w-4 mr-1" />
+                Production Cycle (Optional)
+              </Label>
+              <Select value={selectedCycle} onValueChange={setSelectedCycle} disabled={loading || loadingCycles}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingCycles ? "Loading cycles..." : "Select a production cycle"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cycles.map((cycle) => (
+                    <SelectItem key={cycle.id} value={cycle.id}>
+                      {cycle.cropVariety?.name} - {cycle.farmLocation} ({cycle.status})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCycle && (
+                <div className="text-xs text-gray-600 mt-1">
+                  <p>Selected cycle will help provide more specific analysis for your crop type.</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    min={-180}
-                    max={180}
-                    placeholder="e.g. 36.8219"
-                    value={longitude}
-                    onChange={e => setLongitude(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Mode-specific fields */}
-            {mode === "identify" ? (
-              <div className="space-y-2">
-                <Label htmlFor="plant-type">Plant Type (Optional)</Label>
-                <Select value={plantType} onValueChange={setPlantType} disabled={loading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select plant category if known" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="crop">Crop Plant</SelectItem>
-                    <SelectItem value="weed">Weed</SelectItem>
-                    <SelectItem value="tree">Tree</SelectItem>
-                    <SelectItem value="flower">Flower</SelectItem>
-                    <SelectItem value="herb">Herb/Medicinal Plant</SelectItem>
-                    <SelectItem value="vegetable">Vegetable</SelectItem>
-                    <SelectItem value="fruit">Fruit Plant</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="plant-type-health">Plant Type (Optional)</Label>
-                  <Select value={plantType} onValueChange={setPlantType} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select plant type for better diagnosis" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="maize">Maize</SelectItem>
-                      <SelectItem value="beans">Beans</SelectItem>
-                      <SelectItem value="potato">Potato</SelectItem>
-                      <SelectItem value="tomato">Tomato</SelectItem>
-                      <SelectItem value="wheat">Wheat</SelectItem>
-                      <SelectItem value="cabbage">Cabbage</SelectItem>
-                      <SelectItem value="carrot">Carrot</SelectItem>
-                      <SelectItem value="other">Other Crop</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="symptoms">Observed Symptoms (Optional)</Label>
-                  <Textarea
-                    id="symptoms"
-                    placeholder="Describe what you notice: leaf spots, wilting, discoloration, pest damage, etc."
-                    value={symptoms}
-                    onChange={e => setSymptoms(e.target.value)}
-                    disabled={loading}
-                    rows={3}
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Advanced Options */}
             <div className="flex items-center space-x-2">
