@@ -35,7 +35,6 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
   const [formData, setFormData] = useState({
     cropVarietyId: "",
     investmentAmount: 0,
-    expectedPricePerKg: 0,
   })
   const [result, setResult] = useState<InvestmentResult | null>(null)
 
@@ -70,7 +69,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
   }
 
   const calculateInvestment = () => {
-    if (!formData.cropVarietyId || !formData.investmentAmount || !formData.expectedPricePerKg) {
+    if (!formData.cropVarietyId || !formData.investmentAmount) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -93,8 +92,19 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
       'onion': 70000,
     }
 
+    // Average market prices in KSh per kg (based on typical Kenyan market rates)
+    const averageMarketPrices = {
+      'potato': 35,
+      'maize': 45,
+      'beans': 80,
+      'cabbage': 25,
+      'tomato': 60,
+      'onion': 50,
+    }
+
     const cropType = selectedVariety.cropType.toLowerCase()
     const baseCostPerAcre = estimatedCostPerAcre[cropType as keyof typeof estimatedCostPerAcre] || 50000
+    const marketPrice = averageMarketPrices[cropType as keyof typeof averageMarketPrices] || 40
     
     // Calculate maximum acreage based on investment
     const maxAcreage = formData.investmentAmount / baseCostPerAcre
@@ -111,7 +121,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
 
     const estimatedYieldPerAcre = yieldPerAcre[cropType as keyof typeof yieldPerAcre] || 800
     const totalYield = maxAcreage * estimatedYieldPerAcre
-    const potentialRevenue = totalYield * formData.expectedPricePerKg
+    const potentialRevenue = totalYield * marketPrice
     const profitMargin = potentialRevenue - formData.investmentAmount
     const roi = ((profitMargin / formData.investmentAmount) * 100)
 
@@ -122,15 +132,15 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
       recommendations.push("Consider increasing your investment amount or choosing a lower-cost crop")
     }
     if (roi < 20) {
-      recommendations.push("Low ROI predicted. Consider higher-value crops or better market prices")
+      recommendations.push("Low ROI predicted. Consider higher-value crops or better farming practices")
     } else if (roi > 100) {
       recommendations.push("Excellent ROI potential! Ensure you have good farming practices to achieve projected yields")
     }
     if (maxAcreage > 5) {
       recommendations.push("Large scale farming detected. Consider mechanization and bulk purchasing for better margins")
     }
-    if (formData.expectedPricePerKg < 30) {
-      recommendations.push("Price seems low. Research market opportunities and value addition options")
+    if (maxAcreage >= 0.5 && maxAcreage <= 2) {
+      recommendations.push(`Optimal acreage for your investment: ${maxAcreage.toFixed(1)} acres of ${selectedVariety.name}`)
     }
 
     setResult({
@@ -155,7 +165,6 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
     setFormData({
       cropVarietyId: "",
       investmentAmount: 0,
-      expectedPricePerKg: 0,
     })
     setResult(null)
   }
@@ -226,26 +235,6 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                     </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="expectedPrice">Expected Selling Price per Kg (KSh) *</Label>
-                    <Input
-                      id="expectedPrice"
-                      type="number"
-                      step="1"
-                      placeholder="Expected market price"
-                      value={formData.expectedPricePerKg || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          expectedPricePerKg: Number.parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="h-12"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Target selling price at harvest time
-                    </p>
-                  </div>
 
                   {selectedVariety && (
                     <div className="p-3 bg-blue-50 rounded-lg">
@@ -260,7 +249,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                   <Button
                     onClick={calculateInvestment}
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700"
-                    disabled={!formData.cropVarietyId || !formData.investmentAmount || !formData.expectedPricePerKg}
+                    disabled={!formData.cropVarietyId || !formData.investmentAmount}
                   >
                     <Calculator className="mr-2 h-4 w-4" />
                     Calculate Optimal Acreage

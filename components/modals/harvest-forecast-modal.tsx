@@ -159,16 +159,6 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
     setResult(null)
   }
 
-  const handleLocationChange = (field: 'latitude' | 'longitude', value: string) => {
-    const numValue = Number.parseFloat(value) || 0
-    setFormData((prev) => ({
-      ...prev,
-      location: {
-        latitude: field === 'latitude' ? numValue : (prev.location?.latitude ?? 0),
-        longitude: field === 'longitude' ? numValue : (prev.location?.longitude ?? 0),
-      }
-    }))
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -246,32 +236,6 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="latitude">Latitude (Optional)</Label>
-                      <Input
-                        id="latitude"
-                        type="number"
-                        step="0.0001"
-                        placeholder="-0.4031"
-                        value={formData.location?.latitude ?? ""}
-                        onChange={(e) => handleLocationChange('latitude', e.target.value)}
-                        className="h-12"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="longitude">Longitude (Optional)</Label>
-                      <Input
-                        id="longitude"
-                        type="number"
-                        step="0.0001"
-                        placeholder="36.9378"
-                        value={formData.location?.longitude ?? ""}
-                        onChange={(e) => handleLocationChange('longitude', e.target.value)}
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
 
                   <Button
                     onClick={predictHarvest}

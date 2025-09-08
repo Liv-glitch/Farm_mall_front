@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DollarSign, TrendingUp, Calculator } from "lucide-react"
+import { DollarSign, TrendingUp, Calculator, Minus, Plus } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import { apiClient } from "@/lib/api/client"
+import type { CropVariety } from "@/lib/types/production"
 
 interface IncomeCalculatorModalProps {
   open: boolean
@@ -20,16 +23,88 @@ interface IncomeResult {
   pricePerKg: number
   totalIncome: number
   incomePerAcre: number
+  totalCost: number
+  costPerAcre: number
+  totalProfit: number
+  profitPerAcre: number
+  profitMargin: number
+  roi: number
   recommendations: string[]
+  costBreakdown: {
+    seeds: number
+    fertilizer: number
+    pesticides: number
+    labor: number
+    equipment: number
+    other: number
+  }
+  // Investment-based recommendations
+  investmentAnalysis?: {
+    maxAcreageForBudget: number
+    requiredInvestment: number
+    suggestedAcreage: number
+    efficiencyScore: number
+  }
 }
 
 export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorModalProps) {
+  const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
+  const [loadingVarieties, setLoadingVarieties] = useState(true)
   const [formData, setFormData] = useState({
+    cropVarietyId: "",
     acres: 0,
     expectedYield: 0, // kg per acre
     pricePerKg: 0,
+    investmentAmount: 0, // Optional: for investment-based recommendations
   })
   const [result, setResult] = useState<IncomeResult | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      loadCropVarieties()
+    }
+  }, [open])
+
+  const loadCropVarieties = async () => {
+    try {
+      setLoadingVarieties(true)
+      const varieties = await apiClient.getCropVarieties()
+      setCropVarieties(varieties)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load crop varieties",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingVarieties(false)
+    }
+  }
+
+  const calculateCosts = (acres: number, cropVariety: CropVariety | undefined) => {
+    if (!cropVariety) {
+      return {
+        seeds: acres * 50000,
+        fertilizer: acres * 15000,
+        pesticides: acres * 8000,
+        labor: acres * 25000,
+        equipment: acres * 12000,
+        other: acres * 5000,
+      }
+    }
+
+    // Use crop variety data for more accurate cost calculation
+    const seedCost = cropVariety.seedCostPerBag * cropVariety.seedSize1BagsPerAcre * acres
+    
+    return {
+      seeds: seedCost,
+      fertilizer: acres * 15000, // Base fertilizer cost per acre
+      pesticides: acres * 8000,  // Base pesticide cost per acre
+      labor: acres * 25000,      // Base labor cost per acre
+      equipment: acres * 12000,  // Base equipment cost per acre
+      other: acres * 5000,       // Other miscellaneous costs per acre
+    }
+  }
 
   const calculateIncome = () => {
     if (!formData.acres || !formData.expectedYield || !formData.pricePerKg) {
@@ -41,15 +116,34 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
       return
     }
 
+    const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
+    const costBreakdown = calculateCosts(formData.acres, selectedCrop)
+    const totalCost = Object.values(costBreakdown).reduce((sum, cost) => sum + cost, 0)
+    const costPerAcre = totalCost / formData.acres
+
     const totalYield = formData.acres * formData.expectedYield
     const totalIncome = totalYield * formData.pricePerKg
     const incomePerAcre = formData.expectedYield * formData.pricePerKg
+    
+    const totalProfit = totalIncome - totalCost
+    const profitPerAcre = totalProfit / formData.acres
+    const profitMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0
+    const roi = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0
 
     // Generate recommendations based on the calculations
     const recommendations: string[] = []
     
-    if (incomePerAcre < 50000) {
-      recommendations.push("Consider improving yield through better farming practices or choosing higher-value crops")
+    if (profitMargin < 20) {
+      recommendations.push("Low profit margin. Consider reducing costs or finding better market prices")
+    }
+    if (roi < 30) {
+      recommendations.push("Low return on investment. Look for ways to increase yield or reduce input costs")
+    }
+    if (totalProfit < 0) {
+      recommendations.push("This investment shows a loss. Reconsider your farming strategy or crop choice")
+    }
+    if (profitPerAcre > 50000) {
+      recommendations.push("Excellent profit potential! Consider expanding your operation")
     }
     if (formData.pricePerKg < 30) {
       recommendations.push("Look for better market channels or value addition opportunities")
@@ -57,8 +151,31 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     if (formData.expectedYield < 1000) {
       recommendations.push("Focus on increasing yield through proper fertilization and pest management")
     }
-    if (totalIncome > 200000) {
-      recommendations.push("Great potential! Consider investing in storage facilities for better market timing")
+
+    // Investment-based analysis (optional)
+    let investmentAnalysis = undefined
+    if (formData.investmentAmount > 0) {
+      const maxAcreageForBudget = formData.investmentAmount / costPerAcre
+      const requiredInvestment = formData.acres * costPerAcre
+      const suggestedAcreage = Math.min(maxAcreageForBudget, formData.acres)
+      const efficiencyScore = formData.investmentAmount > 0 ? (totalProfit / formData.investmentAmount) * 100 : 0
+
+      investmentAnalysis = {
+        maxAcreageForBudget,
+        requiredInvestment,
+        suggestedAcreage,
+        efficiencyScore,
+      }
+
+      // Add investment-specific recommendations
+      if (formData.investmentAmount < requiredInvestment) {
+        recommendations.push(`Consider reducing acreage to ${maxAcreageForBudget.toFixed(1)} acres to match your budget of KSh ${formData.investmentAmount.toLocaleString()}`)
+      }
+      if (efficiencyScore > 50) {
+        recommendations.push("Excellent investment efficiency! Your funds are well allocated for this farming operation")
+      } else if (efficiencyScore < 20) {
+        recommendations.push("Low investment efficiency. Consider higher-value crops or reducing costs")
+      }
     }
 
     setResult({
@@ -67,20 +184,30 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
       pricePerKg: formData.pricePerKg,
       totalIncome,
       incomePerAcre,
+      totalCost,
+      costPerAcre,
+      totalProfit,
+      profitPerAcre,
+      profitMargin,
+      roi,
+      costBreakdown,
       recommendations,
+      investmentAnalysis,
     })
 
     toast({
       title: "Calculation Complete",
-      description: "Expected income has been calculated successfully",
+      description: "Income, costs, and profit analysis completed successfully",
     })
   }
 
   const resetCalculator = () => {
     setFormData({
+      cropVarietyId: "",
       acres: 0,
       expectedYield: 0,
       pricePerKg: 0,
+      investmentAmount: 0,
     })
     setResult(null)
   }
@@ -91,7 +218,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-green-600" />
-            <span>Expected Income Calculator</span>
+            <span>Profit & Income Calculator</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -102,6 +229,27 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
               <CardTitle className="text-lg">Farm Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="crop">Crop Variety *</Label>
+                <Select
+                  value={formData.cropVarietyId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, cropVarietyId: value }))
+                  }
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={loadingVarieties ? "Loading varieties..." : "Select crop variety"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cropVarieties.map((variety) => (
+                      <SelectItem key={variety.id} value={variety.id}>
+                        {variety.name} ({variety.cropType})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <Label htmlFor="acres">Land Size (Acres) *</Label>
                 <Input
@@ -162,13 +310,34 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                 </p>
               </div>
 
+              <div>
+                <Label htmlFor="investment">Available Investment (KSh) - Optional</Label>
+                <Input
+                  id="investment"
+                  type="number"
+                  step="1000"
+                  placeholder="Your available budget (optional)"
+                  value={formData.investmentAmount || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      investmentAmount: Number.parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  className="h-12"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your budget to get investment-based acreage recommendations
+                </p>
+              </div>
+
               <Button
                 onClick={calculateIncome}
                 className="w-full h-12 bg-green-600 hover:bg-green-700"
-                disabled={!formData.acres || !formData.expectedYield || !formData.pricePerKg}
+                disabled={!formData.acres || !formData.expectedYield || !formData.pricePerKg || loadingVarieties}
               >
                 <Calculator className="mr-2 h-4 w-4" />
-                Calculate Expected Income
+                Calculate Profit & Income
               </Button>
 
               {result && (
@@ -184,41 +353,97 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
                 <TrendingUp className="w-5 h-5 text-green-600" />
-                <span>Income Projection</span>
+                <span>Profit & Income Analysis</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {result ? (
                 <div className="space-y-6">
-                  {/* Total Income */}
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                    <div className="text-sm text-gray-600 mb-1">Total Expected Income</div>
-                    <div className="text-3xl font-bold text-green-700">
-                      KSh {result.totalIncome.toLocaleString()}
+                  {/* Profit Summary */}
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* Total Profit */}
+                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                      <div className="text-sm text-gray-600 mb-1">Total Expected Profit</div>
+                      <div className={`text-3xl font-bold ${result.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                        KSh {result.totalProfit.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        from {result.acres} acres ({result.profitMargin.toFixed(1)}% margin)
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      from {result.acres} acres
+                    
+                    {/* Income vs Costs */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-1">Total Income</div>
+                        <div className="text-xl font-bold text-blue-700">
+                          KSh {result.totalIncome.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-sm text-gray-600 mb-1">Total Costs</div>
+                        <div className="text-xl font-bold text-orange-700">
+                          KSh {result.totalCost.toLocaleString()}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Breakdown */}
+                  {/* Cost Breakdown */}
                   <div className="space-y-3">
-                    <div className="flex justify-between p-3 bg-green-50 rounded-lg">
-                      <span className="font-medium">Total Yield</span>
-                      <div className="text-right">
-                        <div className="font-semibold">{(result.acres * result.expectedYield).toLocaleString()} kg</div>
-                        <div className="text-xs text-gray-500">{result.expectedYield} kg/acre</div>
+                    <h4 className="font-medium text-gray-900">Cost Breakdown</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Seeds</span>
+                        <span>KSh {result.costBreakdown.seeds.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Fertilizer</span>
+                        <span>KSh {result.costBreakdown.fertilizer.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Pesticides</span>
+                        <span>KSh {result.costBreakdown.pesticides.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Labor</span>
+                        <span>KSh {result.costBreakdown.labor.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Equipment</span>
+                        <span>KSh {result.costBreakdown.equipment.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Other</span>
+                        <span>KSh {result.costBreakdown.other.toLocaleString()}</span>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex justify-between p-3 bg-emerald-50 rounded-lg">
-                      <span className="font-medium">Price per Kg</span>
-                      <div className="font-semibold">KSh {result.pricePerKg}</div>
-                    </div>
-
-                    <div className="flex justify-between p-3 bg-green-50 rounded-lg">
-                      <span className="font-medium">Income per Acre</span>
-                      <div className="font-semibold">KSh {result.incomePerAcre.toLocaleString()}</div>
+                  {/* Per Acre Analysis */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-900">Per Acre Analysis</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex justify-between p-3 bg-blue-50 rounded-lg">
+                        <span className="font-medium text-sm">Income/Acre</span>
+                        <div className="font-semibold">KSh {result.incomePerAcre.toLocaleString()}</div>
+                      </div>
+                      <div className="flex justify-between p-3 bg-orange-50 rounded-lg">
+                        <span className="font-medium text-sm">Cost/Acre</span>
+                        <div className="font-semibold">KSh {result.costPerAcre.toLocaleString()}</div>
+                      </div>
+                      <div className="flex justify-between p-3 bg-green-50 rounded-lg">
+                        <span className="font-medium text-sm">Profit/Acre</span>
+                        <div className={`font-semibold ${result.profitPerAcre >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                          KSh {result.profitPerAcre.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="flex justify-between p-3 bg-purple-50 rounded-lg">
+                        <span className="font-medium text-sm">ROI</span>
+                        <div className={`font-semibold ${result.roi >= 0 ? 'text-purple-700' : 'text-red-600'}`}>
+                          {result.roi.toFixed(1)}%
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -237,26 +462,59 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                     </div>
                   )}
 
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
-                      <div className="text-lg font-bold text-gray-900">
-                        KSh {Math.round(result.totalIncome / result.acres).toLocaleString()}
+                  {/* Investment Analysis */}
+                  {result.investmentAnalysis && (
+                    <div className="space-y-3 mt-6">
+                      <h4 className="font-medium text-gray-900">Investment Analysis</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-blue-50 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Max Acreage for Budget</div>
+                          <div className="font-semibold text-blue-700">
+                            {result.investmentAnalysis.maxAcreageForBudget.toFixed(1)} acres
+                          </div>
+                        </div>
+                        <div className="p-3 bg-orange-50 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Required Investment</div>
+                          <div className="font-semibold text-orange-700">
+                            KSh {result.investmentAnalysis.requiredInvestment.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-purple-50 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Investment Efficiency</div>
+                          <div className={`font-semibold ${result.investmentAnalysis.efficiencyScore >= 30 ? 'text-purple-700' : 'text-red-600'}`}>
+                            {result.investmentAnalysis.efficiencyScore.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Suggested Acreage</div>
+                          <div className="font-semibold text-green-700">
+                            {result.investmentAnalysis.suggestedAcreage.toFixed(1)} acres
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-600">Revenue per acre</div>
                     </div>
+                  )}
+
+                  {/* Production Summary */}
+                  <div className="grid grid-cols-2 gap-4 mt-6">
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <div className="text-lg font-bold text-gray-900">
                         {((result.acres * result.expectedYield) / 1000).toFixed(1)}T
                       </div>
                       <div className="text-xs text-gray-600">Total yield in tonnes</div>
                     </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-lg font-bold text-gray-900">
+                        KSh {result.pricePerKg}
+                      </div>
+                      <div className="text-xs text-gray-600">Price per kg</div>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Enter your farm details to calculate expected income</p>
+                  <p>Enter your farm details to calculate profit and income</p>
                 </div>
               )}
             </CardContent>

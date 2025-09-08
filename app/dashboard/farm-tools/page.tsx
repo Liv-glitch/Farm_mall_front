@@ -5,10 +5,8 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CostCalculatorModal } from "@/components/modals/cost-calculator-modal"
 import { HarvestForecastModal } from "@/components/modals/harvest-forecast-modal"
 import { IncomeCalculatorModal } from "@/components/modals/income-calculator-modal"
-import { InvestmentCalculatorModal } from "@/components/modals/investment-calculator-modal"
 import { 
   Calculator, 
   Calendar, 
@@ -22,10 +20,8 @@ import {
 } from "lucide-react"
 
 export default function FarmToolsPage() {
-  const [showCostCalculator, setShowCostCalculator] = useState(false)
   const [showHarvestForecast, setShowHarvestForecast] = useState(false)
   const [showIncomeCalculator, setShowIncomeCalculator] = useState(false)
-  const [showInvestmentCalculator, setShowInvestmentCalculator] = useState(false)
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
@@ -51,53 +47,58 @@ export default function FarmToolsPage() {
             <div className="space-y-6">
               {/* Tools Overview */}
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Choose Your Planning Tool</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Complete Farm Planning Solution</h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
-                  Select the tool you need to plan your farming operations, calculate costs, and optimize your harvest timing.
+                  Get comprehensive income, cost, and profit analysis with investment recommendations - all calculations automated for you.
                 </p>
               </div>
 
               {/* Tools Cards */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* Cost Calculator Card */}
+              <div className="max-w-2xl mx-auto mb-8">
+
+                {/* Unified Comprehensive Farm Calculator Card */}
                 <Card 
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
-                    showCostCalculator ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-xl border-2 ${
+                    showIncomeCalculator ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
                   }`}
-                  onClick={() => setShowCostCalculator(true)}
+                  onClick={() => setShowIncomeCalculator(true)}
                 >
-                  <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 bg-agri-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Calculator className="h-8 w-8 text-agri-600" />
+                  <CardContent className="p-8 text-center">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Calculator className="h-10 w-10 text-green-600" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Production Cost Calculator</h3>
-                    <p className="text-gray-600 mb-4">
-                      Calculate accurate costs for your potato farming operations and plan your budget
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Expected Income Calculator</h3>
+                    <p className="text-gray-600 mb-6 text-lg">
+                      Complete farm planning tool - calculate income, costs, profit, and get investment recommendations all in one place
                     </p>
-                    <div className="space-y-2 text-sm text-gray-500">
+                    <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-500">
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Input Cost Analysis</span>
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Income & Cost Analysis</span>
                       </div>
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Labor Cost Calculation</span>
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Automatic Profit Calculation</span>
                       </div>
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Profit Margin Analysis</span>
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>Investment-Based Acreage</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span>ROI & Efficiency Analysis</span>
                       </div>
                     </div>
-                    <Button className="w-full mt-4 bg-agri-600 hover:bg-agri-700 text-white">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Calculate Costs
+                    <Button className="w-full h-14 bg-green-600 hover:bg-green-700 text-white text-lg">
+                      <DollarSign className="h-5 w-5 mr-2" />
+                      Start Comprehensive Analysis
                     </Button>
                   </CardContent>
                 </Card>
 
-                {/* Harvest Forecast Card */}
+                {/* Harvest Forecast Card - Secondary Tool */}
                 <Card 
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 mt-6 ${
                     showHarvestForecast ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
                   }`}
                   onClick={() => setShowHarvestForecast(true)}
@@ -110,95 +111,9 @@ export default function FarmToolsPage() {
                     <p className="text-gray-600 mb-4">
                       Predict optimal harvest timing with weather insights and growth cycle tracking
                     </p>
-                    <div className="space-y-2 text-sm text-gray-500">
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Weather Integration</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Growth Cycle Tracking</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
-                        <span>Optimal Timing Prediction</span>
-                      </div>
-                    </div>
                     <Button className="w-full mt-4 bg-agri-600 hover:bg-agri-700 text-white">
                       <Clock className="h-4 w-4 mr-2" />
                       Forecast Harvest
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Income Calculator Card */}
-                <Card 
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
-                    showIncomeCalculator ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-                  }`}
-                  onClick={() => setShowIncomeCalculator(true)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <DollarSign className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Expected Income Calculator</h3>
-                    <p className="text-gray-600 mb-4">
-                      Calculate expected income based on acreage, yield, and market price
-                    </p>
-                    <div className="space-y-2 text-sm text-gray-500">
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>Revenue Projection</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>Yield Analysis</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        <span>Market Planning</span>
-                      </div>
-                    </div>
-                    <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Calculate Income
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Investment Calculator Card */}
-                <Card 
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 ${
-                    showInvestmentCalculator ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                  }`}
-                  onClick={() => setShowInvestmentCalculator(true)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Target className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Investment Calculator</h3>
-                    <p className="text-gray-600 mb-4">
-                      Determine optimal acreage and yield based on your investment amount
-                    </p>
-                    <div className="space-y-2 text-sm text-gray-500">
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span>ROI Analysis</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span>Acreage Planning</span>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span>Crop Selection</span>
-                      </div>
-                    </div>
-                    <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">
-                      <Target className="h-4 w-4 mr-2" />
-                      Calculate Investment
                     </Button>
                   </CardContent>
                 </Card>
@@ -291,10 +206,8 @@ export default function FarmToolsPage() {
         </main>
 
         {/* Modals */}
-        <CostCalculatorModal open={showCostCalculator} onOpenChange={setShowCostCalculator} />
         <HarvestForecastModal open={showHarvestForecast} onOpenChange={setShowHarvestForecast} />
         <IncomeCalculatorModal open={showIncomeCalculator} onOpenChange={setShowIncomeCalculator} />
-        <InvestmentCalculatorModal open={showInvestmentCalculator} onOpenChange={setShowInvestmentCalculator} />
       </div>
     </DashboardLayout>
   )
