@@ -477,15 +477,19 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
                         <CardContent>
                           <div className="space-y-4">
                             {getEnhancedData(result).diseases.map((disease: any, idx: number) => (
-                              <div key={idx} className="border rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                  <h4 className="font-semibold text-lg">{disease.name || disease.commonName}</h4>
-                                  <Badge variant="destructive">
+                              <div key={idx} className="border rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100">
+                                {/* Disease name prominently displayed at top */}
+                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-red-200">
+                                  <h3 className="font-bold text-xl text-red-800">{disease.name || disease.commonName}</h3>
+                                  <Badge variant="destructive" className="text-sm px-3 py-1">
                                     {disease.severity || 'Unknown severity'}
                                   </Badge>
                                 </div>
+                                {/* Description directly below disease name */}
                                 {disease.description && (
-                                  <p className="text-sm text-gray-600 mb-3">{disease.description}</p>
+                                  <div className="mb-3">
+                                    <p className="text-gray-700 leading-relaxed">{disease.description}</p>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -606,27 +610,50 @@ export function PlantAIModal({ open, onOpenChange, mode }: PlantAIModalProps) {
                   </div>
                 )}
 
-                {/* Fallback display for unrecognized response format */}
+                {/* Error handling and fallback display */}
                 {!result.result?.classification?.suggestions && !result.result?.disease?.suggestions && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center">
-                        <AlertCircle className="h-5 w-5 mr-2 text-blue-600" />
-                        Analysis Results
+                        <AlertCircle className="h-5 w-5 mr-2 text-red-600" />
+                        {result.success === false ? "Analysis Failed" : "Analysis Results"}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <h4 className="font-medium text-blue-800 mb-2">Raw Analysis Data:</h4>
-                          <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border max-h-96 overflow-y-auto">
-                            {JSON.stringify(result, null, 2)}
-                          </pre>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <p>The analysis completed successfully but the response format is not yet supported by the UI. 
-                          The raw data above contains all the analysis results from the AI.</p>
-                        </div>
+                        {/* Check if it's an API error */}
+                        {result.success === false && result.fallback_reason && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 className="font-medium text-red-800 mb-2">Service Temporarily Unavailable</h4>
+                            <p className="text-red-700 mb-3">
+                              The plant identification service is currently overloaded. Please try again in a few minutes.
+                            </p>
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-sm text-red-600 hover:text-red-800">
+                                Technical Details
+                              </summary>
+                              <pre className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded overflow-auto max-h-32">
+                                {result.fallback_reason}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
+                        
+                        {/* Non-error fallback for unrecognized format */}
+                        {result.success !== false && (
+                          <>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <h4 className="font-medium text-blue-800 mb-2">Raw Analysis Data:</h4>
+                              <pre className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border max-h-96 overflow-y-auto">
+                                {JSON.stringify(result, null, 2)}
+                              </pre>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              <p>The analysis completed successfully but the response format is not yet supported by the UI. 
+                              The raw data above contains all the analysis results from the AI.</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

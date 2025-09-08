@@ -29,7 +29,7 @@ export interface Activity {
   status: "in_progress" | "completed"
   cost: string | number
   laborHours: string | number
-  laborType: "family" | "hired" | "cooperative"
+  laborType: "manual-family" | "manual-hired" | "mechanized"
   laborCost?: number
   inputs: string | ActivityInput[]
   notes: string
@@ -100,7 +100,7 @@ export interface CreateActivityRequest {
   activityDate?: Date // legacy field
   cost?: number
   laborHours?: number
-  laborType?: 'hired' | 'family' | 'cooperative'
+  laborType?: 'manual-hired' | 'manual-family' | 'mechanized'
   laborCost?: number
   inputs?: ActivityInput[]
   notes?: string
