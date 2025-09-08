@@ -243,9 +243,9 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="family">Family Labor</SelectItem>
-                  <SelectItem value="hired">Hired Labor</SelectItem>
-                  <SelectItem value="cooperative">Cooperative Labor</SelectItem>
+                  <SelectItem value="manual-family">Manual - Family</SelectItem>
+                  <SelectItem value="manual-hired">Manual - Hired</SelectItem>
+                  <SelectItem value="mechanized">Mechanized</SelectItem>
                 </SelectContent>
               </Select>
             </div>

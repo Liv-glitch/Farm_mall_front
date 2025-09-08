@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Plus } from "lucide-react"
+import { Loader2, Plus, Trash2 } from "lucide-react"
 import type { Activity, ActivityInput, CreateActivityRequest } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
@@ -31,7 +31,7 @@ const activityTemplates = [
     type: "soil_preparation" as const,
     cost: 15000,
     laborHours: 8,
-    laborType: "hired" as const,
+    laborType: "manual-hired" as const,
     inputs: "Tractor, fuel",
     notes: "Ensure proper depth for plowing"
   },
@@ -41,7 +41,7 @@ const activityTemplates = [
     type: "planting" as const,
     cost: 25000,
     laborHours: 12,
-    laborType: "cooperative" as const,
+    laborType: "mechanized" as const,
     inputs: "Seeds, fertilizer",
     notes: "Follow recommended spacing"
   },
@@ -51,7 +51,7 @@ const activityTemplates = [
     type: "fertilization" as const,
     cost: 20000,
     laborHours: 6,
-    laborType: "family" as const,
+    laborType: "manual-family" as const,
     inputs: "NPK fertilizer",
     notes: "Apply in the morning or evening"
   },
@@ -61,7 +61,7 @@ const activityTemplates = [
     type: "weeding" as const,
     cost: 8000,
     laborHours: 8,
-    laborType: "hired" as const,
+    laborType: "manual-hired" as const,
     inputs: "Weeding tools, CAN fertilizer",
     notes: "Careful not to damage crop roots"
   },
@@ -71,7 +71,7 @@ const activityTemplates = [
     type: "pest_control" as const,
     cost: 12000,
     laborHours: 4,
-    laborType: "family" as const,
+    laborType: "manual-family" as const,
     inputs: "Pesticides, sprayer",
     notes: "Use protective gear"
   },
@@ -81,7 +81,7 @@ const activityTemplates = [
     type: "disease_control" as const,
     cost: 10000,
     laborHours: 4,
-    laborType: "family" as const,
+    laborType: "manual-family" as const,
     inputs: "Fungicides, sprayer",
     notes: "Apply during dry weather"
   },
@@ -91,7 +91,7 @@ const activityTemplates = [
     type: "irrigation" as const,
     cost: 6000,
     laborHours: 3,
-    laborType: "family" as const,
+    laborType: "manual-family" as const,
     inputs: "Water pump, fuel",
     notes: "Check soil moisture first"
   },
@@ -101,7 +101,7 @@ const activityTemplates = [
     type: "harvesting" as const,
     cost: 15000,
     laborHours: 16,
-    laborType: "cooperative" as const,
+    laborType: "mechanized" as const,
     inputs: "Harvesting tools, bags",
     notes: "Ensure proper storage conditions"
   },
@@ -204,7 +204,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
       description: "",
       scheduledDate: "",
       laborHours: 0,
-      laborType: "family",
+      laborType: "manual-family",
       laborCost: 0,
       notes: "",
     })
@@ -267,7 +267,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         description: "",
         scheduledDate: "",
         laborHours: 0,
-        laborType: "family",
+        laborType: "manual-family",
         laborCost: 0,
         notes: "",
       })
@@ -408,9 +408,9 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hired">Manual</SelectItem>
-                    <SelectItem value="family">Family Labor</SelectItem>
-                    <SelectItem value="cooperative">Cooperative</SelectItem>
+                    <SelectItem value="manual-hired">Manual - Hired</SelectItem>
+                    <SelectItem value="manual-family">Manual - Family</SelectItem>
+                    <SelectItem value="mechanized">Mechanized</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
