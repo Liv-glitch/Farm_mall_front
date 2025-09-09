@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,9 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { UserPlus, MoreVertical, UserX, UserCog } from "lucide-react"
+import { UserPlus, MoreVertical } from "lucide-react"
 import type { Collaborator, CollaboratorRole } from "@/lib/types/auth"
-import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import { InviteCollaboratorModal } from "@/components/modals/invite-collaborator-modal"
 import { useToast } from "@/components/ui/use-toast"
@@ -40,7 +38,6 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
   const [showInviteModal, setShowInviteModal] = useState(false)
 
   const handleInviteClick = () => {
-    console.log('Invite button clicked! Setting showInviteModal to true')
     setShowInviteModal(true)
   }
   const [selectedCollaborator, setSelectedCollaborator] = useState<Collaborator | null>(null)
@@ -208,20 +205,30 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
 
   if (collaborators.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-8">
-          <p className="text-muted-foreground">No collaborators found</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-4 border-agri-200 text-agri-700 hover:bg-agri-50"
-            onClick={handleInviteClick}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite Collaborator
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <p className="text-muted-foreground">No collaborators found</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-4 border-agri-200 text-agri-700 hover:bg-agri-50"
+              onClick={handleInviteClick}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Collaborator
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Invite Modal */}
+        <InviteCollaboratorModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          farmId={farmId}
+          onCollaboratorInvited={fetchCollaborators}
+        />
+      </>
     )
   }
 
@@ -294,10 +301,7 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
       {/* Invite Modal */}
       <InviteCollaboratorModal
         isOpen={showInviteModal}
-        onClose={() => {
-          console.log('Closing invite modal')
-          setShowInviteModal(false)
-        }}
+        onClose={() => setShowInviteModal(false)}
         farmId={farmId}
         onCollaboratorInvited={fetchCollaborators}
       />
