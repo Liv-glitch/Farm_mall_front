@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, UserPlus } from "lucide-react"
 import type { CollaboratorRole } from "@/lib/types/auth"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 
 interface InviteCollaboratorModalProps {
@@ -19,12 +19,7 @@ interface InviteCollaboratorModalProps {
 }
 
 export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaboratorInvited }: InviteCollaboratorModalProps) {
-  console.log('InviteCollaboratorModal props:', { isOpen, farmId })
-  
-  useEffect(() => {
-    console.log('InviteCollaboratorModal isOpen changed to:', isOpen)
-  }, [isOpen])
-  
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -32,12 +27,41 @@ export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaborato
     role: "worker" as CollaboratorRole,
   })
 
+  // Format Kenyan phone number to +254 format
+  const formatKenyanPhoneNumber = (phone: string): string => {
+    if (!phone) return phone
+    
+    // Remove all non-numeric characters
+    const cleaned = phone.replace(/\D/g, '')
+    
+    // Handle different Kenyan phone number formats
+    if (cleaned.startsWith('254')) {
+      // Already has country code (254711598133 -> +254711598133)
+      return `+${cleaned}`
+    } else if (cleaned.startsWith('0')) {
+      // Starts with 0 (0711598133 -> +254711598133)
+      return `+254${cleaned.slice(1)}`
+    } else if (cleaned.length === 9) {
+      // 9 digits without leading 0 (711598133 -> +254711598133)
+      return `+254${cleaned}`
+    }
+    
+    // Return as is if format is not recognized
+    return phone
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      await apiClient.inviteCollaborator(farmId, formData)
+      // Format the phone number before sending
+      const formattedData = {
+        ...formData,
+        phoneNumber: formData.phoneNumber ? formatKenyanPhoneNumber(formData.phoneNumber) : ""
+      }
+      
+      await apiClient.inviteCollaborator(farmId, formattedData)
       
       toast({
         title: "Invitation Sent",
@@ -94,8 +118,11 @@ export function InviteCollaboratorModal({ isOpen, onClose, farmId, onCollaborato
               type="tel"
               value={formData.phoneNumber}
               onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-              placeholder="+254712345678"
+              placeholder="0712345678 or 712345678 or 254712345678"
             />
+            <p className="text-xs text-muted-foreground">
+              Kenyan phone number (will be formatted to +254 automatically)
+            </p>
           </div>
 
           <div className="space-y-2">
