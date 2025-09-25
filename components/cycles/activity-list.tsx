@@ -103,9 +103,9 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
   const getStatusColor = (status: ActivityStatusWithOverdue) => {
     switch (status) {
       case "in_progress":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-maize-100 text-maize-800"
       case "completed":
-        return "bg-green-100 text-green-800"
+        return "bg-agri-100 text-agri-800"
       case "overdue":
         return "bg-red-100 text-red-800"
       default:
@@ -122,7 +122,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
     if (isOverdue) {
       return <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
     }
-    return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
+    return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-maize-600" />
   }
 
   const completedActivities = activities.filter(a => a.status === "completed").length
