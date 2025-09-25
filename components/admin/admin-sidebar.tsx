@@ -13,8 +13,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Users, BarChart3, Settings, Leaf, Database, Shield, FileText } from "lucide-react"
+import { Home, Users, BarChart3, Settings, Database, Shield, FileText } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 const menuItems = [
@@ -64,10 +65,14 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center space-x-2 px-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-sage-600 to-warm-500 rounded-lg flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex items-center space-x-3 px-2">
+          <Image
+            src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+            alt="Farm Mall Logo"
+            width={48}
+            height={48}
+            className="w-12 h-12"
+          />
           <span className="text-lg font-bold bg-gradient-to-r from-sage-700 to-warm-600 bg-clip-text text-transparent">
             Admin Panel
           </span>

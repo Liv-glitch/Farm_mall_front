@@ -13,8 +13,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Calculator, Calendar, BarChart3, Settings, Leaf, TrendingUp, Activity, Brain, User } from "lucide-react"
+import { Home, Calculator, Calendar, BarChart3, Settings, TrendingUp, Activity, Brain, User } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 const menuItems = [
@@ -64,10 +65,15 @@ export function UserSidebar() {
   return (
     <Sidebar className="bg-white border-r border-gray-200">
       <SidebarHeader className="bg-white border-b border-gray-100 p-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-sage-600 to-warm-500 rounded-lg flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex items-center space-x-3">
+          <Image
+            src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+            alt="Farm Mall Logo"
+            width={72}
+            height={72}
+            className="w-18 h-18"
+            style={{ width: '72px', height: '72px' }}
+          />
           <span className="text-lg font-bold bg-gradient-to-r from-sage-700 to-warm-600 bg-clip-text text-transparent">
             Farm Mall
           </span>

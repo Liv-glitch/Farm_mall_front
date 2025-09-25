@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Leaf, Instagram, Twitter, Facebook, Linkedin, Calculator, Clock, Sprout, Menu, X } from "lucide-react"
+import { Instagram, Twitter, Facebook, Linkedin, Calculator, Clock, Sprout, Menu, X } from "lucide-react"
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -17,13 +17,19 @@ export default function LandingPage() {
       <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
-            <motion.div 
+            <motion.div
               className="flex items-center space-x-2"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Leaf className="h-8 w-8 text-agri-700" />
+              <Image
+                src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+                alt="Farm Mall Logo"
+                width={48}
+                height={48}
+                className="h-12 w-12"
+              />
               <span className="text-xl font-bold text-agri-800">Farm Mall</span>
             </motion.div>
             
@@ -344,7 +350,13 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <Leaf className="h-6 w-6 text-sage-500" />
+              <Image
+                src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+                alt="Farm Mall Logo"
+                width={36}
+                height={36}
+                className="h-9 w-9"
+              />
               <span className="text-xl font-bold text-white">Farm Mall</span>
             </div>
             <p className="text-gray-400">© 2024 Farm Mall. All rights reserved.</p>

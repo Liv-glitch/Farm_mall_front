@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "next/image"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,14 @@ export function DashboardHeader() {
 
       <div className="flex flex-1 items-center justify-between gap-4 min-w-0">
         <div className="flex items-center space-x-2 min-w-0">
-          <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
+          <Link href="/dashboard" className="hover:opacity-80 transition-opacity flex items-center space-x-2">
+            <Image
+              src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+              alt="Farm Mall Logo"
+              width={36}
+              height={36}
+              className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+            />
             <h1 className="text-sm sm:text-lg font-semibold truncate">
               {userData?.role === "admin" ? "Admin Dashboard" : "Farm Dashboard"}
             </h1>

@@ -57,49 +57,64 @@ export default function NewProductionCyclePage() {
 
       const processedVarieties = varieties.map((variety: any) => ({
         ...variety,
-        seedCostPerBag:
-          typeof variety.seedCostPerBag === "string"
-            ? Number.parseFloat(variety.seedCostPerBag)
-            : variety.seedCostPerBag,
+        // Process all the new per-acre cost fields
+        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize1CostPerAcre)
+          : variety.seedSize1CostPerAcre,
+        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize2CostPerAcre)
+          : variety.seedSize2CostPerAcre,
+        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
+          ? Number.parseFloat(variety.fertilizerCostPerAcre)
+          : variety.fertilizerCostPerAcre,
+        herbicideCostPerAcre: typeof variety.herbicideCostPerAcre === "string"
+          ? Number.parseFloat(variety.herbicideCostPerAcre)
+          : variety.herbicideCostPerAcre,
+        fungicideCostPerAcre: typeof variety.fungicideCostPerAcre === "string"
+          ? Number.parseFloat(variety.fungicideCostPerAcre)
+          : variety.fungicideCostPerAcre,
+        insecticideCostPerAcre: typeof variety.insecticideCostPerAcre === "string"
+          ? Number.parseFloat(variety.insecticideCostPerAcre)
+          : variety.insecticideCostPerAcre,
+        laborCostPerAcre: typeof variety.laborCostPerAcre === "string"
+          ? Number.parseFloat(variety.laborCostPerAcre)
+          : variety.laborCostPerAcre,
+        landPreparationCostPerAcre: typeof variety.landPreparationCostPerAcre === "string"
+          ? Number.parseFloat(variety.landPreparationCostPerAcre)
+          : variety.landPreparationCostPerAcre,
+        miscellaneousCostPerAcre: typeof variety.miscellaneousCostPerAcre === "string"
+          ? Number.parseFloat(variety.miscellaneousCostPerAcre)
+          : variety.miscellaneousCostPerAcre,
+        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
+          ? Number.parseFloat(variety.averageYieldPerAcre)
+          : variety.averageYieldPerAcre,
         createdAt: variety.createdAt ? new Date(variety.createdAt) : new Date(),
       }))
 
       setCropVarieties(processedVarieties)
     } catch (error) {
       console.error("Failed to load crop varieties:", error)
-      // Fallback crop varieties
-      setCropVarieties([
-        {
-          id: "550e8400-e29b-41d4-a716-446655440001",
-          name: "Shangi",
-          cropType: "potato",
-          maturityPeriodDays: 75,
-          seedSize1BagsPerAcre: 20,
-          seedSize2BagsPerAcre: 16,
-          seedCostPerBag: 4500,
-          createdAt: new Date(),
-        },
-        {
-          id: "550e8400-e29b-41d4-a716-446655440002",
-          name: "Markies",
-          cropType: "potato",
-          maturityPeriodDays: 90,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedCostPerBag: 2800,
-          createdAt: new Date(),
-        },
-      ])
+      setCropVarieties([]) // No fallback data - API only
     } finally {
       setLoadingVarieties(false)
     }
   }
 
   const selectedCropVariety = cropVarieties.find((v) => v.id === formData.cropVarietyId)
-  const seedCost = selectedCropVariety
-    ? selectedCropVariety.seedSize1BagsPerAcre * formData.landSizeAcres * selectedCropVariety.seedCostPerBag
-    : 0
-  const totalEstimatedCost = seedCost
+
+  // Calculate total cost per acre using new cost structure
+  const costPerAcre = selectedCropVariety ? (
+    selectedCropVariety.seedSize1CostPerAcre +
+    selectedCropVariety.fertilizerCostPerAcre +
+    selectedCropVariety.herbicideCostPerAcre +
+    selectedCropVariety.fungicideCostPerAcre +
+    selectedCropVariety.insecticideCostPerAcre +
+    selectedCropVariety.laborCostPerAcre +
+    selectedCropVariety.landPreparationCostPerAcre +
+    selectedCropVariety.miscellaneousCostPerAcre
+  ) : 0
+
+  const totalEstimatedCost = costPerAcre * formData.landSizeAcres
   const expectedRevenue = formData.expectedYield * formData.expectedPricePerKg
   const expectedProfit = expectedRevenue - totalEstimatedCost
 
@@ -439,8 +454,8 @@ export default function NewProductionCyclePage() {
                         <span className="font-medium">{selectedCropVariety.maturityPeriodDays} days</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Seed Cost per Bag:</span>
-                        <span className="font-medium">KSh {selectedCropVariety.seedCostPerBag.toLocaleString()}</span>
+                        <span>Seed Cost per Acre:</span>
+                        <span className="font-medium">KSh {selectedCropVariety.seedSize1CostPerAcre.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Seeds per Acre:</span>
@@ -466,10 +481,6 @@ export default function NewProductionCyclePage() {
                       <span className="font-medium">{formData.landSizeAcres} acres</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-sm">Seed Cost:</span>
-                      <span className="font-medium">KSh {seedCost.toLocaleString()}</span>
-                    </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Estimated Total Cost:</span>
                       <span className="font-medium">KSh {totalEstimatedCost.toLocaleString()}</span>

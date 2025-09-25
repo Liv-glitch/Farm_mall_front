@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Leaf, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { Eye, EyeOff, ArrowLeft } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/hooks/use-auth"
@@ -79,10 +80,14 @@ export default function LoginPage() {
             Back to Home
           </Link>
 
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-gradient-to-r from-agri-500 to-maize-500 rounded-xl flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
-            </div>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <Image
+              src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+              alt="Farm Mall Logo"
+              width={48}
+              height={48}
+              className="w-12 h-12"
+            />
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-agri-600 to-maize-600 bg-clip-text text-transparent">
               Farm Mall
             </span>

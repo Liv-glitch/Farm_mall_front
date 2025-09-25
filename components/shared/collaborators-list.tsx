@@ -140,9 +140,9 @@ export function CollaboratorsList({ farmId, onCollaboratorSelect }: Collaborator
       case 'manager':
         return 'bg-blue-100 text-blue-800'
       case 'family_member':
-        return 'bg-amber-100 text-amber-800'
+        return 'bg-maize-100 text-maize-800'
       case 'worker':
-        return 'bg-green-100 text-green-800'
+        return 'bg-agri-100 text-agri-800'
       case 'viewer':
         return 'bg-gray-100 text-gray-800'
       default:
