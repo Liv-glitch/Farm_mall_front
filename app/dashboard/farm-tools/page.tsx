@@ -57,15 +57,15 @@ export default function FarmToolsPage() {
               <div className="max-w-2xl mx-auto mb-8">
 
                 {/* Unified Comprehensive Farm Calculator Card */}
-                <Card 
+                <Card
                   className={`cursor-pointer transition-all duration-300 hover:shadow-xl border-2 ${
-                    showIncomeCalculator ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+                    showIncomeCalculator ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
                   }`}
                   onClick={() => setShowIncomeCalculator(true)}
                 >
                   <CardContent className="p-8 text-center">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Calculator className="h-10 w-10 text-green-600" />
+                    <div className="w-20 h-20 bg-agri-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Calculator className="h-10 w-10 text-agri-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">Expected Income Calculator</h3>
                     <p className="text-gray-600 mb-6 text-lg">
@@ -73,23 +73,23 @@ export default function FarmToolsPage() {
                     </p>
                     <div className="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-500">
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
                         <span>Income & Cost Analysis</span>
                       </div>
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
                         <span>Automatic Profit Calculation</span>
                       </div>
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
                         <span>Investment-Based Acreage</span>
                       </div>
                       <div className="flex items-center justify-center space-x-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        <span className="w-2 h-2 bg-agri-500 rounded-full"></span>
                         <span>ROI & Efficiency Analysis</span>
                       </div>
                     </div>
-                    <Button className="w-full h-14 bg-green-600 hover:bg-green-700 text-white text-lg">
+                    <Button className="w-full h-14 bg-agri-600 hover:bg-agri-700 text-white text-lg">
                       <DollarSign className="h-5 w-5 mr-2" />
                       Start Comprehensive Analysis
                     </Button>

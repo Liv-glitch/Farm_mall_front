@@ -59,13 +59,21 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       console.log("🌱 Processed varieties:", varieties)
       console.log("🌱 Varieties count:", varieties.length)
 
-      // Convert string values to numbers for seedCostPerBag
+      // Process the new per-acre cost fields
       const processedVarieties = varieties.map((variety: any) => ({
         ...variety,
-        seedCostPerBag:
-          typeof variety.seedCostPerBag === "string"
-            ? Number.parseFloat(variety.seedCostPerBag)
-            : variety.seedCostPerBag,
+        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize1CostPerAcre)
+          : variety.seedSize1CostPerAcre,
+        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize2CostPerAcre)
+          : variety.seedSize2CostPerAcre,
+        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
+          ? Number.parseFloat(variety.fertilizerCostPerAcre)
+          : variety.fertilizerCostPerAcre,
+        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
+          ? Number.parseFloat(variety.averageYieldPerAcre)
+          : variety.averageYieldPerAcre,
         createdAt: new Date(variety.createdAt),
       }))
 
@@ -117,6 +125,10 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
         const endWindow = new Date(harvestDate)
         endWindow.setDate(endWindow.getDate() + 7)
 
+        console.log("🌾 Selected variety averageYieldPerAcre:", selectedVariety.averageYieldPerAcre)
+        console.log("🌾 Land size acres:", formData.landSizeAcres)
+        console.log("🌾 Total expected yield:", (formData.landSizeAcres || 1) * selectedVariety.averageYieldPerAcre)
+
         const mockResult: HarvestPredictionResponse = {
           cropVarietyId: selectedVariety.id,
           cropVarietyName: selectedVariety.name,
@@ -127,8 +139,8 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
             endDate: endWindow.toISOString().split("T")[0],
           },
           estimatedYield: {
-            totalKg: formData.landSizeAcres * 18000, // 18 tons per acre average
-            yieldPerAcre: 18000,
+            totalKg: (formData.landSizeAcres || 1) * selectedVariety.averageYieldPerAcre,
+            yieldPerAcre: selectedVariety.averageYieldPerAcre,
           },
           climateConditions: {
             averageTemperature: 22,
@@ -236,6 +248,20 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                     />
                   </div>
 
+                  {formData.cropVarietyId && (() => {
+                    const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
+                    return selectedCrop ? (
+                      <div className="p-3 bg-sage-50 rounded-lg">
+                        <h4 className="font-medium text-sage-900 mb-2">Expected Yield (from crop data)</h4>
+                        <div className="text-lg font-bold text-sage-800">
+                          {selectedCrop.averageYieldPerAcre.toLocaleString()} kg/acre
+                        </div>
+                        <div className="text-sm text-sage-700 mt-1">
+                          Based on {selectedCrop.name} variety data
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
 
                   <Button
                     onClick={predictHarvest}

@@ -33,9 +33,11 @@ interface IncomeResult {
   costBreakdown: {
     seeds: number
     fertilizer: number
-    pesticides: number
+    herbicides: number
+    fungicides: number
+    insecticides: number
     labor: number
-    equipment: number
+    landPreparation: number
     other: number
   }
   // Investment-based recommendations
@@ -53,7 +55,6 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
   const [formData, setFormData] = useState({
     cropVarietyId: "",
     acres: 0,
-    expectedYield: 0, // kg per acre
     pricePerKg: 0,
     investmentAmount: 0, // Optional: for investment-based recommendations
   })
@@ -84,30 +85,32 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
   const calculateCosts = (acres: number, cropVariety: CropVariety | undefined) => {
     if (!cropVariety) {
       return {
-        seeds: acres * 50000,
-        fertilizer: acres * 15000,
-        pesticides: acres * 8000,
-        labor: acres * 25000,
-        equipment: acres * 12000,
-        other: acres * 5000,
+        seeds: 0,
+        fertilizer: 0,
+        herbicides: 0,
+        fungicides: 0,
+        insecticides: 0,
+        labor: 0,
+        landPreparation: 0,
+        other: 0,
       }
     }
 
-    // Use crop variety data for more accurate cost calculation
-    const seedCost = cropVariety.seedCostPerBag * cropVariety.seedSize1BagsPerAcre * acres
-    
+    // Use crop variety data for accurate cost calculation
     return {
-      seeds: seedCost,
-      fertilizer: acres * 15000, // Base fertilizer cost per acre
-      pesticides: acres * 8000,  // Base pesticide cost per acre
-      labor: acres * 25000,      // Base labor cost per acre
-      equipment: acres * 12000,  // Base equipment cost per acre
-      other: acres * 5000,       // Other miscellaneous costs per acre
+      seeds: cropVariety.seedSize1CostPerAcre * acres,
+      fertilizer: cropVariety.fertilizerCostPerAcre * acres,
+      herbicides: cropVariety.herbicideCostPerAcre * acres,
+      fungicides: cropVariety.fungicideCostPerAcre * acres,
+      insecticides: cropVariety.insecticideCostPerAcre * acres,
+      labor: cropVariety.laborCostPerAcre * acres,
+      landPreparation: cropVariety.landPreparationCostPerAcre * acres,
+      other: cropVariety.miscellaneousCostPerAcre * acres,
     }
   }
 
   const calculateIncome = () => {
-    if (!formData.acres || !formData.expectedYield || !formData.pricePerKg) {
+    if (!formData.acres || !formData.pricePerKg || !formData.cropVarietyId) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -117,13 +120,23 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     }
 
     const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
+    if (!selectedCrop) {
+      toast({
+        title: "Error",
+        description: "Selected crop variety not found",
+        variant: "destructive",
+      })
+      return
+    }
+
     const costBreakdown = calculateCosts(formData.acres, selectedCrop)
     const totalCost = Object.values(costBreakdown).reduce((sum, cost) => sum + cost, 0)
     const costPerAcre = totalCost / formData.acres
 
-    const totalYield = formData.acres * formData.expectedYield
+    const expectedYieldPerAcre = selectedCrop.averageYieldPerAcre
+    const totalYield = formData.acres * expectedYieldPerAcre
     const totalIncome = totalYield * formData.pricePerKg
-    const incomePerAcre = formData.expectedYield * formData.pricePerKg
+    const incomePerAcre = expectedYieldPerAcre * formData.pricePerKg
     
     const totalProfit = totalIncome - totalCost
     const profitPerAcre = totalProfit / formData.acres
@@ -148,7 +161,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     if (formData.pricePerKg < 30) {
       recommendations.push("Look for better market channels or value addition opportunities")
     }
-    if (formData.expectedYield < 1000) {
+    if (expectedYieldPerAcre < 1000) {
       recommendations.push("Focus on increasing yield through proper fertilization and pest management")
     }
 
@@ -180,7 +193,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
 
     setResult({
       acres: formData.acres,
-      expectedYield: formData.expectedYield,
+      expectedYield: expectedYieldPerAcre,
       pricePerKg: formData.pricePerKg,
       totalIncome,
       incomePerAcre,
@@ -205,7 +218,6 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     setFormData({
       cropVarietyId: "",
       acres: 0,
-      expectedYield: 0,
       pricePerKg: 0,
       investmentAmount: 0,
     })
@@ -268,26 +280,20 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                 />
               </div>
 
-              <div>
-                <Label htmlFor="yield">Expected Yield per Acre (Kg) *</Label>
-                <Input
-                  id="yield"
-                  type="number"
-                  step="10"
-                  placeholder="Expected kg per acre"
-                  value={formData.expectedYield || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      expectedYield: Number.parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-12"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Example: Potatoes typically yield 800-1500 kg per acre
-                </p>
-              </div>
+              {formData.cropVarietyId && (() => {
+                const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
+                return selectedCrop ? (
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">Expected Yield (from crop data)</h4>
+                    <div className="text-lg font-bold text-blue-800">
+                      {selectedCrop.averageYieldPerAcre.toLocaleString()} kg/acre
+                    </div>
+                    <div className="text-sm text-blue-700 mt-1">
+                      Based on {selectedCrop.name} variety data
+                    </div>
+                  </div>
+                ) : null
+              })()}
 
               <div>
                 <Label htmlFor="price">Expected Price per Kg (KSh) *</Label>
@@ -334,7 +340,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
               <Button
                 onClick={calculateIncome}
                 className="w-full h-12 bg-green-600 hover:bg-green-700"
-                disabled={!formData.acres || !formData.expectedYield || !formData.pricePerKg || loadingVarieties}
+                disabled={!formData.acres || !formData.pricePerKg || !formData.cropVarietyId || loadingVarieties}
               >
                 <Calculator className="mr-2 h-4 w-4" />
                 Calculate Profit & Income
@@ -402,16 +408,24 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                         <span>KSh {result.costBreakdown.fertilizer.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
-                        <span>Pesticides</span>
-                        <span>KSh {result.costBreakdown.pesticides.toLocaleString()}</span>
+                        <span>Herbicides</span>
+                        <span>KSh {result.costBreakdown.herbicides.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Fungicides</span>
+                        <span>KSh {result.costBreakdown.fungicides.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
+                        <span>Insecticides</span>
+                        <span>KSh {result.costBreakdown.insecticides.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
                         <span>Labor</span>
                         <span>KSh {result.costBreakdown.labor.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
-                        <span>Equipment</span>
-                        <span>KSh {result.costBreakdown.equipment.toLocaleString()}</span>
+                        <span>Land Preparation</span>
+                        <span>KSh {result.costBreakdown.landPreparation.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between p-2 bg-gray-50 rounded text-sm">
                         <span>Other</span>

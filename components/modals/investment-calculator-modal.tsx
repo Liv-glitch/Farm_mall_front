@@ -241,7 +241,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                       <h4 className="font-medium text-blue-900 mb-2">Selected Variety Info</h4>
                       <div className="text-sm text-blue-800 space-y-1">
                         <div>Maturity Period: {selectedVariety.maturityPeriodDays} days</div>
-                        <div>Seed Cost: KSh {selectedVariety.seedCostPerBag}/bag</div>
+                        <div>Seed Cost: KSh {selectedVariety.seedSize1CostPerAcre}/acre</div>
                       </div>
                     </div>
                   )}
