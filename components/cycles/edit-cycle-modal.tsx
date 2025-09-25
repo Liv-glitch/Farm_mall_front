@@ -91,13 +91,21 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
         } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
           varieties = response.data.varieties
         }
-        // Convert string values to numbers for seedCostPerBag and parse createdAt
+        // Process the new per-acre cost fields and parse createdAt
         const processedVarieties = varieties.map((variety: any) => ({
           ...variety,
-          seedCostPerBag:
-            typeof variety.seedCostPerBag === "string"
-              ? Number.parseFloat(variety.seedCostPerBag)
-              : variety.seedCostPerBag,
+          seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
+            ? Number.parseFloat(variety.seedSize1CostPerAcre)
+            : variety.seedSize1CostPerAcre,
+          seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
+            ? Number.parseFloat(variety.seedSize2CostPerAcre)
+            : variety.seedSize2CostPerAcre,
+          fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
+            ? Number.parseFloat(variety.fertilizerCostPerAcre)
+            : variety.fertilizerCostPerAcre,
+          averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
+            ? Number.parseFloat(variety.averageYieldPerAcre)
+            : variety.averageYieldPerAcre,
           createdAt: variety.createdAt ? new Date(variety.createdAt) : new Date(),
         }))
         setCropVarieties(processedVarieties)
