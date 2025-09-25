@@ -11,8 +11,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Farm Mall",
   description: "Modern agricultural technology platform for farmers",
-  generator: 'Tonnyb',
-}
+  generator: "Tonnyb",
+  icons: {
+    icon: "https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png",
+  },
+};
+
 
 export const viewport: Viewport = {
   width: 'device-width',
