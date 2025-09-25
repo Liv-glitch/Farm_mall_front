@@ -75,56 +75,69 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Agricultural green colors - tea green and maize green
+        // Agricultural green colors - official brand green #217A2D
         agri: {
-          50: "#f0f9f0",
-          100: "#dcf2dc",
-          200: "#bce4bc",
-          300: "#8fd18f",
-          400: "#5bb55b",
-          500: "#3a9a3a", // Main tea green
-          600: "#2d7a2d",
-          700: "#256125",
-          800: "#1f4e1f",
-          900: "#1a411a",
+          50: "#f0f9f2",
+          100: "#dcf2e1",
+          200: "#bce4c7",
+          300: "#8fd1a3",
+          400: "#5bb578",
+          500: "#217A2D", // Official brand green
+          600: "#1d6d28",
+          700: "#195c23",
+          800: "#154a1e",
+          900: "#113d19",
         },
         maize: {
-          50: "#fefdf0",
-          100: "#fef9dc",
-          200: "#fdf2bc",
-          300: "#fbe78f",
-          400: "#f7d55b",
-          500: "#f2c23a", // Main maize green
-          600: "#e6a82d",
-          700: "#c98a25",
-          800: "#a46e1f",
-          900: "#855a1a",
+          50: "#fffef0",
+          100: "#fffcdc",
+          200: "#fff9bc",
+          300: "#fff48f",
+          400: "#ffed5b",
+          500: "#FFD700", // Official brand gold
+          600: "#e6c200",
+          700: "#cca000",
+          800: "#b38600",
+          900: "#996b00",
         },
-        // Keep sage for backward compatibility but update to agricultural theme
+        // Keep sage for backward compatibility but update to official brand green
         sage: {
-          50: "#f0f9f0",
-          100: "#dcf2dc",
-          200: "#bce4bc",
-          300: "#8fd18f",
-          400: "#5bb55b",
-          500: "#3a9a3a", // Updated to tea green
-          600: "#2d7a2d",
-          700: "#256125",
-          800: "#1f4e1f",
-          900: "#1a411a",
+          50: "#f0f9f2",
+          100: "#dcf2e1",
+          200: "#bce4c7",
+          300: "#8fd1a3",
+          400: "#5bb578",
+          500: "#217A2D", // Official brand green
+          600: "#1d6d28",
+          700: "#195c23",
+          800: "#154a1e",
+          900: "#113d19",
         },
-        // Keep warm for backward compatibility but update to maize
+        // Keep warm for backward compatibility but update to official brand gold
         warm: {
-          50: "#fefdf0",
-          100: "#fef9dc",
-          200: "#fdf2bc",
-          300: "#fbe78f",
-          400: "#f7d55b",
-          500: "#f2c23a", // Updated to maize green
-          600: "#e6a82d",
-          700: "#c98a25",
-          800: "#a46e1f",
-          900: "#855a1a",
+          50: "#fffef0",
+          100: "#fffcdc",
+          200: "#fff9bc",
+          300: "#fff48f",
+          400: "#ffed5b",
+          500: "#FFD700", // Official brand gold
+          600: "#e6c200",
+          700: "#cca000",
+          800: "#b38600",
+          900: "#996b00",
+        },
+        // Official brand brown #6E3B1E
+        brown: {
+          50: "#faf8f5",
+          100: "#f3ede6",
+          200: "#e5d8cc",
+          300: "#d4bfad",
+          400: "#c1a08c",
+          500: "#6E3B1E", // Official brand brown
+          600: "#63351b",
+          700: "#582e18",
+          800: "#4d2715",
+          900: "#422012",
         },
       },
       borderRadius: {
