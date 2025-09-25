@@ -296,7 +296,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
 
   const getHealthScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600 bg-green-100"
-    if (score >= 60) return "text-yellow-600 bg-yellow-100"
+    if (score >= 60) return "text-maize-600 bg-maize-100"
     return "text-red-600 bg-red-100"
   }
 
@@ -318,7 +318,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
       <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <TestTube className="w-5 h-5 text-amber-600" />
+            <TestTube className="w-5 h-5 text-maize-600" />
             <span>AI Soil Analysis</span>
             <Badge variant="outline" className="ml-2">
               <Sparkles className="w-3 h-3 mr-1" />
@@ -338,10 +338,10 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
                 Soil Test Report or Sample Image *
                 <Badge variant="outline" className="ml-2 text-xs">Required</Badge>
               </Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-maize-400 transition-colors">
                 <div className="space-y-2">
                   <div className="flex justify-center space-x-2">
-                    <FileText className="h-8 w-8 text-amber-600" />
+                    <FileText className="h-8 w-8 text-maize-600" />
                     <ImageIcon className="h-8 w-8 text-gray-400" />
                   </div>
                   <div>
@@ -367,7 +367,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
                     </Label>
                   </div>
                   {document && (
-                    <div className="mt-2 p-2 bg-amber-50 rounded text-sm">
+                    <div className="mt-2 p-2 bg-maize-50 rounded text-sm">
                       <CheckCircle2 className="h-4 w-4 text-green-600 inline mr-1" />
                       {document.name} ({(document.size / 1024 / 1024).toFixed(2)} MB)
                     </div>
@@ -463,7 +463,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
             {/* Submit Button */}
             <Button 
               type="submit" 
-              className="w-full bg-amber-700 hover:bg-amber-800" 
+              className="w-full bg-maize-700 hover:bg-maize-800" 
               disabled={loading || !document}
             >
               {loading ? (
@@ -518,11 +518,11 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-2 text-amber-700">Areas for Improvement</h4>
+                    <h4 className="font-medium mb-2 text-maize-700">Areas for Improvement</h4>
                     <ul className="space-y-1">
                       {result.soilHealth.limitingFactors.map((factor, idx) => (
                         <li key={idx} className="text-sm flex items-start">
-                          <AlertCircle className="h-4 w-4 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
+                          <AlertCircle className="h-4 w-4 text-maize-600 mr-2 mt-0.5 flex-shrink-0" />
                           {factor}
                         </li>
                       ))}
@@ -632,7 +632,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
               </Button>
               <Button 
                 onClick={() => onOpenChange(false)}
-                className="flex-1 bg-amber-700 hover:bg-amber-800"
+                className="flex-1 bg-maize-700 hover:bg-maize-800"
               >
                 Save & Close
               </Button>

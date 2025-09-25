@@ -297,11 +297,11 @@ export default function FarmIntelligencePage() {
                 </div>
 
                 {/* Soil Analysis */}
-                <div className="bg-white rounded-lg p-6 shadow-sm border border-yellow-200 hover:shadow-md hover:border-yellow-300 transition-all">
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-maize-200 hover:shadow-md hover:border-maize-300 transition-all">
                   <div className="flex flex-col space-y-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <TestTube className="w-6 h-6 text-yellow-600" />
+                      <div className="w-12 h-12 bg-maize-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <TestTube className="w-6 h-6 text-maize-600" />
                       </div>
                       <div className="flex-1">
                         <h4 className="text-lg font-semibold text-gray-900">Soil Whisperer</h4>
@@ -311,7 +311,7 @@ export default function FarmIntelligencePage() {
                       </div>
                     </div>
                     <Button 
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white w-full"
+                      className="bg-maize-600 hover:bg-maize-700 text-white w-full"
                       onClick={() => setShowSoilAnalysis(true)}
                     >
                       <TestTube className="w-4 h-4 mr-2" />
