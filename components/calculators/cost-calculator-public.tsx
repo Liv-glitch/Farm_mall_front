@@ -8,8 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calculator, TrendingUp, Loader2 } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
-import { apiClient } from "@/lib/api/client"
 import type { CropVariety } from "@/lib/types/production"
 
 export function CostCalculatorPublic() {
@@ -39,62 +37,86 @@ export function CostCalculatorPublic() {
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const response = await apiClient.getCropVarieties()
 
-      // Handle different response structures
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
+      // Hardcoded crop variety data for public calculator
+      const hardcodedVarieties = [
+        {
+          id: "392f993e-3ee5-48fc-9bd3-15d81bc40b88",
+          name: "Shangi",
+          cropType: "potato",
+          maturityPeriodDays: 90,
+          seedSize1BagsPerAcre: 16,
+          seedSize2BagsPerAcre: 20,
+          seedSize1CostPerAcre: 64000.00,
+          seedSize2CostPerAcre: 77000.00,
+          fertilizerCostPerAcre: 17850.00,
+          herbicideCostPerAcre: 4780.00,
+          fungicideCostPerAcre: 3950.00,
+          insecticideCostPerAcre: 5000.00,
+          laborCostPerAcre: 20000.00,
+          landPreparationCostPerAcre: 21500.00,
+          miscellaneousCostPerAcre: 5000.00,
+          averageYieldPerAcre: 8000.00
+        },
+        {
+          id: "8f193b8a-44a1-457d-84b3-c5ef9f9d2c4b",
+          name: "Sherekea",
+          cropType: "potato",
+          maturityPeriodDays: 100,
+          seedSize1BagsPerAcre: 16,
+          seedSize2BagsPerAcre: 20,
+          seedSize1CostPerAcre: 64000.00,
+          seedSize2CostPerAcre: 69000.00,
+          fertilizerCostPerAcre: 17850.00,
+          herbicideCostPerAcre: 4780.00,
+          fungicideCostPerAcre: 3950.00,
+          insecticideCostPerAcre: 5000.00,
+          laborCostPerAcre: 20000.00,
+          landPreparationCostPerAcre: 21500.00,
+          miscellaneousCostPerAcre: 5000.00,
+          averageYieldPerAcre: 9000.00
+        },
+        {
+          id: "a028d425-fa7e-4bfd-9793-855ed4295e40",
+          name: "Unica",
+          cropType: "potato",
+          maturityPeriodDays: 90,
+          seedSize1BagsPerAcre: 16,
+          seedSize2BagsPerAcre: 20,
+          seedSize1CostPerAcre: 64000.00,
+          seedSize2CostPerAcre: 69000.00,
+          fertilizerCostPerAcre: 17850.00,
+          herbicideCostPerAcre: 4780.00,
+          fungicideCostPerAcre: 3950.00,
+          insecticideCostPerAcre: 5000.00,
+          laborCostPerAcre: 20000.00,
+          landPreparationCostPerAcre: 21500.00,
+          miscellaneousCostPerAcre: 5000.00,
+          averageYieldPerAcre: 8000.00
+        },
+        {
+          id: "e5d83493-e74b-4b8b-ad6d-ffbca31d0176",
+          name: "Markies",
+          cropType: "potato",
+          maturityPeriodDays: 120,
+          seedSize1BagsPerAcre: 16,
+          seedSize2BagsPerAcre: 20,
+          seedSize1CostPerAcre: 74400.00,
+          seedSize2CostPerAcre: 83000.00,
+          fertilizerCostPerAcre: 17850.00,
+          herbicideCostPerAcre: 4780.00,
+          fungicideCostPerAcre: 3950.00,
+          insecticideCostPerAcre: 5000.00,
+          laborCostPerAcre: 20000.00,
+          landPreparationCostPerAcre: 21500.00,
+          miscellaneousCostPerAcre: 5000.00,
+          averageYieldPerAcre: 10000.00
+        }
+      ]
 
-      // Process the per-acre cost fields to ensure they are numbers
-      const processedVarieties = varieties.map((variety: any) => ({
-        ...variety,
-        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize1CostPerAcre)
-          : variety.seedSize1CostPerAcre,
-        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize2CostPerAcre)
-          : variety.seedSize2CostPerAcre,
-        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
-          ? Number.parseFloat(variety.fertilizerCostPerAcre)
-          : variety.fertilizerCostPerAcre,
-        herbicideCostPerAcre: typeof variety.herbicideCostPerAcre === "string"
-          ? Number.parseFloat(variety.herbicideCostPerAcre)
-          : variety.herbicideCostPerAcre,
-        fungicideCostPerAcre: typeof variety.fungicideCostPerAcre === "string"
-          ? Number.parseFloat(variety.fungicideCostPerAcre)
-          : variety.fungicideCostPerAcre,
-        insecticideCostPerAcre: typeof variety.insecticideCostPerAcre === "string"
-          ? Number.parseFloat(variety.insecticideCostPerAcre)
-          : variety.insecticideCostPerAcre,
-        laborCostPerAcre: typeof variety.laborCostPerAcre === "string"
-          ? Number.parseFloat(variety.laborCostPerAcre)
-          : variety.laborCostPerAcre,
-        landPreparationCostPerAcre: typeof variety.landPreparationCostPerAcre === "string"
-          ? Number.parseFloat(variety.landPreparationCostPerAcre)
-          : variety.landPreparationCostPerAcre,
-        miscellaneousCostPerAcre: typeof variety.miscellaneousCostPerAcre === "string"
-          ? Number.parseFloat(variety.miscellaneousCostPerAcre)
-          : variety.miscellaneousCostPerAcre,
-        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
-          ? Number.parseFloat(variety.averageYieldPerAcre)
-          : variety.averageYieldPerAcre,
-      }))
-
-      setCropVarieties(processedVarieties)
+      setCropVarieties(hardcodedVarieties)
     } catch (error: any) {
       console.error('Failed to load crop varieties:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load crop varieties from database.",
-        variant: "destructive",
-      })
-      // Fallback to empty array - component will handle this
       setCropVarieties([])
     } finally {
       setLoadingVarieties(false)
@@ -106,11 +128,7 @@ export function CostCalculatorPublic() {
     const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
 
     if (!selectedVariety) {
-      toast({
-        title: "Error",
-        description: "Please select a crop variety",
-        variant: "destructive",
-      })
+      alert("Please select a crop variety")
       return
     }
 
