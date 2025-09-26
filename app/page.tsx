@@ -332,19 +332,19 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <div className="flex justify-center space-x-8 mb-6">
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.instagram.com/farmm_all/?hl=en" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Instagram className="h-8 w-8" />
                 <span className="sr-only">Instagram</span>
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://x.com/FarmMall1" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Twitter className="h-8 w-8" />
                 <span className="sr-only">Twitter</span>
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.facebook.com/profile.php?id=100063807947336" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Facebook className="h-8 w-8" />
                 <span className="sr-only">Facebook</span>
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.linkedin.com/company/73202637/admin/page-posts/published/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Linkedin className="h-8 w-8" />
                 <span className="sr-only">LinkedIn</span>
               </Link>
