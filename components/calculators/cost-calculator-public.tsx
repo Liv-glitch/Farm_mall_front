@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calculator, TrendingUp, Loader2 } from "lucide-react"
+import { Calculator, TrendingUp, Loader2, Lock } from "lucide-react"
 import type { CropVariety } from "@/lib/types/production"
 
 export function CostCalculatorPublic() {
@@ -19,6 +20,8 @@ export function CostCalculatorPublic() {
   const [showResults, setShowResults] = useState(false)
   const [calculatedCost, setCalculatedCost] = useState(0)
   const [seedRequirement, setSeedRequirement] = useState(0)
+  const [usageCount, setUsageCount] = useState(0)
+  const [showLimitReached, setShowLimitReached] = useState(false)
   const [costBreakdown, setCostBreakdown] = useState({
     seeds: 0,
     fertilizer: 0,
@@ -30,8 +33,14 @@ export function CostCalculatorPublic() {
     miscellaneous: 0
   })
 
+  const MAX_FREE_USES = 5
+
   useEffect(() => {
     loadCropVarieties()
+    // Load usage count from localStorage
+    const savedUsageCount = localStorage.getItem('farm_mall_calculator_uses')
+    const count = savedUsageCount ? parseInt(savedUsageCount, 10) : 0
+    setUsageCount(count)
   }, [])
 
   const loadCropVarieties = async () => {
@@ -124,6 +133,12 @@ export function CostCalculatorPublic() {
   }
 
   const calculateCost = () => {
+    // Check usage limit
+    if (usageCount >= MAX_FREE_USES) {
+      setShowLimitReached(true)
+      return
+    }
+
     const size = Number.parseFloat(landSize) || 0
     const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
 
@@ -153,6 +168,11 @@ export function CostCalculatorPublic() {
     setSeedRequirement(seeds)
     setCostBreakdown(breakdown)
     setShowResults(true)
+
+    // Increment and save usage count
+    const newUsageCount = usageCount + 1
+    setUsageCount(newUsageCount)
+    localStorage.setItem('farm_mall_calculator_uses', newUsageCount.toString())
   }
 
   const resetCalculator = () => {
@@ -268,7 +288,7 @@ export function CostCalculatorPublic() {
               className="w-full h-12 bg-sage-700 hover:bg-sage-800 text-white"
               disabled={!landSize || !cropVarietyId || loadingVarieties}
             >
-              Calculate Costs
+              Calculate Costs {usageCount > 0 && `(${MAX_FREE_USES - usageCount} uses left)`}
             </Button>
 
             {showResults && (
@@ -402,8 +422,48 @@ export function CostCalculatorPublic() {
                 </div>
 
                 <div className="text-center pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-600 mb-3">Want detailed breakdown and planning tools?</p>
-                  <Button className="bg-sage-700 hover:bg-sage-800 text-white">Sign Up for Full Access</Button>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {usageCount >= MAX_FREE_USES - 1
+                      ? "This was your last free calculation!"
+                      : "Want detailed breakdown and planning tools?"
+                    }
+                  </p>
+                  <Button className="bg-sage-700 hover:bg-sage-800 text-white">
+                    Sign Up for Full Access
+                  </Button>
+                </div>
+              </div>
+            ) : showLimitReached ? (
+              <div className="text-center py-12">
+                <Lock className="w-12 h-12 mx-auto mb-4 text-sage-600" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Free Usage Limit Reached</h3>
+                <p className="text-gray-600 mb-4">
+                  You've used all {MAX_FREE_USES} free calculations. Sign up to get unlimited access plus:
+                </p>
+                <ul className="text-left text-sm text-gray-600 mb-6 space-y-1">
+                  <li>• Unlimited cost calculations</li>
+                  <li>• Harvest forecasting</li>
+                  <li>• Production cycle tracking</li>
+                  <li>• Profit analysis tools</li>
+                  <li>• Farm management dashboard</li>
+                </ul>
+                <div className="space-y-2">
+                  <Link href="/auth/register">
+                    <Button className="w-full bg-sage-700 hover:bg-sage-800 text-white">
+                      Sign Up for Free
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      localStorage.removeItem('farm_mall_calculator_uses')
+                      setUsageCount(0)
+                      setShowLimitReached(false)
+                    }}
+                  >
+                    Reset (Demo Only)
+                  </Button>
                 </div>
               </div>
             ) : (
