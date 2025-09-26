@@ -180,14 +180,9 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
         efficiencyScore,
       }
 
-      // Add investment-specific recommendations
+      // Add investment-specific recommendations - keep only the budget recommendation
       if (formData.investmentAmount < requiredInvestment) {
         recommendations.push(`Consider reducing acreage to ${maxAcreageForBudget.toFixed(1)} acres to match your budget of KSh ${formData.investmentAmount.toLocaleString()}`)
-      }
-      if (efficiencyScore > 50) {
-        recommendations.push("Excellent investment efficiency! Your funds are well allocated for this farming operation")
-      } else if (efficiencyScore < 20) {
-        recommendations.push("Low investment efficiency. Consider higher-value crops or reducing costs")
       }
     }
 
@@ -464,15 +459,12 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                   {/* Recommendations */}
                   {result.recommendations.length > 0 && (
                     <div className="mt-6">
-                      <h4 className="font-medium mb-3 text-gray-900">Recommendations</h4>
-                      <ul className="space-y-2 text-sm text-gray-600">
-                        {result.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-green-600 mt-1">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <h3 className="text-lg font-bold mb-4 text-gray-900">Recommendations</h3>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-base text-blue-800 font-medium leading-relaxed">
+                          {result.recommendations[0]}
+                        </p>
+                      </div>
                     </div>
                   )}
 
