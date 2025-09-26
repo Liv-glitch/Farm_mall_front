@@ -1,55 +1,159 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calculator, TrendingUp } from "lucide-react"
+import { Calculator, TrendingUp, Loader2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { apiClient } from "@/lib/api/client"
+import type { CropVariety } from "@/lib/types/production"
 
 export function CostCalculatorPublic() {
+  const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
+  const [loadingVarieties, setLoadingVarieties] = useState(true)
   const [landSize, setLandSize] = useState("")
-  const [cropType, setCropType] = useState("")
+  const [cropVarietyId, setCropVarietyId] = useState("")
   const [seedSize, setSeedSize] = useState<1 | 2>(1)
   const [showResults, setShowResults] = useState(false)
   const [calculatedCost, setCalculatedCost] = useState(0)
   const [seedRequirement, setSeedRequirement] = useState(0)
+  const [costBreakdown, setCostBreakdown] = useState({
+    seeds: 0,
+    fertilizer: 0,
+    herbicides: 0,
+    fungicides: 0,
+    insecticides: 0,
+    labor: 0,
+    landPreparation: 0,
+    miscellaneous: 0
+  })
+
+  useEffect(() => {
+    loadCropVarieties()
+  }, [])
+
+  const loadCropVarieties = async () => {
+    try {
+      setLoadingVarieties(true)
+      const response = await apiClient.getCropVarieties()
+
+      // Handle different response structures
+      let varieties = []
+      if (Array.isArray(response)) {
+        varieties = response
+      } else if (response?.varieties && Array.isArray(response.varieties)) {
+        varieties = response.varieties
+      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
+        varieties = response.data.varieties
+      }
+
+      // Process the per-acre cost fields to ensure they are numbers
+      const processedVarieties = varieties.map((variety: any) => ({
+        ...variety,
+        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize1CostPerAcre)
+          : variety.seedSize1CostPerAcre,
+        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
+          ? Number.parseFloat(variety.seedSize2CostPerAcre)
+          : variety.seedSize2CostPerAcre,
+        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
+          ? Number.parseFloat(variety.fertilizerCostPerAcre)
+          : variety.fertilizerCostPerAcre,
+        herbicideCostPerAcre: typeof variety.herbicideCostPerAcre === "string"
+          ? Number.parseFloat(variety.herbicideCostPerAcre)
+          : variety.herbicideCostPerAcre,
+        fungicideCostPerAcre: typeof variety.fungicideCostPerAcre === "string"
+          ? Number.parseFloat(variety.fungicideCostPerAcre)
+          : variety.fungicideCostPerAcre,
+        insecticideCostPerAcre: typeof variety.insecticideCostPerAcre === "string"
+          ? Number.parseFloat(variety.insecticideCostPerAcre)
+          : variety.insecticideCostPerAcre,
+        laborCostPerAcre: typeof variety.laborCostPerAcre === "string"
+          ? Number.parseFloat(variety.laborCostPerAcre)
+          : variety.laborCostPerAcre,
+        landPreparationCostPerAcre: typeof variety.landPreparationCostPerAcre === "string"
+          ? Number.parseFloat(variety.landPreparationCostPerAcre)
+          : variety.landPreparationCostPerAcre,
+        miscellaneousCostPerAcre: typeof variety.miscellaneousCostPerAcre === "string"
+          ? Number.parseFloat(variety.miscellaneousCostPerAcre)
+          : variety.miscellaneousCostPerAcre,
+        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
+          ? Number.parseFloat(variety.averageYieldPerAcre)
+          : variety.averageYieldPerAcre,
+      }))
+
+      setCropVarieties(processedVarieties)
+    } catch (error: any) {
+      console.error('Failed to load crop varieties:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load crop varieties from database.",
+        variant: "destructive",
+      })
+      // Fallback to empty array - component will handle this
+      setCropVarieties([])
+    } finally {
+      setLoadingVarieties(false)
+    }
+  }
 
   const calculateCost = () => {
     const size = Number.parseFloat(landSize) || 0
-    let costPerUnit = 0
-    const bagsPerAcre = seedSize === 1 ? 16 : 20
+    const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
 
-    switch (cropType) {
-      case "markies-potatoes":
-        costPerUnit = 153500 // KSh per acre
-        break
-      case "shangi-potatoes":
-        costPerUnit = 175000 // KSh per acre
-        break
-      case "dutch-robijn":
-        costPerUnit = 165000 // KSh per acre
-        break
-      default:
-        costPerUnit = 150000
+    if (!selectedVariety) {
+      toast({
+        title: "Error",
+        description: "Please select a crop variety",
+        variant: "destructive",
+      })
+      return
     }
 
-    const total = size * costPerUnit
+    const bagsPerAcre = seedSize === 1 ? selectedVariety.seedSize1BagsPerAcre : selectedVariety.seedSize2BagsPerAcre
+    const seedCostPerAcre = seedSize === 1 ? selectedVariety.seedSize1CostPerAcre : selectedVariety.seedSize2CostPerAcre
+
+    const breakdown = {
+      seeds: seedCostPerAcre * size,
+      fertilizer: selectedVariety.fertilizerCostPerAcre * size,
+      herbicides: selectedVariety.herbicideCostPerAcre * size,
+      fungicides: selectedVariety.fungicideCostPerAcre * size,
+      insecticides: selectedVariety.insecticideCostPerAcre * size,
+      labor: selectedVariety.laborCostPerAcre * size,
+      landPreparation: selectedVariety.landPreparationCostPerAcre * size,
+      miscellaneous: selectedVariety.miscellaneousCostPerAcre * size
+    }
+
+    const total = Object.values(breakdown).reduce((sum, cost) => sum + cost, 0)
     const seeds = size * bagsPerAcre
+
     setCalculatedCost(total)
     setSeedRequirement(seeds)
+    setCostBreakdown(breakdown)
     setShowResults(true)
   }
 
   const resetCalculator = () => {
     setLandSize("")
-    setCropType("")
+    setCropVarietyId("")
     setSeedSize(1)
     setShowResults(false)
     setCalculatedCost(0)
     setSeedRequirement(0)
+    setCostBreakdown({
+      seeds: 0,
+      fertilizer: 0,
+      herbicides: 0,
+      fungicides: 0,
+      insecticides: 0,
+      labor: 0,
+      landPreparation: 0,
+      miscellaneous: 0
+    })
   }
 
   return (
@@ -72,16 +176,31 @@ export function CostCalculatorPublic() {
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="cropType">Crop Variety</Label>
-              <Select value={cropType} onValueChange={setCropType}>
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Select crop variety" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="shangi-potatoes">Shangi</SelectItem>
-                  <SelectItem value="markies-potatoes">Markies</SelectItem>
-                  <SelectItem value="dutch-robijn">Dutch Robijn</SelectItem>
-                </SelectContent>
-              </Select>
+              {loadingVarieties ? (
+                <div className="h-12 flex items-center justify-center border rounded-md">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <span className="text-sm">Loading varieties...</span>
+                </div>
+              ) : (
+                <Select value={cropVarietyId} onValueChange={setCropVarietyId}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select crop variety" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cropVarieties.length > 0 ? (
+                      cropVarieties.map((variety) => (
+                        <SelectItem key={variety.id} value={variety.id}>
+                          {variety.name} ({variety.cropType})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-varieties" disabled>
+                        No varieties available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
@@ -103,8 +222,25 @@ export function CostCalculatorPublic() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Size 1 (16 bags per acre)</SelectItem>
-                  <SelectItem value="2">Size 2 (20 bags per acre)</SelectItem>
+                  {cropVarietyId && (() => {
+                    const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
+                    return selectedVariety ? (
+                      <>
+                        <SelectItem value="1">Size 1 ({selectedVariety.seedSize1BagsPerAcre} bags per acre)</SelectItem>
+                        <SelectItem value="2">Size 2 ({selectedVariety.seedSize2BagsPerAcre} bags per acre)</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="1">Size 1</SelectItem>
+                        <SelectItem value="2">Size 2</SelectItem>
+                      </>
+                    )
+                  })() || (
+                    <>
+                      <SelectItem value="1">Size 1</SelectItem>
+                      <SelectItem value="2">Size 2</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -112,7 +248,7 @@ export function CostCalculatorPublic() {
             <Button
               onClick={calculateCost}
               className="w-full h-12 bg-sage-700 hover:bg-sage-800 text-white"
-              disabled={!landSize || !cropType}
+              disabled={!landSize || !cropVarietyId || loadingVarieties}
             >
               Calculate Costs
             </Button>
@@ -140,7 +276,10 @@ export function CostCalculatorPublic() {
               <span>Cost Breakdown</span>
             </CardTitle>
             <p className="text-sm text-gray-600">
-              {showResults ? `Estimated costs for ${cropType?.replace("-", " ")}` : "Results will appear here"}
+              {showResults ? (() => {
+                const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
+                return selectedVariety ? `Estimated costs for ${selectedVariety.name}` : "Cost breakdown"
+              })() : "Results will appear here"}
             </p>
           </CardHeader>
           <CardContent>
@@ -154,37 +293,81 @@ export function CostCalculatorPublic() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-sage-600 rounded-full"></div>
                       <span className="text-sm font-medium">Seeds</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">KSh 15</div>
-                      <div className="text-xs text-gray-500">{seedRequirement} bags</div>
+                      <div className="font-semibold">KSh {costBreakdown.seeds.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">{seedRequirement} bags total</div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-warm-600 rounded-full"></div>
-                      <span className="text-sm font-medium">Fertilizers</span>
+                      <span className="text-sm font-medium">Fertilizer</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">KSh 2,300</div>
-                      <div className="text-xs text-gray-500">Per acre</div>
+                      <div className="font-semibold">KSh {costBreakdown.fertilizer.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-sage-600 rounded-full"></div>
+                      <span className="text-sm font-medium">Herbicides</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">KSh {costBreakdown.herbicides.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-warm-600 rounded-full"></div>
+                      <span className="text-sm font-medium">Fungicides</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">KSh {costBreakdown.fungicides.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-sage-600 rounded-full"></div>
+                      <span className="text-sm font-medium">Insecticides</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">KSh {costBreakdown.insecticides.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-warm-600 rounded-full"></div>
                       <span className="text-sm font-medium">Labor</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">KSh 350</div>
-                      <div className="text-xs text-gray-500">Per acre</div>
+                      <div className="font-semibold">KSh {costBreakdown.labor.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-sage-600 rounded-full"></div>
+                      <span className="text-sm font-medium">Land Preparation</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">KSh {costBreakdown.landPreparation.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Total cost</div>
                     </div>
                   </div>
 
@@ -194,8 +377,8 @@ export function CostCalculatorPublic() {
                       <span className="text-sm font-medium">Other Costs</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">KSh 4,000</div>
-                      <div className="text-xs text-gray-500">Transport, etc.</div>
+                      <div className="font-semibold">KSh {costBreakdown.miscellaneous.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Miscellaneous</div>
                     </div>
                   </div>
                 </div>
