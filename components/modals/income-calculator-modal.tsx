@@ -462,7 +462,8 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                       <h3 className="text-lg font-bold mb-4 text-gray-900">Recommendations</h3>
                       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <p className="text-base text-blue-800 font-medium leading-relaxed">
-                          {result.recommendations[0]}
+                          {/* Show the budget/acreage recommendation first if it exists, otherwise show first recommendation */}
+                          {result.recommendations.find(rec => rec.includes('reducing acreage')) || result.recommendations[0]}
                         </p>
                       </div>
                     </div>
