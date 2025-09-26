@@ -856,7 +856,7 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
                             id="previous-year-1"
                             type="number"
                             min="2015"
-                            max="2024"
+                            max="2025"
                             placeholder="e.g., 2023"
                             value={previousYear1}
                             onChange={(e) => setPreviousYear1(e.target.value)}
@@ -889,7 +889,7 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
                             id="previous-year-2"
                             type="number"
                             min="2015"
-                            max="2024"
+                            max="2025"
                             placeholder="e.g., 2022"
                             value={previousYear2}
                             onChange={(e) => setPreviousYear2(e.target.value)}

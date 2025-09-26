@@ -359,7 +359,7 @@ export default function LandingPage() {
               />
               <span className="text-xl font-bold text-white">Farm Mall</span>
             </div>
-            <p className="text-gray-400">© 2024 Farm Mall. All rights reserved.</p>
+            <p className="text-gray-400">© 2025 Farm Mall. All rights reserved.</p>
           </motion.div>
         </div>
       </footer>
