@@ -46,7 +46,7 @@ export function WhatsAppBackButton({ className = "" }: WhatsAppBackButtonProps) 
     })
     
     // Open WhatsApp link
-    window.open('https://wa.me/254752896896?text=Back+to+FarmMall', '_blank')
+    window.open('https://wa.me/254740750413?text=Back+to+FarmMall', '_blank')
   }
 
   if (!showButton) {
