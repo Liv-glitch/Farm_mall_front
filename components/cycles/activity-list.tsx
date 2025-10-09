@@ -5,15 +5,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  Plus, 
-  AlertTriangle, 
+import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  Plus,
+  AlertTriangle,
   DollarSign,
   Edit2,
-  MoreHorizontal
+  MoreHorizontal,
+  Package
 } from "lucide-react"
 import { format, isPast } from "date-fns"
 import type { Activity } from "@/lib/types/production"
@@ -67,6 +68,27 @@ const formatLaborType = (laborType: string | undefined): string => {
       return laborType.split("-").map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(" - ");
+  }
+};
+
+// Helper function to parse and format inputs
+const parseInputs = (inputs: string | any[] | undefined) => {
+  if (!inputs) return null;
+
+  try {
+    // If it's already an array, return it
+    if (Array.isArray(inputs)) return inputs;
+
+    // If it's a string, try to parse it
+    if (typeof inputs === 'string') {
+      const parsed = JSON.parse(inputs);
+      return Array.isArray(parsed) ? parsed : null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to parse inputs:', error);
+    return null;
   }
 };
 
@@ -240,11 +262,35 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                           )}
                         </div>
 
-                        {activity.inputs && (
-                          <div className="text-xs sm:text-sm text-muted-foreground mt-2">
-                            <strong>Inputs:</strong> {activity.inputs}
-                          </div>
-                        )}
+                        {activity.inputs && (() => {
+                          const parsedInputs = parseInputs(activity.inputs);
+                          if (!parsedInputs || parsedInputs.length === 0) return null;
+
+                          return (
+                            <div className="mt-3 space-y-2">
+                              <div className="flex items-center text-xs sm:text-sm font-medium text-gray-700">
+                                <Package className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                                Inputs Used
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-5 sm:pl-6">
+                                {parsedInputs.map((input: any, idx: number) => (
+                                  <div key={idx} className="text-xs sm:text-sm bg-gray-50 rounded-md p-2 border border-gray-200">
+                                    <div className="font-medium text-gray-900">{input.name}</div>
+                                    <div className="text-gray-600 mt-0.5">
+                                      Qty: {input.quantity} × KSh {input.cost.toLocaleString()} = KSh {(input.quantity * input.cost).toLocaleString()}
+                                    </div>
+                                    {input.brand && (
+                                      <div className="text-gray-500 text-xs mt-0.5">Brand: {input.brand}</div>
+                                    )}
+                                    {input.supplier && (
+                                      <div className="text-gray-500 text-xs">Supplier: {input.supplier}</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {activity.notes && (
                           <div className="text-xs sm:text-sm text-muted-foreground">
