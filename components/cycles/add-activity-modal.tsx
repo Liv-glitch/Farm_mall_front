@@ -137,7 +137,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
     description: "",
     scheduledDate: "",
     laborHours: 0,
-    laborType: "family" as Activity["laborType"],
+    laborType: "manual-family" as Activity["laborType"],
     laborCost: 0,
     notes: "",
   })
@@ -225,11 +225,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         throw new Error("Invalid scheduled date")
       }
 
-      // Validate inputs
+      // Filter out empty inputs (inputs are now optional)
       const validatedInputs = inputs.filter(input => input.name.trim() !== "")
-      if (validatedInputs.length === 0) {
-        throw new Error("At least one input is required")
-      }
 
       const totalCost = calculateTotalCost()
 
@@ -241,7 +238,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         laborHours: validatedLaborHours,
         laborType: formData.laborType,
         laborCost: validatedLaborCost,
-        inputs: validatedInputs,
+        inputs: validatedInputs.length > 0 ? validatedInputs : undefined, // Only include if there are inputs
         notes: formData.notes,
       }
 
@@ -254,7 +251,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         scheduledDate: scheduledDate.toISOString(),
         cost: totalCost.toFixed(2),
         laborHours: validatedLaborHours.toFixed(1),
-        inputs: JSON.stringify(validatedInputs), // Convert to string for backward compatibility
+        inputs: validatedInputs.length > 0 ? JSON.stringify(validatedInputs) : undefined, // Only include if there are inputs
       })
 
       onActivityAdd(cycleId, newActivity)

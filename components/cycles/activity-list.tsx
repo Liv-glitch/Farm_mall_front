@@ -55,8 +55,7 @@ const formatStatus = (status: ActivityStatusWithOverdue | undefined): string => 
 // Helper function to format labor type
 const formatLaborType = (laborType: string | undefined): string => {
   if (!laborType) return "N/A";
-  
-  // Handle new labor type format
+
   switch (laborType) {
     case "manual-family":
       return "Manual - Family";
@@ -64,15 +63,8 @@ const formatLaborType = (laborType: string | undefined): string => {
       return "Manual - Hired";
     case "mechanized":
       return "Mechanized";
-    // Legacy format fallback
-    case "family":
-      return "Manual - Family";
-    case "hired":
-      return "Manual - Hired";
-    case "cooperative":
-      return "Mechanized";
     default:
-      return laborType.split("-").map(word => 
+      return laborType.split("-").map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(" - ");
   }
