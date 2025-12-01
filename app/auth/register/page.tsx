@@ -14,7 +14,7 @@ import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/hooks/use-auth"
+//import { useAuth } from "@/lib/hooks/use-auth"
 
 const kenyanCounties = [
   "Baringo",
