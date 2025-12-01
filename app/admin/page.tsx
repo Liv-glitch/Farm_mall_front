@@ -8,8 +8,8 @@ import { useEffect, useState } from "react"
 //import { Button } from "@/components/ui/button"
 //import { Badge } from "@/components/ui/badge"
 import { Users, Activity, TrendingUp, DollarSign, Eye, MoreHorizontal } from "lucide-react"
-import { useAuth } from "@/lib/hooks/use-auth"
-import { apiClient } from "@/lib/api/client"
+//import { useAuth } from "@/lib/hooks/use-auth"
+//import { apiClient } from "@/lib/api/client"
 
 interface AdminStats {
   totalUsers: number
