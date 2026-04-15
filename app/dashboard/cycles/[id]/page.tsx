@@ -18,6 +18,7 @@ import {
   ActivityIcon,
   Target,
   Clock,
+  ExternalLink,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
@@ -44,7 +45,7 @@ export default function CycleDetailPage() {
       try {
         const cycleId = Array.isArray(params.id) ? params.id[0] : params.id;
         const cycleRes = await apiClient.getCycle(cycleId)
-        
+
         // Parse cycle dates
         const parsedCycle = {
           ...cycleRes,
@@ -128,8 +129,8 @@ export default function CycleDetailPage() {
   const getDaysRemaining = () => {
     if (!cycle.estimatedHarvestDate) return 0;
     const today = new Date();
-    const harvestDate = cycle.actualHarvestDate ? 
-      new Date(cycle.actualHarvestDate) : 
+    const harvestDate = cycle.actualHarvestDate ?
+      new Date(cycle.actualHarvestDate) :
       new Date(cycle.estimatedHarvestDate);
     return differenceInDays(harvestDate, today);
   }
@@ -146,7 +147,7 @@ export default function CycleDetailPage() {
   const nextActivity = getNextActivity()
   const expectedRevenue = (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0)
   const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
-  
+
   // Calculate total cost from all activities
   const totalCost = activities.reduce((sum, activity) => {
     let cost = 0
@@ -208,16 +209,16 @@ export default function CycleDetailPage() {
         {/* Header */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
           <div className="space-y-3 min-w-0 flex-1">
-                      <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => router.push("/dashboard/cycles")}
-            className="w-fit text-agri-700 hover:bg-agri-50"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Cycles
-          </Button>
-            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/dashboard/cycles")}
+              className="w-fit text-agri-700 hover:bg-agri-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Cycles
+            </Button>
+
             <div className="space-y-2">
               <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                 <div className="flex items-center gap-2 min-w-0">
@@ -228,7 +229,7 @@ export default function CycleDetailPage() {
                   {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
                 </Badge>
               </div>
-              
+
               <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-agri-600">
                 <div className="flex items-center gap-1 min-w-0">
                   <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -241,14 +242,23 @@ export default function CycleDetailPage() {
               </div>
             </div>
           </div>
-          
-          <Button 
-            onClick={() => setShowEditModal(true)} 
-            className="w-full sm:w-auto flex-shrink-0 bg-agri-700 hover:bg-agri-800"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Cycle
-          </Button>
+
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
+            <Button
+              onClick={() => window.open('https://findfarmers.onrender.com/#/register-farmer', '_blank')}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Find Market
+            </Button>
+            <Button
+              onClick={() => setShowEditModal(true)}
+              className="w-full sm:w-auto bg-agri-700 hover:bg-agri-800"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Cycle
+            </Button>
+          </div>
         </div>
 
         {/* Progress Overview */}
@@ -315,7 +325,7 @@ export default function CycleDetailPage() {
                   <p className="text-xs text-gray-500">Cycle Progress</p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Progress value={progress} className="h-2" />
                 <div className="flex justify-between text-xs text-gray-500">
@@ -354,15 +364,14 @@ export default function CycleDetailPage() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Net Profit:</span>
-                  <span className={`text-lg sm:text-xl font-bold ${
-                    (cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost > 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}>
+                  <span className={`text-lg sm:text-xl font-bold ${(cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost > 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                    }`}>
                     KSh {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost) / 1000).toFixed(0)}k
                   </span>
                 </div>
@@ -390,20 +399,20 @@ export default function CycleDetailPage() {
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-600">Expected Harvest</p>
                   <p className="text-sm">
-                    {cycle.estimatedHarvestDate ? 
-                      format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") : 
+                    {cycle.estimatedHarvestDate ?
+                      format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") :
                       "Not set"}
                   </p>
                 </div>
               </div>
-              
+
               {cycle.actualHarvestDate && (
                 <div className="p-2 bg-green-50 rounded-lg">
                   <p className="text-sm font-medium text-green-800">Harvested</p>
                   <p className="text-sm text-green-700">{format(cycle.actualHarvestDate, "MMM dd, yyyy")}</p>
                 </div>
               )}
-              
+
               <div className="text-center pt-2 border-t">
                 <p className="text-lg sm:text-xl font-bold text-sage-700">
                   {daysRemaining > 0 ? `${daysRemaining} days` : "Ready"}
@@ -435,7 +444,7 @@ export default function CycleDetailPage() {
                   <p className="text-sm font-semibold">{cycle.landSizeAcres} acres</p>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-sm font-medium text-gray-600">Location</p>
                 <p className="text-sm truncate">{cycle.farmLocation}</p>
@@ -445,7 +454,7 @@ export default function CycleDetailPage() {
                   </p>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Expected Yield</p>
