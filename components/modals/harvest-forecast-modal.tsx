@@ -11,6 +11,7 @@ import { Calendar, Cloud, Sun, CloudRain, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { HarvestPredictionRequest, HarvestPredictionResponse, CropVariety } from "@/lib/types/calculator"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface HarvestForecastModalProps {
   open: boolean
@@ -41,44 +42,8 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      console.log("🌱 Loading crop varieties for forecast...")
-
-      const response = await apiClient.getCropVarieties()
-      console.log("🌱 Raw API response:", response)
-
-      // Handle different response structures
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
-
-      console.log("🌱 Processed varieties:", varieties)
-      console.log("🌱 Varieties count:", varieties.length)
-
-      // Process the new per-acre cost fields
-      const processedVarieties = varieties.map((variety: any) => ({
-        ...variety,
-        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize1CostPerAcre)
-          : variety.seedSize1CostPerAcre,
-        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize2CostPerAcre)
-          : variety.seedSize2CostPerAcre,
-        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
-          ? Number.parseFloat(variety.fertilizerCostPerAcre)
-          : variety.fertilizerCostPerAcre,
-        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
-          ? Number.parseFloat(variety.averageYieldPerAcre)
-          : variety.averageYieldPerAcre,
-        createdAt: new Date(variety.createdAt),
-      }))
-
-      setCropVarieties(processedVarieties)
-      console.log("🌱 Final processed varieties:", processedVarieties)
+      // Use shared hardcoded varieties for consistent data across the app
+      setCropVarieties(POTATO_VARIETIES as unknown as CropVariety[])
     } catch (error: any) {
       console.error("Failed to load crop varieties:", error)
       toast({
@@ -174,7 +139,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -212,7 +177,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType})
+                            {variety.name} ({variety.maturityPeriodDays} days)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -328,7 +293,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                       <div className="font-semibold">
                         {Math.ceil(
                           (new Date(result.estimatedHarvestDate).getTime() - new Date(result.plantingDate).getTime()) /
-                            (1000 * 60 * 60 * 24),
+                          (1000 * 60 * 60 * 24),
                         )}{" "}
                         days
                       </div>

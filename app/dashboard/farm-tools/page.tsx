@@ -7,21 +7,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { HarvestForecastModal } from "@/components/modals/harvest-forecast-modal"
 import { IncomeCalculatorModal } from "@/components/modals/income-calculator-modal"
-import { 
-  Calculator, 
-  Calendar, 
-  DollarSign, 
+import { CostCalculatorModal } from "@/components/modals/cost-calculator-modal"
+import {
+  Calculator,
+  Calendar,
+  DollarSign,
   TrendingUp,
   BarChart3,
   Clock,
   FileText,
   Target,
-  Zap
+  Zap,
+  Coins
 } from "lucide-react"
 
 export default function FarmToolsPage() {
   const [showHarvestForecast, setShowHarvestForecast] = useState(false)
   const [showIncomeCalculator, setShowIncomeCalculator] = useState(false)
+  const [showCostCalculator, setShowCostCalculator] = useState(false)
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
@@ -58,9 +61,8 @@ export default function FarmToolsPage() {
 
                 {/* Unified Comprehensive Farm Calculator Card */}
                 <Card
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-xl border-2 ${
-                    showIncomeCalculator ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
-                  }`}
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-xl border-2 ${showIncomeCalculator ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
+                    }`}
                   onClick={() => setShowIncomeCalculator(true)}
                 >
                   <CardContent className="p-8 text-center">
@@ -96,11 +98,31 @@ export default function FarmToolsPage() {
                   </CardContent>
                 </Card>
 
-                {/* Harvest Forecast Card - Secondary Tool */}
-                <Card 
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 mt-6 ${
-                    showHarvestForecast ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
-                  }`}
+                {/* Production Cost Calculator Card */}
+                <Card
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 mt-6 ${showCostCalculator ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
+                    }`}
+                  onClick={() => setShowCostCalculator(true)}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="w-16 h-16 bg-agri-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Coins className="h-8 w-8 text-agri-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Production Cost Calculator</h3>
+                    <p className="text-gray-600 mb-4">
+                      Get accurate cost estimates for your potato farming operations with detailed breakdowns
+                    </p>
+                    <Button className="w-full mt-4 bg-agri-600 hover:bg-agri-700 text-white">
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Calculate Costs
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Harvest Forecast Card */}
+                <Card
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg border-2 mt-6 ${showHarvestForecast ? 'border-agri-500 bg-agri-50' : 'border-gray-200 hover:border-agri-300'
+                    }`}
                   onClick={() => setShowHarvestForecast(true)}
                 >
                   <CardContent className="p-6 text-center">
@@ -208,6 +230,7 @@ export default function FarmToolsPage() {
         {/* Modals */}
         <HarvestForecastModal open={showHarvestForecast} onOpenChange={setShowHarvestForecast} />
         <IncomeCalculatorModal open={showIncomeCalculator} onOpenChange={setShowIncomeCalculator} />
+        <CostCalculatorModal open={showCostCalculator} onOpenChange={setShowCostCalculator} />
       </div>
     </DashboardLayout>
   )

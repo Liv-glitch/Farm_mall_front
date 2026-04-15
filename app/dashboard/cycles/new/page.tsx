@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { CropVariety, CreateProductionCycleRequest } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 export default function NewProductionCyclePage() {
   const router = useRouter()
@@ -94,7 +95,8 @@ export default function NewProductionCyclePage() {
       setCropVarieties(processedVarieties)
     } catch (error) {
       console.error("Failed to load crop varieties:", error)
-      setCropVarieties([]) // No fallback data - API only
+      // Fallback to shared hardcoded varieties so user can still see all options
+      setCropVarieties(POTATO_VARIETIES)
     } finally {
       setLoadingVarieties(false)
     }
@@ -167,7 +169,7 @@ export default function NewProductionCyclePage() {
           payload.farmLocationLat = lat
         }
       }
-      
+
       if (formData.farmLocationLng !== null && !isNaN(Number(formData.farmLocationLng))) {
         const lng = Number(formData.farmLocationLng)
         if (lng >= -180 && lng <= 180) {
@@ -253,7 +255,7 @@ export default function NewProductionCyclePage() {
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType} - {variety.maturityPeriodDays} days)
+                            {variety.name} ({variety.maturityPeriodDays} days)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -283,9 +285,9 @@ export default function NewProductionCyclePage() {
                         id="plantingDate"
                         type="date"
                         value={new Date(formData.plantingDate).toISOString().split('T')[0]}
-                        onChange={(e) => setFormData((prev) => ({ 
-                          ...prev, 
-                          plantingDate: new Date(e.target.value).toISOString() 
+                        onChange={(e) => setFormData((prev) => ({
+                          ...prev,
+                          plantingDate: new Date(e.target.value).toISOString()
                         }))}
                         className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
                         required
@@ -328,9 +330,9 @@ export default function NewProductionCyclePage() {
                         value={formData.farmLocationLat || ""}
                         onChange={(e) => {
                           const value = e.target.value.trim()
-                          setFormData((prev) => ({ 
-                            ...prev, 
-                            farmLocationLat: value === "" ? null : Number.parseFloat(value) || null 
+                          setFormData((prev) => ({
+                            ...prev,
+                            farmLocationLat: value === "" ? null : Number.parseFloat(value) || null
                           }))
                         }}
                         placeholder="e.g., -0.2367"
@@ -349,9 +351,9 @@ export default function NewProductionCyclePage() {
                         value={formData.farmLocationLng || ""}
                         onChange={(e) => {
                           const value = e.target.value.trim()
-                          setFormData((prev) => ({ 
-                            ...prev, 
-                            farmLocationLng: value === "" ? null : Number.parseFloat(value) || null 
+                          setFormData((prev) => ({
+                            ...prev,
+                            farmLocationLng: value === "" ? null : Number.parseFloat(value) || null
                           }))
                         }}
                         placeholder="e.g., 37.6531"

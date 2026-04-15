@@ -11,6 +11,7 @@ import { Calculator, TrendingUp, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { CostCalculationRequest, CostCalculationResponse, CropVariety } from "@/lib/types/calculator"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface CostCalculatorModalProps {
   open: boolean
@@ -41,8 +42,8 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const varieties = await apiClient.getCropVarieties()
-      setCropVarieties(varieties)
+      // Use the same hardcoded varieties as the landing page calculator
+      setCropVarieties(POTATO_VARIETIES as unknown as CropVariety[])
     } catch (error: any) {
       toast({
         title: "Error",
@@ -74,7 +75,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
           subCounty: formData.location?.subCounty || "General"
         }
       }
-      
+
       const response = await apiClient.getCostEstimate(requestData)
       // Handle wrapped API response
       const result = (response as any).data || response
@@ -106,7 +107,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -144,7 +145,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType})
+                            {variety.name} ({variety.maturityPeriodDays} days)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -173,9 +174,9 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     <Label htmlFor="seedSize">Seed Size</Label>
                     <Select
                       value={formData.seedSize.toString()}
-                      onValueChange={(value) => setFormData((prev) => ({ 
-                        ...prev, 
-                        seedSize: Number(value) === 2 ? 2 : 1 
+                      onValueChange={(value) => setFormData((prev) => ({
+                        ...prev,
+                        seedSize: Number(value) === 2 ? 2 : 1
                       }))}
                     >
                       <SelectTrigger className="h-12">

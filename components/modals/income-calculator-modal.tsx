@@ -11,6 +11,7 @@ import { DollarSign, TrendingUp, Calculator, Minus, Plus } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface IncomeCalculatorModalProps {
   open: boolean
@@ -69,8 +70,8 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const varieties = await apiClient.getCropVarieties()
-      setCropVarieties(varieties)
+      // Use shared hardcoded varieties for consistent data across the app
+      setCropVarieties(POTATO_VARIETIES)
     } catch (error: any) {
       toast({
         title: "Error",
@@ -137,7 +138,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     const totalYield = formData.acres * expectedYieldPerAcre
     const totalIncome = totalYield * formData.pricePerKg
     const incomePerAcre = expectedYieldPerAcre * formData.pricePerKg
-    
+
     const totalProfit = totalIncome - totalCost
     const profitPerAcre = totalProfit / formData.acres
     const profitMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0
@@ -145,7 +146,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
 
     // Generate recommendations based on the calculations
     const recommendations: string[] = []
-    
+
     if (profitMargin < 20) {
       recommendations.push("Low profit margin. Consider reducing costs or finding better market prices")
     }
@@ -250,7 +251,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                   <SelectContent>
                     {cropVarieties.map((variety) => (
                       <SelectItem key={variety.id} value={variety.id}>
-                        {variety.name} ({variety.cropType})
+                        {variety.name} ({variety.maturityPeriodDays} days)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -372,7 +373,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                         from {result.acres} acres ({result.profitMargin.toFixed(1)}% margin)
                       </div>
                     </div>
-                    
+
                     {/* Income vs Costs */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-blue-50 rounded-lg">

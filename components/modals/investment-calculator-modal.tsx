@@ -11,6 +11,7 @@ import { Target, TrendingUp, Calculator, Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface InvestmentCalculatorModalProps {
   open: boolean
@@ -47,16 +48,8 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const response = await apiClient.getCropVarieties()
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
-      setCropVarieties(varieties)
+      // Use shared hardcoded varieties for consistent data across the app
+      setCropVarieties(POTATO_VARIETIES)
     } catch (error: any) {
       toast({
         title: "Error",
@@ -105,7 +98,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
     const cropType = selectedVariety.cropType.toLowerCase()
     const baseCostPerAcre = estimatedCostPerAcre[cropType as keyof typeof estimatedCostPerAcre] || 50000
     const marketPrice = averageMarketPrices[cropType as keyof typeof averageMarketPrices] || 40
-    
+
     // Calculate maximum acreage based on investment
     const maxAcreage = formData.investmentAmount / baseCostPerAcre
 
@@ -127,7 +120,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
 
     // Generate recommendations
     const recommendations: string[] = []
-    
+
     if (maxAcreage < 0.5) {
       recommendations.push("Consider increasing your investment amount or choosing a lower-cost crop")
     }
@@ -207,7 +200,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType})
+                            {variety.name} ({variety.maturityPeriodDays} days)
                           </SelectItem>
                         ))}
                       </SelectContent>

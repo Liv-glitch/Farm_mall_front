@@ -11,6 +11,7 @@ import { MapPin, Loader2 } from "lucide-react"
 import type { ProductionCycle, CropVariety } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface EditCycleModalProps {
   isOpen: boolean
@@ -69,7 +70,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       const plantingDate = new Date(formData.plantingDate);
       const harvestDate = new Date(plantingDate);
       harvestDate.setDate(harvestDate.getDate() + selectedVariety.maturityPeriodDays);
-      
+
       setFormData(prev => ({
         ...prev,
         estimatedHarvestDate: harvestDate.toISOString().split("T")[0]
@@ -112,7 +113,8 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       })
       .catch((error) => {
         setVarietiesError(error.message || "Failed to load crop varieties")
-        setCropVarieties([])
+        // Fallback to shared hardcoded varieties so user can still see all options
+        setCropVarieties(POTATO_VARIETIES)
       })
       .finally(() => setLoadingVarieties(false))
   }, [isOpen])
@@ -206,7 +208,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
               <SelectContent>
                 {cropVarieties.map((variety) => (
                   <SelectItem key={variety.id} value={variety.id}>
-                    {variety.name} ({variety.cropType})
+                    {variety.name} ({variety.maturityPeriodDays} days)
                   </SelectItem>
                 ))}
               </SelectContent>

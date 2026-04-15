@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calculator, TrendingUp, Loader2, Lock } from "lucide-react"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 export function CostCalculatorPublic() {
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
@@ -47,83 +48,7 @@ export function CostCalculatorPublic() {
     try {
       setLoadingVarieties(true)
 
-      // Hardcoded crop variety data for public calculator
-      const hardcodedVarieties = [
-        {
-          id: "392f993e-3ee5-48fc-9bd3-15d81bc40b88",
-          name: "Shangi",
-          cropType: "potato",
-          maturityPeriodDays: 90,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedSize1CostPerAcre: 64000.00,
-          seedSize2CostPerAcre: 77000.00,
-          fertilizerCostPerAcre: 17850.00,
-          herbicideCostPerAcre: 4780.00,
-          fungicideCostPerAcre: 3950.00,
-          insecticideCostPerAcre: 5000.00,
-          laborCostPerAcre: 20000.00,
-          landPreparationCostPerAcre: 21500.00,
-          miscellaneousCostPerAcre: 5000.00,
-          averageYieldPerAcre: 8000.00
-        },
-        {
-          id: "8f193b8a-44a1-457d-84b3-c5ef9f9d2c4b",
-          name: "Sherekea",
-          cropType: "potato",
-          maturityPeriodDays: 100,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedSize1CostPerAcre: 64000.00,
-          seedSize2CostPerAcre: 69000.00,
-          fertilizerCostPerAcre: 17850.00,
-          herbicideCostPerAcre: 4780.00,
-          fungicideCostPerAcre: 3950.00,
-          insecticideCostPerAcre: 5000.00,
-          laborCostPerAcre: 20000.00,
-          landPreparationCostPerAcre: 21500.00,
-          miscellaneousCostPerAcre: 5000.00,
-          averageYieldPerAcre: 9000.00
-        },
-        {
-          id: "a028d425-fa7e-4bfd-9793-855ed4295e40",
-          name: "Unica",
-          cropType: "potato",
-          maturityPeriodDays: 90,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedSize1CostPerAcre: 64000.00,
-          seedSize2CostPerAcre: 69000.00,
-          fertilizerCostPerAcre: 17850.00,
-          herbicideCostPerAcre: 4780.00,
-          fungicideCostPerAcre: 3950.00,
-          insecticideCostPerAcre: 5000.00,
-          laborCostPerAcre: 20000.00,
-          landPreparationCostPerAcre: 21500.00,
-          miscellaneousCostPerAcre: 5000.00,
-          averageYieldPerAcre: 8000.00
-        },
-        {
-          id: "e5d83493-e74b-4b8b-ad6d-ffbca31d0176",
-          name: "Markies",
-          cropType: "potato",
-          maturityPeriodDays: 120,
-          seedSize1BagsPerAcre: 16,
-          seedSize2BagsPerAcre: 20,
-          seedSize1CostPerAcre: 74400.00,
-          seedSize2CostPerAcre: 83000.00,
-          fertilizerCostPerAcre: 17850.00,
-          herbicideCostPerAcre: 4780.00,
-          fungicideCostPerAcre: 3950.00,
-          insecticideCostPerAcre: 5000.00,
-          laborCostPerAcre: 20000.00,
-          landPreparationCostPerAcre: 21500.00,
-          miscellaneousCostPerAcre: 5000.00,
-          averageYieldPerAcre: 10000.00
-        }
-      ]
-
-      setCropVarieties(hardcodedVarieties)
+      setCropVarieties(POTATO_VARIETIES)
     } catch (error: any) {
       console.error('Failed to load crop varieties:', error)
       setCropVarieties([])
@@ -228,7 +153,7 @@ export function CostCalculatorPublic() {
                     {cropVarieties.length > 0 ? (
                       cropVarieties.map((variety) => (
                         <SelectItem key={variety.id} value={variety.id}>
-                          {variety.name} ({variety.cropType})
+                          {variety.name} ({variety.maturityPeriodDays} days)
                         </SelectItem>
                       ))
                     ) : (
@@ -274,11 +199,11 @@ export function CostCalculatorPublic() {
                       </>
                     )
                   })() || (
-                    <>
-                      <SelectItem value="1">Size 1</SelectItem>
-                      <SelectItem value="2">Size 2</SelectItem>
-                    </>
-                  )}
+                      <>
+                        <SelectItem value="1">Size 1</SelectItem>
+                        <SelectItem value="2">Size 2</SelectItem>
+                      </>
+                    )}
                 </SelectContent>
               </Select>
             </div>
