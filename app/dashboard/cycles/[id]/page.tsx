@@ -24,6 +24,7 @@ import {
 import { format, differenceInDays } from "date-fns"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
 import { ActivityList } from "@/components/cycles/activity-list"
+import { CycleCalendar } from "@/components/cycles/cycle-calendar"
 import { EditCycleModal } from "@/components/cycles/edit-cycle-modal"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
@@ -181,6 +182,9 @@ export default function CycleDetailPage() {
       ...cycle,
       activities: updatedActivities,
     })
+    setActivities((prev) =>
+      prev.map((a) => (a.id === updatedActivity.id ? updatedActivity : a))
+    )
   }
 
   const handleActivityAdd = (cycleId: string, newActivity: Activity) => {
@@ -190,6 +194,7 @@ export default function CycleDetailPage() {
       ...cycle,
       activities: [...(cycle.activities || []), newActivity],
     })
+    setActivities((prev) => [...prev, newActivity])
   }
 
   // Helper function to safely format numbers
@@ -262,7 +267,7 @@ export default function CycleDetailPage() {
           </div>
         </div>
 
-        {/* Progress Overview */}
+        {/* Progress Overview + Calendar */}
         <Card className="bg-agri-50 border-agri-100">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-agri-800">
@@ -289,17 +294,8 @@ export default function CycleDetailPage() {
               </div>
             </div>
 
-            {nextActivity && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
-                  <span className="font-medium text-blue-800 text-xs sm:text-sm">Next Activity</span>
-                </div>
-                <div className="text-xs sm:text-sm text-blue-700">
-                  {nextActivity.description} - {format(new Date(nextActivity.scheduledDate), "MMM dd, yyyy")}
-                </div>
-              </div>
-            )}
+            {/* Calendar & Next Step merged here */}
+            <CycleCalendar cycle={cycle} activities={activities} />
           </CardContent>
         </Card>
 
@@ -471,6 +467,7 @@ export default function CycleDetailPage() {
             </CardContent>
           </Card>
         </div>
+
 
         {/* Activities Section */}
         <Card>
