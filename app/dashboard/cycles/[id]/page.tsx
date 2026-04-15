@@ -19,6 +19,7 @@ import {
   Target,
   Clock,
   ExternalLink,
+  ShoppingBag,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
@@ -246,9 +247,9 @@ export default function CycleDetailPage() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
             <Button
               onClick={() => window.open('https://findfarmers.onrender.com/#/register-farmer', '_blank')}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
+              <ShoppingBag className="h-4 w-4 mr-2" />
               Find Market
             </Button>
             <Button
