@@ -1,0 +1,10 @@
+node_modules/
+.next/
+dist/
+tmp/
+stderr.log
+*.zip
+.next.zip*
+.env
+.env.local
+.env.production
