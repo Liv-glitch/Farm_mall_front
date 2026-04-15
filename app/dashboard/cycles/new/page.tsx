@@ -33,8 +33,8 @@ export default function NewProductionCyclePage() {
     farmLocationLat: null as number | null,
     farmLocationLng: null as number | null,
     plantingDate: new Date().toISOString(),
-    expectedYield: 0,
-    expectedPricePerKg: 0,
+    expectedYield: null as number | null,
+    expectedPricePerKg: null as number | null,
   })
 
   useEffect(() => {
@@ -115,8 +115,10 @@ export default function NewProductionCyclePage() {
   ) : 0
 
   const totalEstimatedCost = costPerAcre * formData.landSizeAcres
-  const expectedRevenue = formData.expectedYield * formData.expectedPricePerKg
-  const expectedProfit = expectedRevenue - totalEstimatedCost
+  const expectedRevenue = (formData.expectedYield != null && formData.expectedPricePerKg != null)
+    ? formData.expectedYield * formData.expectedPricePerKg
+    : null
+  const expectedProfit = expectedRevenue != null ? expectedRevenue - totalEstimatedCost : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -139,12 +141,6 @@ export default function NewProductionCyclePage() {
       if (!formData.farmLocation.trim()) {
         throw new Error("Please enter farm location")
       }
-      if (!formData.expectedYield || formData.expectedYield <= 0) {
-        throw new Error("Please enter expected yield")
-      }
-      if (!formData.expectedPricePerKg || formData.expectedPricePerKg <= 0) {
-        throw new Error("Please enter expected price per kg")
-      }
 
       const payload: CreateProductionCycleRequest = {
         cropVarietyId: formData.cropVarietyId,
@@ -152,8 +148,8 @@ export default function NewProductionCyclePage() {
         landSizeAcres: Number(formData.landSizeAcres),
         farmLocation: formData.farmLocation.trim(),
         plantingDate: new Date(formData.plantingDate).toISOString().split('T')[0], // Convert to YYYY-MM-DD
-        expectedYield: Number(formData.expectedYield),
-        expectedPricePerKg: Number(formData.expectedPricePerKg),
+        expectedYield: formData.expectedYield != null ? Number(formData.expectedYield) : null,
+        expectedPricePerKg: formData.expectedPricePerKg != null ? Number(formData.expectedPricePerKg) : null,
       }
 
       // Calculate estimated harvest date based on maturity period
@@ -378,33 +374,31 @@ export default function NewProductionCyclePage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="expectedYield" className="text-agri-700">Expected Yield (kg) *</Label>
+                      <Label htmlFor="expectedYield" className="text-agri-700">Expected Yield (kg)</Label>
                       <Input
                         id="expectedYield"
                         type="number"
                         min="1"
                         value={formData.expectedYield || ""}
                         onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, expectedYield: Number.parseInt(e.target.value) || 0 }))
+                          setFormData((prev) => ({ ...prev, expectedYield: e.target.value === "" ? null : Number.parseInt(e.target.value) }))
                         }
                         placeholder="e.g., 8000"
                         className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
-                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="expectedPricePerKg" className="text-agri-700">Expected Price per Kg (KSh) *</Label>
+                      <Label htmlFor="expectedPricePerKg" className="text-agri-700">Expected Price per Kg (KSh)</Label>
                       <Input
                         id="expectedPricePerKg"
                         type="number"
                         min="1"
                         value={formData.expectedPricePerKg || ""}
                         onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, expectedPricePerKg: Number.parseInt(e.target.value) || 0 }))
+                          setFormData((prev) => ({ ...prev, expectedPricePerKg: e.target.value === "" ? null : Number.parseInt(e.target.value) }))
                         }
                         placeholder="e.g., 45"
                         className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
-                        required
                       />
                     </div>
                   </div>
@@ -486,7 +480,7 @@ export default function NewProductionCyclePage() {
                       <span className="font-medium">KSh {totalEstimatedCost.toLocaleString()}</span>
                     </div>
                     <Separator />
-                    {formData.expectedYield > 0 && formData.expectedPricePerKg > 0 && (
+                    {expectedRevenue != null && expectedProfit != null && (
                       <>
                         <div className="flex justify-between">
                           <span className="text-sm">Expected Revenue:</span>
@@ -518,9 +512,7 @@ export default function NewProductionCyclePage() {
                   disabled={
                     loading ||
                     !formData.cropVarietyId ||
-                    !formData.landSizeAcres ||
-                    !formData.expectedYield ||
-                    !formData.expectedPricePerKg
+                    !formData.landSizeAcres
                   }
                 >
                   {loading ? (
