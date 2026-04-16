@@ -70,7 +70,7 @@ export function HarvestForecastPublic() {
                 <SelectContent>
                   {POTATO_VARIETIES.map((variety) => (
                     <SelectItem key={variety.id} value={variety.id}>
-                      {variety.name} ({variety.maturityPeriodDays} days)
+                      {variety.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

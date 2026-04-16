@@ -200,7 +200,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                       <SelectContent>
                         {cropVarieties.map((variety) => (
                           <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.maturityPeriodDays} days)
+                            {variety.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -208,7 +208,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
               <SelectContent>
                 {cropVarieties.map((variety) => (
                   <SelectItem key={variety.id} value={variety.id}>
-                    {variety.name} ({variety.maturityPeriodDays} days)
+                    {variety.name}
                   </SelectItem>
                 ))}
               </SelectContent>

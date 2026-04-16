@@ -1,16 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calculator, TrendingUp, Loader2 } from "lucide-react"
-import { apiClient } from "@/lib/api/client"
+import { Calculator, TrendingUp } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-import type { CostCalculationRequest, CostCalculationResponse, CropVariety } from "@/lib/types/calculator"
+import type { CropVariety } from "@/lib/types/production"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface CostCalculatorModalProps {
@@ -18,90 +17,80 @@ interface CostCalculatorModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalProps) {
-  const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
-  const [formData, setFormData] = useState<CostCalculationRequest>({
-    cropVarietyId: "",
-    landSizeAcres: 0,
-    seedSize: 1,
-    location: {
-      county: "",
-      subCounty: "",
-    },
-  })
-  const [result, setResult] = useState<CostCalculationResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [loadingVarieties, setLoadingVarieties] = useState(true)
-
-  useEffect(() => {
-    if (open) {
-      loadCropVarieties()
-    }
-  }, [open])
-
-  const loadCropVarieties = async () => {
-    try {
-      setLoadingVarieties(true)
-      // Use the same hardcoded varieties as the landing page calculator
-      setCropVarieties(POTATO_VARIETIES as unknown as CropVariety[])
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load crop varieties",
-        variant: "destructive",
-      })
-    } finally {
-      setLoadingVarieties(false)
-    }
+interface CostResult {
+  cropVarietyName: string
+  landSizeAcres: number
+  seedRequirement: number
+  estimatedTotalCost: number
+  costBreakdown: {
+    seeds: number
+    fertilizer: number
+    herbicides: number
+    fungicides: number
+    insecticides: number
+    labor: number
+    landPreparation: number
+    miscellaneous: number
   }
+}
 
-  const calculateCost = async () => {
-    if (!formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county) {
+export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalProps) {
+  const [cropVarietyId, setCropVarietyId] = useState("")
+  const [landSize, setLandSize] = useState("")
+  const [seedSize, setSeedSize] = useState<1 | 2>(1)
+  const [result, setResult] = useState<CostResult | null>(null)
+
+  const cropVarieties: CropVariety[] = POTATO_VARIETIES
+
+  const calculateCost = () => {
+    if (!cropVarietyId || !landSize) {
       toast({
         title: "Missing Information",
-        description: "Please fill in crop variety, land size, and county",
+        description: "Please fill in crop variety and land size",
         variant: "destructive",
       })
       return
     }
 
-    setLoading(true)
-    try {
-      // Ensure subCounty has a default value
-      const requestData = {
-        ...formData,
-        location: {
-          county: formData.location?.county || "",
-          subCounty: formData.location?.subCounty || "General"
-        }
-      }
+    const size = Number.parseFloat(landSize) || 0
+    const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
 
-      const response = await apiClient.getCostEstimate(requestData)
-      // Handle wrapped API response
-      const result = (response as any).data || response
-      setResult(result as CostCalculationResponse)
-      toast({
-        title: "Calculation Complete",
-        description: "Cost estimate has been calculated successfully",
-      })
-    } catch (error: any) {
-      toast({
-        title: "Calculation Failed",
-        description: error.message || "Failed to calculate costs",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
+    if (!selectedVariety) {
+      toast({ title: "Error", description: "Please select a crop variety", variant: "destructive" })
+      return
     }
+
+    const bagsPerAcre = seedSize === 1 ? selectedVariety.seedSize1BagsPerAcre : selectedVariety.seedSize2BagsPerAcre
+    const seedCostPerAcre = seedSize === 1 ? selectedVariety.seedSize1CostPerAcre : selectedVariety.seedSize2CostPerAcre
+
+    const breakdown = {
+      seeds: seedCostPerAcre * size,
+      fertilizer: selectedVariety.fertilizerCostPerAcre * size,
+      herbicides: selectedVariety.herbicideCostPerAcre * size,
+      fungicides: selectedVariety.fungicideCostPerAcre * size,
+      insecticides: selectedVariety.insecticideCostPerAcre * size,
+      labor: selectedVariety.laborCostPerAcre * size,
+      landPreparation: selectedVariety.landPreparationCostPerAcre * size,
+      miscellaneous: selectedVariety.miscellaneousCostPerAcre * size,
+    }
+
+    const total = Object.values(breakdown).reduce((sum, cost) => sum + cost, 0)
+
+    setResult({
+      cropVarietyName: selectedVariety.name,
+      landSizeAcres: size,
+      seedRequirement: size * bagsPerAcre,
+      estimatedTotalCost: total,
+      costBreakdown: breakdown,
+    })
+
+    toast({ title: "Calculation Complete", description: "Cost estimate has been calculated successfully" })
   }
 
   const resetCalculator = () => {
-    setFormData({
-      cropVarietyId: "",
-      landSizeAcres: 0,
-      seedSize: 1,
-      location: { county: "", subCounty: "" },
-    })
+    setCropVarietyId("")
+    setLandSize("")
+    setSeedSize(1)
     setResult(null)
   }
 
@@ -126,122 +115,75 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
               <CardTitle className="text-lg">Production Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {loadingVarieties ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  <span className="ml-2">Loading crop varieties...</span>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <Label htmlFor="cropVariety">Crop Variety *</Label>
-                    <Select
-                      value={formData.cropVarietyId}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, cropVarietyId: value }))}
-                    >
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select crop variety" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cropVarieties.map((variety) => (
-                          <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.maturityPeriodDays} days)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div>
+                <Label htmlFor="cropVariety">Crop Variety *</Label>
+                <Select value={cropVarietyId} onValueChange={setCropVarietyId}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select crop variety" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cropVarieties.map((variety) => (
+                      <SelectItem key={variety.id} value={variety.id}>
+                        {variety.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div>
-                    <Label htmlFor="landSize">Land Size (Acres) *</Label>
-                    <Input
-                      id="landSize"
-                      type="number"
-                      step="0.1"
-                      placeholder="Enter acreage"
-                      value={formData.landSizeAcres || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          landSizeAcres: Number.parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="h-12"
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="landSize">Land Size (Acres) *</Label>
+                <Input
+                  id="landSize"
+                  type="number"
+                  step="0.1"
+                  placeholder="Enter acreage"
+                  value={landSize}
+                  onChange={(e) => setLandSize(e.target.value)}
+                  className="h-12"
+                />
+              </div>
 
-                  <div>
-                    <Label htmlFor="seedSize">Seed Size</Label>
-                    <Select
-                      value={formData.seedSize.toString()}
-                      onValueChange={(value) => setFormData((prev) => ({
-                        ...prev,
-                        seedSize: Number(value) === 2 ? 2 : 1
-                      }))}
-                    >
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select seed size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Size 1 (16 bags/acre)</SelectItem>
-                        <SelectItem value="2">Size 2 (20 bags/acre)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="county">County *</Label>
-                    <Input
-                      id="county"
-                      placeholder="Enter your county"
-                      value={formData.location?.county || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: { ...prev.location, county: e.target.value },
-                        }))
-                      }
-                      className="h-12"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subCounty">Sub County (Optional)</Label>
-                    <Input
-                      id="subCounty"
-                      placeholder="Sub County (optional)"
-                      value={formData.location?.subCounty || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: { ...prev.location, subCounty: e.target.value },
-                        }))
-                      }
-                      className="h-12"
-                    />
-                  </div>
-
-                  <Button
-                    onClick={calculateCost}
-                    className="w-full h-12 bg-sage-700 hover:bg-sage-800"
-                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county}
-                  >
-                    {loading ? (
+              <div>
+                <Label htmlFor="seedSize">Seed Size</Label>
+                <Select
+                  value={seedSize.toString()}
+                  onValueChange={(value) => setSeedSize(Number(value) as 1 | 2)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select seed size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cropVarietyId && (() => {
+                      const selectedVariety = cropVarieties.find(v => v.id === cropVarietyId)
+                      return selectedVariety ? (
+                        <>
+                          <SelectItem value="1">Size 1 ({selectedVariety.seedSize1BagsPerAcre} bags per acre)</SelectItem>
+                          <SelectItem value="2">Size 2 ({selectedVariety.seedSize2BagsPerAcre} bags per acre)</SelectItem>
+                        </>
+                      ) : null
+                    })() || (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
+                        <SelectItem value="1">Size 1</SelectItem>
+                        <SelectItem value="2">Size 2</SelectItem>
                       </>
-                    ) : (
-                      "Calculate Costs"
                     )}
-                  </Button>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {result && (
-                    <Button onClick={resetCalculator} variant="outline" className="w-full h-12 bg-transparent">
-                      Reset Calculator
-                    </Button>
-                  )}
-                </>
+              <Button
+                onClick={calculateCost}
+                className="w-full h-12 bg-sage-700 hover:bg-sage-800"
+                disabled={!cropVarietyId || !landSize}
+              >
+                Calculate Costs
+              </Button>
+
+              {result && (
+                <Button onClick={resetCalculator} variant="outline" className="w-full h-12 bg-transparent">
+                  Reset Calculator
+                </Button>
               )}
             </CardContent>
           </Card>
@@ -257,59 +199,63 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
             <CardContent>
               {result ? (
                 <div className="space-y-6">
-                  <div className="text-center p-6 bg-gradient-to-br from-sage-50 to-warm-50 rounded-xl">
-                    <div className="text-sm text-gray-600 mb-1">Total Estimated Cost</div>
+                  <div className="text-center p-6 bg-gradient-to-br from-sage-50 to-warm-50 rounded-xl border border-sage-100">
+                    <div className="text-sm text-gray-600 mb-1">Total Production Cost</div>
                     <div className="text-3xl font-bold text-sage-700">
                       KSh {result.estimatedTotalCost.toLocaleString()}
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
                       for {result.landSizeAcres} acres of {result.cropVarietyName}
                     </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Cost per acre: KSh {Math.round(result.estimatedTotalCost / result.landSizeAcres).toLocaleString()}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between p-3 bg-sage-50 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
                       <span className="font-medium">Seeds</span>
                       <div className="text-right">
                         <div className="font-semibold">KSh {result.costBreakdown.seeds.toLocaleString()}</div>
-                        <div className="text-xs text-gray-500">{result.seedRequirement.bagsNeeded} bags</div>
+                        <div className="text-xs text-gray-500">{result.seedRequirement} bags total</div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between p-3 bg-warm-50 rounded-lg">
-                      <span className="font-medium">Labor</span>
-                      <div className="font-semibold">KSh {result.costBreakdown.labor.toLocaleString()}</div>
-                    </div>
-
-                    <div className="flex justify-between p-3 bg-sage-50 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
                       <span className="font-medium">Fertilizer</span>
                       <div className="font-semibold">KSh {result.costBreakdown.fertilizer.toLocaleString()}</div>
                     </div>
 
-                    <div className="flex justify-between p-3 bg-warm-50 rounded-lg">
-                      <span className="font-medium">Pesticides</span>
-                      <div className="font-semibold">KSh {result.costBreakdown.pesticides.toLocaleString()}</div>
+                    <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                      <span className="font-medium">Herbicides</span>
+                      <div className="font-semibold">KSh {result.costBreakdown.herbicides.toLocaleString()}</div>
                     </div>
 
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
+                      <span className="font-medium">Fungicides</span>
+                      <div className="font-semibold">KSh {result.costBreakdown.fungicides.toLocaleString()}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                      <span className="font-medium">Insecticides</span>
+                      <div className="font-semibold">KSh {result.costBreakdown.insecticides.toLocaleString()}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
+                      <span className="font-medium">Labor</span>
+                      <div className="font-semibold">KSh {result.costBreakdown.labor.toLocaleString()}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-sage-50 rounded-lg">
+                      <span className="font-medium">Land Preparation</span>
+                      <div className="font-semibold">KSh {result.costBreakdown.landPreparation.toLocaleString()}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-warm-50 rounded-lg">
                       <span className="font-medium">Other Costs</span>
-                      <div className="font-semibold">KSh {result.costBreakdown.other.toLocaleString()}</div>
+                      <div className="font-semibold">KSh {result.costBreakdown.miscellaneous.toLocaleString()}</div>
                     </div>
                   </div>
-
-                  {result.recommendations.length > 0 && (
-                    <div className="mt-6">
-                      <h4 className="font-medium mb-3">Recommendations</h4>
-                      <ul className="space-y-2 text-sm text-gray-600">
-                        {result.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-sage-600">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">

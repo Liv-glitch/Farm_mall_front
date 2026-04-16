@@ -153,7 +153,7 @@ export function CostCalculatorPublic() {
                     {cropVarieties.length > 0 ? (
                       cropVarieties.map((variety) => (
                         <SelectItem key={variety.id} value={variety.id}>
-                          {variety.name} ({variety.maturityPeriodDays} days)
+                          {variety.name}
                         </SelectItem>
                       ))
                     ) : (
