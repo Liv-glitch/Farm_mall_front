@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Calculator, Calendar, BarChart3, Settings, TrendingUp, Activity, Brain, User } from "lucide-react"
+import { Home, Calculator, Calendar, BarChart3, Settings, TrendingUp, Activity, Brain, User, ShoppingCart, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -38,6 +38,12 @@ const menuItems = [
     title: "Farm Tools",
     url: "/dashboard/farm-tools",
     icon: Calculator,
+  },
+  {
+    title: "Find Inputs",
+    url: "https://farmflow-platform.onrender.com/",
+    icon: ShoppingCart,
+    external: true,
   },
   {
     title: "Analytics",
@@ -91,13 +97,21 @@ export function UserSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
-                    isActive={pathname === item.url}
+                    isActive={!item.external && pathname === item.url}
                     className="h-12 px-4 mb-1 rounded-lg hover:bg-sage-50 data-[active=true]:bg-sage-100 data-[active=true]:text-sage-800 data-[active=true]:border-sage-200 data-[active=true]:border relative z-50"
                   >
-                    <Link href={item.url} className="flex items-center gap-3 text-sm font-medium w-full">
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
+                    {item.external ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm font-medium w-full">
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                        <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                      </a>
+                    ) : (
+                      <Link href={item.url} className="flex items-center gap-3 text-sm font-medium w-full">
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
