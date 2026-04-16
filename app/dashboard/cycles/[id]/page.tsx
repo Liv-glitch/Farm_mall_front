@@ -295,7 +295,7 @@ export default function CycleDetailPage() {
             </div>
 
             {/* Calendar & Next Step merged here */}
-            <CycleCalendar cycle={cycle} activities={activities} />
+            <CycleCalendar cycle={cycle} />
           </CardContent>
         </Card>
 
