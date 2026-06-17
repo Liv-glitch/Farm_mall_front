@@ -70,7 +70,10 @@ interface AnalysisHistoryViewProps {
   onRefresh?: () => void
 }
 
-// Mock data for development - replace with real API calls
+// Mock data for development - replace with real API calls.
+// Only plant_health records are kept; Species Sage (plant_identification),
+// Soil Whisperer (soil_analysis), and Harvest Prophet (yield_calculation)
+// are intentionally disabled while Diagnosis is the only enabled tool.
 const mockAnalysisData: AnalysisRecord[] = [
   {
     id: "1",
@@ -93,50 +96,50 @@ const mockAnalysisData: AnalysisRecord[] = [
       variants: { thumbnail: "/placeholder.jpg" }
     }
   },
-  {
-    id: "2", 
-    type: "plant_identification",
-    title: "Unknown Weed Identification",
-    description: "Couch Grass (Cynodon dactylon) identified",
-    confidence: 0.94,
-    status: "completed",
-    createdAt: "2025-08-03T14:15:30.000Z",
-    location: "Kiambu County",
-    result: {
-      plants: [{ commonName: "Couch Grass", scientificName: "Cynodon dactylon" }]
-    },
-    media: {
-      id: "media-2",
-      originalUrl: "/placeholder.jpg"
-    }
-  },
-  {
-    id: "3",
-    type: "soil_analysis", 
-    title: "Farm Soil Analysis",
-    description: "pH 6.2, Medium Nitrogen, High Phosphorus",
-    status: "completed",
-    createdAt: "2025-08-02T09:30:15.000Z",
-    location: "Meru County",
-    result: {
-      basicProperties: { ph: 6.2, organicMatter: 3.1 },
-      soilHealth: { overallScore: 78, category: "good" }
-    }
-  },
-  {
-    id: "4",
-    type: "yield_calculation",
-    title: "Potato Yield Projection",
-    description: "5.2 tonnes expected, ROI 128%",
-    status: "completed", 
-    createdAt: "2025-08-01T16:45:20.000Z",
-    location: "Nyandarua County",
-    cropType: "Potato",
-    result: {
-      estimatedYield: { quantity: 5200, unit: "kg" },
-      economicProjection: { roi: 128.5, netProfit: { realistic: 85000 } }
-    }
-  }
+  // {
+  //   id: "2",
+  //   type: "plant_identification",
+  //   title: "Unknown Weed Identification",
+  //   description: "Couch Grass (Cynodon dactylon) identified",
+  //   confidence: 0.94,
+  //   status: "completed",
+  //   createdAt: "2025-08-03T14:15:30.000Z",
+  //   location: "Kiambu County",
+  //   result: {
+  //     plants: [{ commonName: "Couch Grass", scientificName: "Cynodon dactylon" }]
+  //   },
+  //   media: {
+  //     id: "media-2",
+  //     originalUrl: "/placeholder.jpg"
+  //   }
+  // },
+  // {
+  //   id: "3",
+  //   type: "soil_analysis",
+  //   title: "Farm Soil Analysis",
+  //   description: "pH 6.2, Medium Nitrogen, High Phosphorus",
+  //   status: "completed",
+  //   createdAt: "2025-08-02T09:30:15.000Z",
+  //   location: "Meru County",
+  //   result: {
+  //     basicProperties: { ph: 6.2, organicMatter: 3.1 },
+  //     soilHealth: { overallScore: 78, category: "good" }
+  //   }
+  // },
+  // {
+  //   id: "4",
+  //   type: "yield_calculation",
+  //   title: "Potato Yield Projection",
+  //   description: "5.2 tonnes expected, ROI 128%",
+  //   status: "completed",
+  //   createdAt: "2025-08-01T16:45:20.000Z",
+  //   location: "Nyandarua County",
+  //   cropType: "Potato",
+  //   result: {
+  //     estimatedYield: { quantity: 5200, unit: "kg" },
+  //     economicProjection: { roi: 128.5, netProfit: { realistic: 85000 } }
+  //   }
+  // }
 ]
 
 export function AnalysisHistoryView({ 
@@ -275,7 +278,9 @@ export function AnalysisHistoryView({
 
   // Filter records based on search and filters
   useEffect(() => {
-    let filtered = records
+    // Hide non-Diagnosis analyses entirely while the other AI tools
+    // (Species Sage / Soil Whisperer / Harvest Prophet) are disabled.
+    let filtered = records.filter((r) => r.type === "plant_health")
 
     // Search filter
     if (searchTerm) {
@@ -478,17 +483,18 @@ export function AnalysisHistoryView({
               </div>
             </div>
 
-            {/* Type Filter */}
+            {/* Type Filter - Only Plant Health is enabled while other AI tools are
+                (Species Sage / Soil Whisperer / Harvest Prophet) are commented out. */}
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="All Analysis Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="plant_identification">Plant ID</SelectItem>
+                {/* <SelectItem value="plant_identification">Plant ID</SelectItem> */}
                 <SelectItem value="plant_health">Plant Health</SelectItem>
-                <SelectItem value="soil_analysis">Soil Analysis</SelectItem>
-                <SelectItem value="yield_calculation">Yield Calculator</SelectItem>
+                {/* <SelectItem value="soil_analysis">Soil Analysis</SelectItem> */}
+                {/* <SelectItem value="yield_calculation">Yield Calculator</SelectItem> */}
               </SelectContent>
             </Select>
 
