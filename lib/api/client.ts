@@ -340,6 +340,37 @@ class ApiClient {
     })
   }
 
+  // Pre-production planning endpoints
+  async getPreproductionPlans() {
+    return this.request({
+      method: "GET",
+      url: "/preproduction/plans",
+    })
+  }
+
+  async createPreproductionPlan(data: any) {
+    return this.request({
+      method: "POST",
+      url: "/preproduction/plans",
+      data,
+    })
+  }
+
+  async getPreproductionPlan(id: string) {
+    return this.request({
+      method: "GET",
+      url: `/preproduction/plans/${id}`,
+    })
+  }
+
+  async updatePreproductionTask(id: string, data: any) {
+    return this.request({
+      method: "PATCH",
+      url: `/preproduction/tasks/${id}`,
+      data,
+    })
+  }
+
   async updateCycle(cycleOrFormData: any) {
     const cycleId = cycleOrFormData instanceof FormData ? 
       cycleOrFormData.get("id") : 

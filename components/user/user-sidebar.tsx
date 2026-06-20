@@ -21,6 +21,7 @@ import {
   Activity,
   Stethoscope,
   User,
+  Sprout,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -36,6 +37,11 @@ const menuItems = [
     title: "Production Cycles",
     url: "/dashboard/cycles",
     icon: Activity,
+  },
+  {
+    title: "Pre-production Planning",
+    url: "/dashboard/pre-production-planning",
+    icon: Sprout,
   },
   {
     title: "Diagnosis",
@@ -81,6 +87,9 @@ export function UserSidebar() {
         pathname === "/dashboard/diagnosis" ||
         pathname?.startsWith("/dashboard/farm-intelligence") === true
       )
+    }
+    if (url === "/dashboard/pre-production-planning") {
+      return pathname?.startsWith("/dashboard/pre-production-planning") === true
     }
     return pathname === url
   }
