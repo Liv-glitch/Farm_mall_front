@@ -44,6 +44,7 @@ interface HistoryItem {
   createdAt: string
   match: DiseaseMatch | null
   uploadedImageUrl?: string
+  note?: string
 }
 
 type Step = "upload" | "match" | "treat"
@@ -138,6 +139,7 @@ export function DiagnosisPage() {
   const [loading, setLoading] = useState(false)
   const [matches, setMatches] = useState<DiseaseMatch[]>([])
   const [selectedMatch, setSelectedMatch] = useState<DiseaseMatch | null>(null)
+  const [analysisId, setAnalysisId] = useState<string | null>(null)
   const [treatmentTab, setTreatmentTab] = useState<TreatmentTab>("organic")
   const [note, setNote] = useState("")
   const [saving, setSaving] = useState(false)
@@ -182,10 +184,16 @@ export function DiagnosisPage() {
             id: r?.id || r?.analysisId || "",
             createdAt: r?.createdAt || r?.created_at || "",
             match: primary,
+            note: r?.notes || r?.note || r?.result?.notes || "",
             uploadedImageUrl:
               r?.media?.variants?.thumbnail ||
+              r?.media?.variants?.find?.((v: any) => v.size === "thumbnail")
+                ?.url ||
               r?.media?.variants?.small ||
+              r?.media?.variants?.find?.((v: any) => v.size === "small")
+                ?.url ||
               r?.media?.originalUrl ||
+              r?.media?.publicUrl ||
               r?.mediaUrls?.[0] ||
               undefined,
           }
@@ -206,6 +214,7 @@ export function DiagnosisPage() {
     setImage(null)
     setMatches([])
     setSelectedMatch(null)
+    setAnalysisId(null)
     setNote("")
     setStep("upload")
     setTreatmentTab("organic")
@@ -239,6 +248,7 @@ export function DiagnosisPage() {
       })
 
       const extracted = extractMatches(res)
+      const data = extractData(res)
       if (extracted.length === 0) {
         toast({
           title: "No matches found",
@@ -251,6 +261,12 @@ export function DiagnosisPage() {
       }
 
       setMatches(extracted)
+      setAnalysisId(
+        data?.analysisId ||
+          data?.metadata?.analysisId ||
+          res?.metadata?.analysisId ||
+          null
+      )
       setStep("match")
     } catch (err: any) {
       console.error("Diagnosis failed", err)
@@ -272,16 +288,19 @@ export function DiagnosisPage() {
   }
 
   const handleSaveRecord = async () => {
-    // The diagnosis itself is already persisted by POST /enhanced-plant/health.
-    // Attaching the free-text note still requires a new backend endpoint
-    // (PATCH /enhanced-plant/analysis/:id) - flagged for the backend team.
     setSaving(true)
     try {
+      if (analysisId) {
+        await apiClient.updateAnalysis(analysisId, {
+          type: "plant_health",
+          notes: note,
+        })
+      }
       await loadHistory()
       toast({
         title: "Saved to history",
         description: note
-          ? "Diagnosis saved. Your note is kept locally for now."
+          ? "Diagnosis saved with your note."
           : "Diagnosis saved to your history.",
       })
       resetWizard()
@@ -1055,6 +1074,11 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
             <div className="font-semibold text-[#2c2418] mt-0.5">
               {item.match?.name || "Plant Health"}
             </div>
+            {item.note ? (
+              <p className="text-xs text-[#5b4d36] mt-2 line-clamp-2">
+                {item.note}
+              </p>
+            ) : null}
             <div className="flex items-center justify-between mt-3">
               {item.match?.severity ? (
                 <span

@@ -529,6 +529,13 @@ class ApiClient {
     return this.client.get(`/enhanced-plant/analysis/${analysisId}?type=${type}`).then(r => r.data);
   }
 
+  async updateAnalysis(analysisId: string, data: {
+    type: 'plant_health',
+    notes?: string
+  }) {
+    return this.client.patch(`/enhanced-plant/analysis/${analysisId}`, data).then(r => r.data);
+  }
+
   async deleteAnalysis(analysisId: string, type: string) {
     return this.client.delete(`/enhanced-plant/analysis/${analysisId}?type=${type}`).then(r => r.data);
   }
