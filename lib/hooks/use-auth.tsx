@@ -193,9 +193,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = async (userData: RegisterRequest) => {
     try {
       const response = await apiClient.register(userData) as any
+      const authData = response?.data || response
       
-      const token = response?.token || response?.tokens?.accessToken || response?.accessToken
-      const user = response?.user || response?.data?.user
+      const token = authData?.token || authData?.tokens?.accessToken || authData?.accessToken
+      const user = authData?.user
       
       if (!token || !user) {
         throw new Error("Invalid response from server")
