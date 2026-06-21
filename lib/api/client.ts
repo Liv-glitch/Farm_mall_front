@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from "axios"
 import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
+import type { Event, EventFormData } from "@/lib/types/event"
 
 class ApiClient {
   private client: AxiosInstance
@@ -426,6 +427,50 @@ class ApiClient {
     return this.request({
       method: "GET",
       url: "/admin/stats",
+    })
+  }
+
+  async getEvents(): Promise<Event[]> {
+    return this.request({
+      method: "GET",
+      url: "/events",
+    })
+  }
+
+  async getAdminEvents(): Promise<Event[]> {
+    return this.request({
+      method: "GET",
+      url: "/admin/events",
+    })
+  }
+
+  async getAdminEvent(id: string): Promise<Event> {
+    return this.request({
+      method: "GET",
+      url: `/admin/events/${id}`,
+    })
+  }
+
+  async createAdminEvent(data: EventFormData): Promise<Event> {
+    return this.request({
+      method: "POST",
+      url: "/admin/events",
+      data,
+    })
+  }
+
+  async updateAdminEvent(id: string, data: EventFormData): Promise<Event> {
+    return this.request({
+      method: "PATCH",
+      url: `/admin/events/${id}`,
+      data,
+    })
+  }
+
+  async deleteAdminEvent(id: string) {
+    return this.request({
+      method: "DELETE",
+      url: `/admin/events/${id}`,
     })
   }
 

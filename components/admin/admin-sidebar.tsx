@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Home, Users, BarChart3, Settings, Database, Shield, FileText } from "lucide-react"
+import { Home, Users, BarChart3, Settings, Database, Shield, FileText, CalendarDays } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -39,6 +39,11 @@ const menuItems = [
     url: "/admin/content",
     icon: FileText,
   },
+  {
+    title: "Manage Events",
+    url: "/admin/events",
+    icon: CalendarDays,
+  },
 ]
 
 const systemItems = [
@@ -61,6 +66,12 @@ const systemItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const isActive = (url: string) => {
+    if (url === "/admin/events") {
+      return pathname?.startsWith("/admin/events") === true
+    }
+    return pathname === url
+  }
 
   return (
     <Sidebar>
@@ -86,7 +97,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -104,7 +115,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               {systemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

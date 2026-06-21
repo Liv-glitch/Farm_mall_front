@@ -22,6 +22,7 @@ import {
   Stethoscope,
   User,
   Sprout,
+  CalendarDays,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -52,6 +53,11 @@ const menuItems = [
     title: "Farm Tools",
     url: "/dashboard/farm-tools",
     icon: Calculator,
+  },
+  {
+    title: "Events",
+    url: "/dashboard/events",
+    icon: CalendarDays,
   },
   {
     title: "Analytics",
@@ -90,6 +96,9 @@ export function UserSidebar() {
     }
     if (url === "/dashboard/pre-production-planning") {
       return pathname?.startsWith("/dashboard/pre-production-planning") === true
+    }
+    if (url === "/dashboard/events") {
+      return pathname?.startsWith("/dashboard/events") === true
     }
     return pathname === url
   }
