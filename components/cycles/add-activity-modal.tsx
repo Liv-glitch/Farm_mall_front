@@ -280,7 +280,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
       toast({
         title: "Activity Added",
-        description: "New activity has been added to your production cycle",
+        description: "New activity has been added to your crop tracker record",
       })
     } catch (error: any) {
       toast({
@@ -299,7 +299,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         <DialogHeader className="p-4 sm:p-6 sticky top-0 bg-white border-b">
           <DialogTitle>Add New Activity</DialogTitle>
           <DialogDescription>
-            Add a new activity to your production cycle. You can use predefined templates or create a custom activity.
+            Add a new activity to your crop tracker record. You can use predefined templates or create a custom activity.
           </DialogDescription>
         </DialogHeader>
 

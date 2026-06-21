@@ -87,7 +87,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
         >
           <ChevronLeft className="h-4 w-4" /> All plans
         </Link>
-        <p className="text-muted-foreground">This pre-production plan could not be found.</p>
+        <p className="text-muted-foreground">This farm preparation plan could not be found.</p>
       </div>
     )
   }

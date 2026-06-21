@@ -131,7 +131,8 @@ export function AdminEventsPage() {
               <Button onClick={openNewForm} className="bg-agri-600 hover:bg-agri-700">Create event</Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -185,6 +186,58 @@ export function AdminEventsPage() {
                 </TableBody>
               </Table>
             </div>
+            <div className="space-y-3 p-3 md:hidden">
+              {events.map((event) => {
+                const past = isPast(event.date)
+
+                return (
+                  <div
+                    key={event.id}
+                    className={`rounded-lg border p-4 ${past ? "bg-muted/40 text-muted-foreground" : "bg-background"}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="font-semibold text-agri-900 break-words">{event.name}</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">{formatDate(event.date)}</p>
+                      </div>
+                      {past ? <Badge variant="secondary" className="shrink-0">Past</Badge> : null}
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">Mode</span>
+                        <Badge variant="outline">{event.mode === "physical" ? "Physical" : "Online"}</Badge>
+                      </div>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground">Location</span>
+                        <span className="text-right">{event.mode === "physical" ? event.location || "-" : "-"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <Button asChild variant="outline" className="h-11">
+                        <a href={getRegistrationLink(event)} target="_blank" rel="noreferrer">
+                          Open <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                      <Button variant="outline" className="h-11" onClick={() => openEditForm(event)}>
+                        <Pencil className="mr-1.5 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="col-span-2 h-11"
+                        onClick={() => setEventToDelete(event)}
+                      >
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

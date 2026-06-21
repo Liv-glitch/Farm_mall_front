@@ -475,13 +475,15 @@ class ApiClient {
   }
 
   // Enhanced Plant AI endpoints (Gemini + Plant.id)
-  async identifyPlant({ image, latitude, longitude, similar_images, plant_type, location }: { 
+  async identifyPlant({ image, latitude, longitude, similar_images, plant_type, location, cycle_id, crop_variety }: { 
     image: File, 
     latitude?: number, 
     longitude?: number, 
     similar_images?: boolean,
     plant_type?: string,
-    location?: string
+    location?: string,
+    cycle_id?: string,
+    crop_variety?: string
   }) {
     const formData = new FormData();
     formData.append("image1", image);
@@ -490,6 +492,8 @@ class ApiClient {
     if (similar_images === true) formData.append("similar_images", "true");
     if (plant_type) formData.append("plant_type", plant_type);
     if (location) formData.append("location", location);
+    if (cycle_id) formData.append("cycle_id", cycle_id);
+    if (crop_variety) formData.append("crop_variety", crop_variety);
     
     // Use enhanced endpoint with Gemini AI
     return this.client.post("/enhanced-plant/identify", formData, {
@@ -498,14 +502,16 @@ class ApiClient {
     }).then(r => r.data);
   }
 
-  async assessPlantHealth({ image, latitude, longitude, similar_images, plant_type, symptoms, location }: { 
+  async assessPlantHealth({ image, latitude, longitude, similar_images, plant_type, symptoms, location, cycle_id, crop_variety }: { 
     image: File, 
     latitude?: number, 
     longitude?: number, 
     similar_images?: boolean,
     plant_type?: string,
     symptoms?: string,
-    location?: string
+    location?: string,
+    cycle_id?: string,
+    crop_variety?: string
   }) {
     const formData = new FormData();
     formData.append("image1", image);
@@ -515,6 +521,8 @@ class ApiClient {
     if (plant_type) formData.append("plant_type", plant_type);
     if (symptoms) formData.append("symptoms", symptoms);
     if (location) formData.append("location", location);
+    if (cycle_id) formData.append("cycle_id", cycle_id);
+    if (crop_variety) formData.append("crop_variety", crop_variety);
     
     // Use enhanced endpoint with Gemini AI
     return this.client.post("/enhanced-plant/health", formData, {
@@ -524,19 +532,23 @@ class ApiClient {
   }
 
   // New Soil Analysis endpoint
-  async analyzeSoil({ document, location, crop_type, farm_size, budget }: {
+  async analyzeSoil({ document, location, crop_type, farm_size, budget, cycle_id, farm_location }: {
     document: File,
     location?: string,
     crop_type?: string,
-    farm_size?: string,
-    budget?: string
+    farm_size?: string | number,
+    budget?: string,
+    cycle_id?: string,
+    farm_location?: string
   }) {
     const formData = new FormData();
     formData.append("document", document);
     if (location) formData.append("location", location);
     if (crop_type) formData.append("crop_type", crop_type);
-    if (farm_size) formData.append("farm_size", farm_size);
+    if (farm_size) formData.append("farm_size", String(farm_size));
     if (budget) formData.append("budget", budget);
+    if (cycle_id) formData.append("cycle_id", cycle_id);
+    if (farm_location) formData.append("farm_location", farm_location);
     
     return this.client.post("/enhanced-plant/soil", formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -667,6 +679,19 @@ class ApiClient {
     } else {
       return this.client.put(`/production/activities/${activityOrFormData.id}`, activityOrFormData).then(r => r.data)
     }
+  }
+
+  async deleteCycle(cycleId: string) {
+    return this.client.delete(`/production/cycles/${cycleId}`).then(r => r.data)
+  }
+
+  async deleteActivity(cycleId: string, activityId: string) {
+    return this.client.delete(`/production/activities/${activityId}`).then(r => r.data)
+  }
+
+  async deleteAllActivities(cycleId: string) {
+    const activities = await this.getCycleActivities(cycleId)
+    await Promise.all((activities || []).map((activity: any) => this.deleteActivity(cycleId, activity.id)))
   }
 
   // Collaboration endpoints

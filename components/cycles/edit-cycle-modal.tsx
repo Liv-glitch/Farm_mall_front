@@ -161,19 +161,19 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
         }
       }
 
-      // Call the API to update the cycle
+      // Call the API to update the record.
       const updatedCycle = await apiClient.updateCycle(payload) as ProductionCycle
 
       onUpdate(updatedCycle)
       onClose()
 
       toast({
-        title: "Cycle Updated",
-        description: "Production cycle has been successfully updated",
+        title: "Crop tracker record updated",
+        description: "The crop tracker record has been successfully updated",
       })
     } catch (error: any) {
       toast({
-        title: "Failed to Update Cycle",
+        title: "Failed to update record",
         description: error.message,
         variant: "destructive",
       })
@@ -186,9 +186,9 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Production Cycle</DialogTitle>
+          <DialogTitle>Edit Crop Tracker record</DialogTitle>
           <DialogDescription>
-            Update the details of your production cycle.
+            Update the details of your crop tracker record.
           </DialogDescription>
         </DialogHeader>
 
@@ -426,7 +426,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           {/* Show image preview if available and type allows */}
           {('imageUrl' in cycle) && (cycle as any).imageUrl && (
             <div className="mb-2">
-              <img src={(cycle as any).imageUrl} alt="Cycle" className="rounded w-full max-h-48 object-cover" />
+              <img src={(cycle as any).imageUrl} alt="Crop tracker record" className="rounded w-full max-h-48 object-cover" />
             </div>
           )}
           <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
@@ -442,7 +442,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
                   Updating...
                 </>
               ) : (
-                "Update Cycle"
+                "Update record"
               )}
             </Button>
           </div>

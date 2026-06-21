@@ -97,7 +97,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
       console.error('Failed to load cycles:', error)
       toast({
         title: "Error",
-        description: "Failed to load production cycles",
+        description: "Failed to load crop tracker records",
         variant: "destructive"
       })
     } finally {
@@ -376,15 +376,15 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
               </div>
             </div>
 
-            {/* Production Cycle Selection */}
+            {/* Crop Tracker selection */}
             <div className="space-y-2">
               <Label htmlFor="cycle" className="flex items-center">
                 <Recycle className="h-4 w-4 mr-1" />
-                Production Cycle (Optional)
+                Crop Tracker Record (Optional)
               </Label>
               <Select value={selectedCycle} onValueChange={setSelectedCycle} disabled={loading || loadingCycles}>
                 <SelectTrigger>
-                  <SelectValue placeholder={loadingCycles ? "Loading cycles..." : "Select a production cycle"} />
+                  <SelectValue placeholder={loadingCycles ? "Loading records..." : "Select a crop tracker record"} />
                 </SelectTrigger>
                 <SelectContent>
                   {cycles.map((cycle) => (
@@ -396,7 +396,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
               </Select>
               {selectedCycle && (
                 <div className="text-xs text-gray-600 mt-1">
-                  <p>Selected cycle will provide context for soil analysis and recommendations.</p>
+                  <p>Selected crop tracker record will provide context for soil analysis and recommendations.</p>
                 </div>
               )}
             </div>

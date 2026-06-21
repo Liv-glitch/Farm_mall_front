@@ -47,7 +47,7 @@ export function NewPlanModal({ isOpen, onClose }: NewPlanModalProps) {
     setLoading(true)
     try {
       const plan = (await apiClient.createPreproductionPlan(formData)) as PreproductionPlan
-      toast({ title: "Plan created", description: "Your pre-production checklist is ready." })
+      toast({ title: "Plan created", description: "Your farm preparation checklist is ready." })
       onClose()
       setFormData({ name: "", planting_date: "", location: "", potato_variety: "Shangi" })
       router.push(`/dashboard/pre-production-planning/${plan.id}`)
@@ -68,7 +68,7 @@ export function NewPlanModal({ isOpen, onClose }: NewPlanModalProps) {
         <DialogHeader>
           <DialogTitle className="text-agri-800">New planting plan</DialogTitle>
           <DialogDescription>
-            Tell us a few details. We&apos;ll build a personalised pre-production checklist.
+            Tell us a few details. We&apos;ll build a personalised farm preparation checklist.
           </DialogDescription>
         </DialogHeader>
 

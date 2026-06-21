@@ -2,6 +2,8 @@ export interface Farm {
   id: string;
   name: string;
   location: string;
+  locationLat?: number;
+  locationLng?: number;
   size: number;
   userId: string;
   createdAt: string;

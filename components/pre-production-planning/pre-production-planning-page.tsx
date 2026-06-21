@@ -58,7 +58,7 @@ export function PreproductionPlanningPage() {
     <div className="space-y-6">
       {/* Heading */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-agri-900">Plan before you plant</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-agri-900">Farm Preparations</h1>
         <p className="text-muted-foreground mt-1 max-w-2xl">
           A clear checklist of everything to do before planting day — from picking the field to placing the first
           tuber in the ground.
@@ -99,7 +99,7 @@ export function PreproductionPlanningPage() {
                 </div>
                 <h3 className="font-semibold text-agri-900">No plans yet</h3>
                 <p className="text-sm text-muted-foreground mt-1 mb-5 max-w-xs">
-                  Set up your first pre-production checklist to get step-by-step guidance before planting.
+                  Set up your first farm preparation checklist to get step-by-step guidance before planting.
                 </p>
                 <Button onClick={() => setModalOpen(true)} className="bg-agri-600 hover:bg-agri-700">
                   Create your first plan

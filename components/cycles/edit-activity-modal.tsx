@@ -154,7 +154,7 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
           <DialogTitle>Edit {formData.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</DialogTitle>
           <DialogDescription>
-            Update the details of this activity in your production cycle.
+            Update the details of this activity in your crop tracker record.
           </DialogDescription>
         </DialogHeader>
 
@@ -310,7 +310,7 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
             <Label htmlFor="inputs">Required Inputs</Label>
             <Textarea
               id="inputs"
-              value={formData.inputs}
+              value={typeof formData.inputs === "string" ? formData.inputs : JSON.stringify(formData.inputs)}
               onChange={(e) => setFormData((prev) => ({ ...prev, inputs: e.target.value }))}
               placeholder="List any required materials, equipment, or inputs..."
               rows={2}

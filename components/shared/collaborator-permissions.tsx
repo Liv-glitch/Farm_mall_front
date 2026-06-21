@@ -98,8 +98,8 @@ export function CollaboratorPermissions({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="canCreateCycles" className="flex flex-col space-y-1">
-              <span>Create Production Cycles</span>
-              <span className="text-sm text-muted-foreground">Can create new production cycles</span>
+              <span>Create Crop Tracker records</span>
+              <span className="text-sm text-muted-foreground">Can create new crop tracker records</span>
             </Label>
             <Switch 
               id="canCreateCycles" 
@@ -110,8 +110,8 @@ export function CollaboratorPermissions({
 
           <div className="flex items-center justify-between">
             <Label htmlFor="canEditCycles" className="flex flex-col space-y-1">
-              <span>Edit Production Cycles</span>
-              <span className="text-sm text-muted-foreground">Can modify existing production cycles</span>
+              <span>Edit Crop Tracker records</span>
+              <span className="text-sm text-muted-foreground">Can modify existing crop tracker records</span>
             </Label>
             <Switch 
               id="canEditCycles" 
@@ -122,8 +122,8 @@ export function CollaboratorPermissions({
 
           <div className="flex items-center justify-between">
             <Label htmlFor="canDeleteCycles" className="flex flex-col space-y-1">
-              <span>Delete Production Cycles</span>
-              <span className="text-sm text-muted-foreground">Can remove production cycles</span>
+              <span>Delete Crop Tracker records</span>
+              <span className="text-sm text-muted-foreground">Can remove crop tracker records</span>
             </Label>
             <Switch 
               id="canDeleteCycles" 

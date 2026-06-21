@@ -35,12 +35,12 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Production Cycles",
+    title: "Crop Tracker",
     url: "/dashboard/cycles",
     icon: Activity,
   },
   {
-    title: "Pre-production Planning",
+    title: "Farm Preparations",
     url: "/dashboard/pre-production-planning",
     icon: Sprout,
   },

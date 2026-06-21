@@ -105,13 +105,13 @@ export function ProductionCycleCard({
       await apiClient.deleteCycle(cycle.id)
       onDelete?.(cycle.id)
       toast({
-        title: "Cycle Deleted",
-        description: "The production cycle has been successfully deleted.",
+        title: "Crop tracker record deleted",
+        description: "The crop tracker record has been successfully deleted.",
       })
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete cycle",
+        description: error.message || "Failed to delete crop tracker record",
         variant: "destructive",
       })
     } finally {
@@ -182,11 +182,11 @@ export function ProductionCycleCard({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setShowEditModal(true)}>
                       <Edit className="mr-2 h-4 w-4" />
-                      Edit Cycle
+                      Edit record
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => {
-                        if (cycle.activities?.length > 0) {
+                        if ((cycle.activities?.length ?? 0) > 0) {
                           setShowDeleteWithActivitiesDialog(true)
                         } else {
                           setShowDeleteDialog(true)
@@ -195,7 +195,7 @@ export function ProductionCycleCard({
                       className="text-red-600 focus:text-red-600"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Cycle
+                      Delete record
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -310,9 +310,9 @@ export function ProductionCycleCard({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
+            <AlertDialogTitle>Delete Crop Tracker record</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this production cycle? This action cannot be undone.
+              Are you sure you want to delete this crop tracker record? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -322,7 +322,7 @@ export function ProductionCycleCard({
               className="bg-red-600 hover:bg-red-700"
               disabled={loading}
             >
-              {loading ? "Deleting..." : "Delete Cycle"}
+              {loading ? "Deleting..." : "Delete record"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -332,12 +332,12 @@ export function ProductionCycleCard({
       <AlertDialog open={showDeleteWithActivitiesDialog} onOpenChange={setShowDeleteWithActivitiesDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
+            <AlertDialogTitle>Delete Crop Tracker record</AlertDialogTitle>
             <AlertDialogDescription>
-              This cycle has {cycle.activities?.length} activities. Would you like to:
+              This record has {cycle.activities?.length} activities. Would you like to:
               <ul className="mt-2 space-y-1">
-                <li>• Delete all activities first, then delete the cycle</li>
-                <li>• Or keep the activities and only delete the cycle</li>
+                <li>• Delete all activities first, then delete the record</li>
+                <li>• Or keep the activities and only delete the record</li>
               </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -349,14 +349,14 @@ export function ProductionCycleCard({
                 className="bg-red-600 hover:bg-red-700 flex-1"
                 disabled={loading}
               >
-                {loading ? "Deleting..." : "Keep Activities"}
+                {loading ? "Deleting..." : "Keep activities"}
               </AlertDialogAction>
               <AlertDialogAction
                 onClick={() => handleDeleteCycle(true)}
                 className="bg-red-700 hover:bg-red-800 flex-1"
                 disabled={loading}
               >
-                {loading ? "Deleting..." : "Delete All"}
+                {loading ? "Deleting..." : "Delete all"}
               </AlertDialogAction>
             </div>
           </AlertDialogFooter>
