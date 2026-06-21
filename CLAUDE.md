@@ -115,6 +115,7 @@ No test framework currently configured. When adding tests:
 
 ### Deployment Notes
 
-- ESLint and TypeScript errors are ignored in build (`next.config.mjs`)
-- Consider enabling these checks for production deployments
-- Middleware handles authentication redirect logic
+- Deployed as an **SSR Node app on Namecheap cPanel** (Passenger). `server.js` (committed) is the startup file; `npm run start` runs it. See root `DEPLOYMENT.md`.
+- `NEXT_PUBLIC_API_BASE_URL` is baked in at build time; `npm run build` runs `scripts/check-api-url.js` which fails a production build if it's missing or localhost. Changing the API host requires a rebuild.
+- ESLint and TypeScript errors are ignored in build (`next.config.mjs`).
+- `middleware.ts` handles auth redirects: `/` is an exact public match and everything under `/auth` is public; all other routes (e.g. `/dashboard`, `/admin`) require the `farm_mall_token` cookie. (The earlier `pathname.startsWith("/")` bug that made every route public has been fixed.)

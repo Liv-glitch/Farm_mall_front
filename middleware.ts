@@ -5,30 +5,19 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("farm_mall_token")?.value
   const { pathname } = request.nextUrl
 
-  // Public routes that don't require authentication
-  const publicRoutes = ["/", "/auth/login", "/auth/register", "/auth/forgot-password"]
+  // Public route PREFIXES (everything under /auth is public)
+  const publicPrefixes = ["/auth"]
 
-  // Admin routes that require authentication
-  const adminRoutes = ["/admin"]
+  // A route is public if it's the home page (exact match) or under a public prefix.
+  // NOTE: "/" must be matched exactly — using startsWith("/") would match every path.
+  const isPublicRoute =
+    pathname === "/" || publicPrefixes.some((prefix) => pathname.startsWith(prefix))
 
-  // User dashboard routes that require authentication
-  const userRoutes = ["/dashboard"]
-
-  // Protected routes (routes that require authentication)
-  const isProtectedRoute = !publicRoutes.some((route) => pathname.startsWith(route))
-
-  // If trying to access protected route without token, redirect to login
-  if (!token && isProtectedRoute) {
+  // Everything else (e.g. /dashboard, /admin) requires authentication.
+  if (!isPublicRoute && !token) {
     return NextResponse.redirect(new URL("/auth/login", request.url))
   }
 
-  // Allow access to public routes regardless of token status
-  // This prevents redirect loops when tokens are invalid
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next()
-  }
-
-  // If we reach here, it's a protected route with a token - let the app handle validation
   return NextResponse.next()
 }
 
