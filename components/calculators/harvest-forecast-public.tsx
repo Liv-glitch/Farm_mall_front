@@ -8,33 +8,21 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, Cloud, Sun, CloudRain } from "lucide-react"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 export function HarvestForecastPublic() {
-  const [cropVariety, setCropVariety] = useState("")
+  const [selectedVarietyId, setSelectedVarietyId] = useState("")
   const [plantingDate, setPlantingDate] = useState("")
   const [showForecast, setShowForecast] = useState(false)
   const [harvestDate, setHarvestDate] = useState("")
 
+  const selectedVariety = POTATO_VARIETIES.find(v => v.id === selectedVarietyId)
+
   const estimateHarvest = () => {
-    if (!plantingDate || !cropVariety) return
+    if (!plantingDate || !selectedVariety) return
 
     const planting = new Date(plantingDate)
-    let growthPeriod = 90 // default days
-
-    switch (cropVariety) {
-      case "shangi":
-        growthPeriod = 85
-        break
-      case "markies":
-        growthPeriod = 90
-        break
-      case "maize":
-        growthPeriod = 120
-        break
-      case "beans":
-        growthPeriod = 75
-        break
-    }
+    const growthPeriod = selectedVariety.maturityPeriodDays
 
     const harvest = new Date(planting.getTime() + growthPeriod * 24 * 60 * 60 * 1000)
     setHarvestDate(
@@ -49,7 +37,7 @@ export function HarvestForecastPublic() {
   }
 
   const resetForecast = () => {
-    setCropVariety("")
+    setSelectedVarietyId("")
     setPlantingDate("")
     setShowForecast(false)
     setHarvestDate("")
@@ -75,15 +63,16 @@ export function HarvestForecastPublic() {
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="cropVariety">Crop Variety</Label>
-              <Select value={cropVariety} onValueChange={setCropVariety}>
+              <Select value={selectedVarietyId} onValueChange={setSelectedVarietyId}>
                 <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select crop variety" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="shangi">Shangi Potatoes</SelectItem>
-                  <SelectItem value="markies">Markies Potatoes</SelectItem>
-                  <SelectItem value="maize">Maize</SelectItem>
-                  <SelectItem value="beans">Beans</SelectItem>
+                  {POTATO_VARIETIES.map((variety) => (
+                    <SelectItem key={variety.id} value={variety.id}>
+                      {variety.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -102,7 +91,7 @@ export function HarvestForecastPublic() {
             <Button
               onClick={estimateHarvest}
               className="w-full h-12 bg-gradient-to-r from-green-500 to-secondary-500 hover:from-green-600 hover:to-secondary-600"
-              disabled={!cropVariety || !plantingDate}
+              disabled={!selectedVarietyId || !plantingDate}
             >
               Estimate Harvest
             </Button>
@@ -131,7 +120,7 @@ export function HarvestForecastPublic() {
             </p>
           </CardHeader>
           <CardContent>
-            {showForecast ? (
+            {showForecast && selectedVariety ? (
               <div className="space-y-6">
                 <div className="text-center p-6 bg-gradient-to-br from-secondary-50 to-accent-50 rounded-xl border border-secondary-100">
                   <div className="text-sm text-gray-600 mb-1">Expected Harvest Date</div>
@@ -139,13 +128,7 @@ export function HarvestForecastPublic() {
                     {harvestDate.split(",")[1]} {harvestDate.split(",")[2]}
                   </div>
                   <div className="text-sm text-secondary-600">
-                    {cropVariety === "shangi"
-                      ? "85 days growth period"
-                      : cropVariety === "markies"
-                        ? "90 days growth period"
-                        : cropVariety === "maize"
-                          ? "120 days growth period"
-                          : "75 days growth period"}
+                    {selectedVariety.maturityPeriodDays} days growth period
                   </div>
                 </div>
 
@@ -154,7 +137,7 @@ export function HarvestForecastPublic() {
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <div>
                       <div className="font-medium">Variety</div>
-                      <div className="text-sm text-gray-600">{cropVariety}</div>
+                      <div className="text-sm text-gray-600">{selectedVariety.name}</div>
                     </div>
                   </div>
 
@@ -175,8 +158,10 @@ export function HarvestForecastPublic() {
                   <div className="flex items-center space-x-3 p-3 bg-accent-50 rounded-lg">
                     <div className="w-3 h-3 bg-accent-500 rounded-full"></div>
                     <div>
-                      <div className="font-medium">Growing Season</div>
-                      <div className="text-sm text-gray-600">Optimal conditions expected</div>
+                      <div className="font-medium">Expected Yield</div>
+                      <div className="text-sm text-gray-600">
+                        {(selectedVariety.averageYieldPerAcre / 1000).toFixed(1)} tons/acre
+                      </div>
                     </div>
                   </div>
                 </div>

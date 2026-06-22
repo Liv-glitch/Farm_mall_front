@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public route PREFIXES (everything under /auth is public)
-  const publicPrefixes = ["/auth"]
+  const publicPrefixes = ["/auth", "/calculator", "/forecast"]
 
   // A route is public if it's the home page (exact match) or under a public prefix.
   // NOTE: "/" must be matched exactly — using startsWith("/") would match every path.

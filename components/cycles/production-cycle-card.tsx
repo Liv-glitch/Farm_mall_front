@@ -106,12 +106,12 @@ export function ProductionCycleCard({
       onDelete?.(cycle.id)
       toast({
         title: "Crop tracker record deleted",
-        description: "The crop tracker record has been successfully deleted.",
+        description: "The farm preparation record has been successfully deleted.",
       })
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete crop tracker record",
+        description: error.message || "Failed to delete farm preparation record",
         variant: "destructive",
       })
     } finally {
@@ -306,13 +306,13 @@ export function ProductionCycleCard({
         onUpdate={onUpdate}
       />
 
-      {/* Delete Cycle Dialog */}
+      {/* Delete Preparation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Crop Tracker record</AlertDialogTitle>
+            <AlertDialogTitle>Delete Farm Preparation record</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this crop tracker record? This action cannot be undone.
+              Are you sure you want to delete this farm preparation record? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -328,11 +328,11 @@ export function ProductionCycleCard({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Cycle with Activities Dialog */}
+      {/* Delete Preparation with Activities Dialog */}
       <AlertDialog open={showDeleteWithActivitiesDialog} onOpenChange={setShowDeleteWithActivitiesDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Crop Tracker record</AlertDialogTitle>
+            <AlertDialogTitle>Delete Farm Preparation record</AlertDialogTitle>
             <AlertDialogDescription>
               This record has {cycle.activities?.length} activities. Would you like to:
               <ul className="mt-2 space-y-1">

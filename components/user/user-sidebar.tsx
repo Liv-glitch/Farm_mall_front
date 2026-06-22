@@ -35,7 +35,7 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Crop Tracker",
+    title: "Farm Preparation",
     url: "/dashboard/cycles",
     icon: Activity,
   },

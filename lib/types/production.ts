@@ -82,8 +82,8 @@ export interface CreateProductionCycleRequest {
   farmLocationLng?: number
   plantingDate: string // ISO date string
   estimatedHarvestDate?: string // ISO date string
-  expectedYield: number
-  expectedPricePerKg: number
+  expectedYield: number | null
+  expectedPricePerKg: number | null
 }
 
 export interface UpdateProductionCycleRequest {

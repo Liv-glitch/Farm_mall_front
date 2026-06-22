@@ -169,7 +169,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
 
       toast({
         title: "Crop tracker record updated",
-        description: "The crop tracker record has been successfully updated",
+        description: "The farm preparation record has been successfully updated",
       })
     } catch (error: any) {
       toast({
@@ -186,9 +186,9 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Crop Tracker record</DialogTitle>
+          <DialogTitle>Edit Farm Preparation record</DialogTitle>
           <DialogDescription>
-            Update the details of your crop tracker record.
+            Update the details of your farm preparation record.
           </DialogDescription>
         </DialogHeader>
 
@@ -426,7 +426,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           {/* Show image preview if available and type allows */}
           {('imageUrl' in cycle) && (cycle as any).imageUrl && (
             <div className="mb-2">
-              <img src={(cycle as any).imageUrl} alt="Crop tracker record" className="rounded w-full max-h-48 object-cover" />
+              <img src={(cycle as any).imageUrl} alt="Farm preparation record" className="rounded w-full max-h-48 object-cover" />
             </div>
           )}
           <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />

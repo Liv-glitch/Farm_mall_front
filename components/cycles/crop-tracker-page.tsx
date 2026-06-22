@@ -35,7 +35,7 @@ export function CropTrackerPage() {
       setCycles(Array.isArray(data) ? data.map(normalizeCycle) : [])
     } catch (error: any) {
       toast({
-        title: "Failed to load crop tracker",
+        title: "Failed to load farm preparation records",
         description: error?.message || "Please try again.",
         variant: "destructive",
       })
@@ -98,7 +98,7 @@ export function CropTrackerPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-agri-900 sm:text-3xl">Crop Tracker</h1>
+          <h1 className="text-2xl font-bold text-agri-900 sm:text-3xl">Farm Preparation</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Track crop progress, field activities, costs, and harvest timing.
           </p>
@@ -111,7 +111,7 @@ export function CropTrackerPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          Loading crop tracker...
+          Loading farm preparation records...
         </div>
       ) : cycles.length === 0 ? (
         <Card className="border-2 border-dashed border-agri-200 bg-agri-50/40">
@@ -119,9 +119,9 @@ export function CropTrackerPage() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-agri-100">
               <Activity className="h-7 w-7 text-agri-600" />
             </div>
-            <h3 className="font-semibold text-agri-900">No crop tracker records yet</h3>
+            <h3 className="font-semibold text-agri-900">No farm preparation records yet</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Start a crop tracker record from a completed farm preparation plan.
+              Start a farm preparation record from a completed farm preparation plan.
             </p>
           </CardContent>
         </Card>
