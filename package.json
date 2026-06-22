@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/check-api-url.js && next build",
+    "deploy:package": "bash scripts/package-cpanel.sh",
+    "deploy:package:env": "ENV_FILE=.env.production.local bash scripts/package-cpanel.sh",
     "dev": "next dev",
     "lint": "next lint",
     "start": "node server.js"
