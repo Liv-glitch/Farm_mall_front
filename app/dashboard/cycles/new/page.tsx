@@ -184,7 +184,7 @@ export default function NewProductionCyclePage() {
         description: "Farm preparation record created successfully",
       })
 
-      // Navigate to the farm preparation page or to the specific record if we have an ID
+      // Navigate to the production cycles page or to the specific record if we have an ID
       if (response && typeof response === 'object' && 'id' in response && response.id) {
         router.push(`/dashboard/cycles/${response.id}`)
       } else {
@@ -194,7 +194,7 @@ export default function NewProductionCyclePage() {
       console.error("Error creating this cycle:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to create farm preparation record. Please try again.",
+        description: error.message || "Failed to create production cycle. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -222,11 +222,11 @@ export default function NewProductionCyclePage() {
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/cycles")} className="text-agri-700 hover:bg-agri-50">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Farm Preparation
+            Back to Production Cycles
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-agri-800">Create New Farm Preparation</h1>
-            <p className="text-agri-600">Set up a new farm preparation record with activities and projections</p>
+            <h1 className="text-3xl font-bold tracking-tight text-agri-800">Create New Production Cycle</h1>
+            <p className="text-agri-600">Set up a new production cycle with activities and projections</p>
           </div>
         </div>
 
@@ -520,10 +520,10 @@ export default function NewProductionCyclePage() {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Preparation...
+                      Creating Cycle...
                     </>
                   ) : (
-                    "Create Farm Preparation"
+                    "Create Production Cycle"
                   )}
                 </Button>
                 <Button

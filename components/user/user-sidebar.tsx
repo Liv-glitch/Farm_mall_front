@@ -17,7 +17,6 @@ import {
   Home,
   Calculator,
   BarChart3,
-  Settings,
   Activity,
   Stethoscope,
   User,
@@ -35,7 +34,7 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Farm Preparation",
+    title: "Production Cycles",
     url: "/dashboard/cycles",
     icon: Activity,
   },
@@ -71,11 +70,6 @@ const toolsItems = [
     title: "Profile",
     url: "/dashboard/profile",
     icon: User,
-  },
-  {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
   },
 ]
 

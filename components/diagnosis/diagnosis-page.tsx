@@ -2,14 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
+  AlertTriangle,
   ArrowLeft,
+  BadgeCheck,
   Camera,
   CheckCircle2,
-  FlaskConical,
+  ClipboardCheck,
+  History,
   Leaf,
   Loader2,
+  Microscope,
   RefreshCw,
+  Save,
   ShieldAlert,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react"
@@ -31,6 +37,8 @@ interface DiseaseMatch {
   referenceImageUrl?: string
   symptoms?: string[]
   causes?: string[]
+  provider?: string
+  model?: string
   treatment?: {
     organic?: string[]
     chemical?: string[]
@@ -91,6 +99,8 @@ const extractMatches = (res: any): DiseaseMatch[] => {
         d?.image,
       symptoms: Array.isArray(d?.symptoms) ? d.symptoms : undefined,
       causes: Array.isArray(d?.causes) ? d.causes : undefined,
+      provider: data?.provider || res?.provider || data?.metadata?.provider,
+      model: data?.model || res?.model || data?.metadata?.model,
       treatment: {
         organic: treatment?.organic,
         chemical: treatment?.chemical,
@@ -288,14 +298,21 @@ export function DiagnosisPage() {
   }
 
   const handleSaveRecord = async () => {
+    if (!analysisId) {
+      toast({
+        title: "Cannot save diagnosis",
+        description: "This diagnosis was not saved by the server. Please run the analysis again.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSaving(true)
     try {
-      if (analysisId) {
-        await apiClient.updateAnalysis(analysisId, {
-          type: "plant_health",
-          notes: note,
-        })
-      }
+      await apiClient.updateAnalysis(analysisId, {
+        type: "plant_health",
+        notes: note,
+      })
       await loadHistory()
       toast({
         title: "Saved to history",
@@ -305,6 +322,13 @@ export function DiagnosisPage() {
       })
       resetWizard()
       setView("history")
+    } catch (err: any) {
+      console.error("Failed to save diagnosis", err)
+      toast({
+        title: "Could not save",
+        description: err?.message || "Please try saving the diagnosis again.",
+        variant: "destructive",
+      })
     } finally {
       setSaving(false)
     }
@@ -336,16 +360,16 @@ export function DiagnosisPage() {
   // ---------- Render ----------
 
   return (
-    <div className="-m-3 sm:-m-4 md:-m-6 lg:-m-8 -mt-4 sm:-mt-6 -mb-20 sm:-mb-8 bg-[#f3ece0] min-h-[calc(100dvh-4rem)]">
+    <div className="-m-3 sm:-m-4 md:-m-6 lg:-m-8 -mt-4 sm:-mt-6 -mb-20 sm:-mb-8 bg-white min-h-[calc(100dvh-4rem)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-9 w-9 rounded-md bg-[#e7dcc8]">
-              <FlaskConical className="h-5 w-5 text-[#6E3B1E]" />
+            <div className="flex items-center justify-center h-9 w-9 rounded-md bg-emerald-100">
+              <Microscope className="h-5 w-5 text-emerald-700" />
             </div>
             <h1
-              className="text-3xl font-semibold text-[#2c2418]"
+              className="text-3xl font-semibold text-slate-950"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               Diagnosis
@@ -353,14 +377,14 @@ export function DiagnosisPage() {
           </div>
 
           {/* New / History pill toggle */}
-          <div className="inline-flex items-center gap-1 rounded-full bg-white p-1 shadow-sm border border-[#e7dcc8]">
+          <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 shadow-sm border border-slate-200">
             <button
               type="button"
               onClick={() => setView("new")}
               className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
                 view === "new"
-                  ? "bg-[#1f3a23] text-white"
-                  : "text-[#3a2f1f] hover:bg-[#f3ece0]"
+                  ? "bg-emerald-700 text-white"
+                  : "text-slate-700 hover:bg-white"
               }`}
             >
               New Diagnosis
@@ -370,8 +394,8 @@ export function DiagnosisPage() {
               onClick={() => setView("history")}
               className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
                 view === "history"
-                  ? "bg-[#1f3a23] text-white"
-                  : "text-[#3a2f1f] hover:bg-[#f3ece0]"
+                  ? "bg-emerald-700 text-white"
+                  : "text-slate-700 hover:bg-white"
               }`}
             >
               History · {history.length}
@@ -379,7 +403,7 @@ export function DiagnosisPage() {
           </div>
         </div>
 
-        <p className="text-sm text-[#5b4d36] mb-6 max-w-2xl">
+        <p className="text-sm text-slate-600 mb-6 max-w-2xl">
           Take a photo of an infected plant. Find out what the disease is and
           how to treat it.
         </p>
@@ -428,6 +452,7 @@ export function DiagnosisPage() {
                     setStep("match")
                   }}
                   saving={saving}
+                  canSave={!!analysisId}
                 />
               )}
 
@@ -488,10 +513,10 @@ function Stepper({ step }: { step: Step }) {
               <div
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   isActive
-                    ? "bg-[#1f3a23] text-white"
+                    ? "bg-emerald-700 text-white"
                     : isDone
-                      ? "bg-[#1f3a23]/80 text-white"
-                      : "bg-[#e7dcc8] text-[#5b4d36]"
+                      ? "bg-teal-600 text-white"
+                      : "bg-slate-100 text-slate-500"
                 }`}
               >
                 {item.num}
@@ -499,17 +524,17 @@ function Stepper({ step }: { step: Step }) {
               <span
                 className={`tracking-wider font-semibold ${
                   isActive
-                    ? "text-[#1f3a23]"
+                    ? "text-emerald-700"
                     : isDone
-                      ? "text-[#1f3a23]/80"
-                      : "text-[#5b4d36]/70"
+                      ? "text-teal-700"
+                      : "text-slate-500"
                 }`}
               >
                 {item.label}
               </span>
             </div>
             {idx < items.length - 1 && (
-              <div className="w-8 h-px bg-[#5b4d36]/30" />
+              <div className="w-8 h-px bg-slate-300" />
             )}
           </div>
         )
@@ -552,36 +577,36 @@ function UploadCard({
         const file = e.dataTransfer.files?.[0]
         if (file) onDrop(file)
       }}
-      className={`bg-white/70 border-2 border-dashed rounded-2xl p-10 sm:p-16 text-center transition-colors ${
+      className={`bg-white border-2 border-dashed rounded-2xl p-10 sm:p-16 text-center transition-colors shadow-sm ${
         isDragging
-          ? "border-[#1f3a23] bg-white"
-          : "border-[#c8b896] hover:border-[#1f3a23]/60"
+          ? "border-emerald-600 bg-emerald-50"
+          : "border-slate-300 hover:border-emerald-500"
       }`}
     >
       {loading ? (
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 text-[#1f3a23] animate-spin" />
+          <Loader2 className="h-10 w-10 text-emerald-700 animate-spin" />
           <div>
-            <p className="text-lg font-semibold text-[#2c2418]">
+            <p className="text-lg font-semibold text-slate-950">
               Analyzing your photo
             </p>
-            <p className="text-sm text-[#5b4d36] mt-1 max-w-sm mx-auto">
+            <p className="text-sm text-slate-600 mt-1 max-w-sm mx-auto">
               This usually takes 30-60 seconds. Please keep this page open.
             </p>
           </div>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
-          <div className="h-14 w-14 rounded-full bg-[#e7dcc8] flex items-center justify-center">
-            <Leaf className="h-7 w-7 text-[#1f3a23]" />
+          <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center">
+            <Leaf className="h-7 w-7 text-emerald-700" />
           </div>
           <h2
-            className="text-2xl font-semibold text-[#2c2418]"
+            className="text-2xl font-semibold text-slate-950"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
             Take a photo of the sick plant
           </h2>
-          <p className="text-sm text-[#5b4d36] max-w-md">
+          <p className="text-sm text-slate-600 max-w-md">
             Make sure the photo is clear and well lit. Get close so the sick
             leaf or fruit fills the frame.
           </p>
@@ -589,7 +614,7 @@ function UploadCard({
             <Button
               type="button"
               onClick={onPickFile}
-              className="bg-[#1f3a23] hover:bg-[#15291a] text-white rounded-full px-6"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-6"
             >
               <Upload className="h-4 w-4 mr-2" />
               Upload photo
@@ -598,13 +623,13 @@ function UploadCard({
               type="button"
               onClick={onTakePhoto}
               variant="outline"
-              className="rounded-full px-6 border-[#c8b896] text-[#2c2418] hover:bg-white"
+              className="rounded-full px-6 border-teal-200 text-teal-800 hover:bg-teal-50"
             >
               <Camera className="h-4 w-4 mr-2" />
               Take photo
             </Button>
           </div>
-          <p className="text-xs text-[#5b4d36]/80 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             You can also drop a photo here · JPG or PNG
           </p>
         </div>
@@ -623,8 +648,8 @@ function MatchCard({ matches, onSelect, onRestart }: MatchCardProps) {
   const top = matches[0]
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-5 flex items-center gap-4">
-        <div className="h-16 w-16 rounded-xl overflow-hidden bg-[#f3ece0] flex-shrink-0">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
+        <div className="h-16 w-16 rounded-xl overflow-hidden bg-emerald-50 flex-shrink-0">
           {top?.referenceImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -633,29 +658,29 @@ function MatchCard({ matches, onSelect, onRestart }: MatchCardProps) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-[#5b4d36]">
-              <Leaf className="h-6 w-6" />
+            <div className="h-full w-full flex items-center justify-center text-emerald-700">
+              <Microscope className="h-6 w-6" />
             </div>
           )}
         </div>
         <div className="flex-1">
-          <div className="text-xs tracking-wider font-semibold text-[#5b4d36]/80">
+          <div className="text-xs tracking-wider font-semibold text-teal-700">
             TOP MATCHES
           </div>
           <div
-            className="text-xl font-semibold text-[#2c2418]"
+            className="text-xl font-semibold text-slate-950"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
           >
             Select the closest match
           </div>
-          <div className="text-sm text-[#5b4d36] mt-0.5">
+          <div className="text-sm text-slate-600 mt-0.5">
             Pick the option that looks most like what you see on your farm.
           </div>
         </div>
         <button
           type="button"
           onClick={onRestart}
-          className="text-sm font-medium text-[#1f3a23] hover:underline"
+          className="text-sm font-medium text-emerald-700 hover:underline"
         >
           Start again
         </button>
@@ -667,9 +692,9 @@ function MatchCard({ matches, onSelect, onRestart }: MatchCardProps) {
             key={m.id}
             type="button"
             onClick={() => onSelect(m)}
-            className="text-left bg-white rounded-2xl border border-[#e7dcc8] hover:border-[#1f3a23] hover:shadow-md transition-all overflow-hidden group"
+            className="text-left bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all overflow-hidden group"
           >
-            <div className="relative aspect-[4/3] bg-[#f3ece0]">
+            <div className="relative aspect-[4/3] bg-slate-100">
               {m.referenceImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -678,29 +703,29 @@ function MatchCard({ matches, onSelect, onRestart }: MatchCardProps) {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="h-full w-full flex items-center justify-center text-[#5b4d36]">
+                <div className="h-full w-full flex items-center justify-center text-emerald-700">
                   <Leaf className="h-10 w-10" />
                 </div>
               )}
               {idx === 0 && (
-                <div className="absolute top-2 left-2 bg-[#1f3a23] text-white text-xs font-medium px-2 py-1 rounded-md flex items-center gap-1">
-                  <span className="text-yellow-300">★</span>
+                <div className="absolute top-2 left-2 bg-emerald-700 text-white text-xs font-medium px-2 py-1 rounded-md flex items-center gap-1">
+                  <BadgeCheck className="h-3.5 w-3.5 text-amber-200" />
                   Best match
                 </div>
               )}
               {formatConfidence(m.confidence) && (
-                <div className="absolute bottom-2 right-2 bg-white/95 text-[#2c2418] text-xs font-semibold px-2 py-1 rounded-md">
+                <div className="absolute bottom-2 right-2 bg-white/95 text-slate-950 text-xs font-semibold px-2 py-1 rounded-md">
                   {formatConfidence(m.confidence)} match
                 </div>
               )}
             </div>
             <div className="p-4">
               {m.cropType && (
-                <div className="text-xs text-[#5b4d36]/80">{m.cropType}</div>
+                <div className="text-xs text-slate-500">{m.cropType}</div>
               )}
-              <div className="font-semibold text-[#2c2418]">{m.name}</div>
+              <div className="font-semibold text-slate-950">{m.name}</div>
               {m.scientificName && (
-                <div className="text-xs italic text-[#5b4d36] mt-0.5">
+                <div className="text-xs italic text-slate-500 mt-0.5">
                   {m.scientificName}
                 </div>
               )}
@@ -731,6 +756,7 @@ interface TreatViewProps {
   onSave: () => void
   onChooseDifferent: () => void
   saving: boolean
+  canSave: boolean
 }
 
 function TreatView({
@@ -745,25 +771,26 @@ function TreatView({
   onSave,
   onChooseDifferent,
   saving,
+  canSave,
 }: TreatViewProps) {
   return (
     <div className="space-y-5">
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center text-sm font-medium text-[#1f3a23] hover:underline"
+        className="inline-flex items-center text-sm font-medium text-emerald-700 hover:underline"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         Back to choices
       </button>
 
       {/* Disease detail card */}
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-5">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-5">
           {/* Image stack */}
           <div className="flex flex-col gap-3 sm:w-48 flex-shrink-0">
             {uploadedImage && (
-              <div className="aspect-square rounded-xl overflow-hidden bg-[#f3ece0]">
+              <div className="aspect-square rounded-xl overflow-hidden bg-slate-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={uploadedImage}
@@ -773,7 +800,7 @@ function TreatView({
               </div>
             )}
             {match.referenceImageUrl && (
-              <div className="aspect-square rounded-xl overflow-hidden bg-[#f3ece0]">
+              <div className="aspect-square rounded-xl overflow-hidden bg-slate-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={match.referenceImageUrl}
@@ -789,18 +816,18 @@ function TreatView({
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
                 {match.cropType && (
-                  <div className="text-[10px] tracking-wider font-semibold text-[#5b4d36] uppercase">
+                  <div className="text-[10px] tracking-wider font-semibold text-teal-700 uppercase">
                     {match.cropType}
                   </div>
                 )}
                 <h2
-                  className="text-2xl font-semibold text-[#2c2418]"
+                  className="text-2xl font-semibold text-slate-950"
                   style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
                 >
                   {match.name}
                 </h2>
                 {match.scientificName && (
-                  <div className="text-sm italic text-[#5b4d36] mt-0.5">
+                  <div className="text-sm italic text-slate-500 mt-0.5">
                     {match.scientificName}
                   </div>
                 )}
@@ -814,15 +841,21 @@ function TreatView({
                   </span>
                 )}
                 {formatConfidence(match.confidence) && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded bg-[#e7dcc8] text-[#2c2418]">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded bg-teal-100 text-teal-800">
                     {formatConfidence(match.confidence)} confidence
+                  </span>
+                )}
+                {match.provider && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded bg-slate-100 text-slate-700">
+                    <Sparkles className="h-3 w-3" />
+                    {match.provider}
                   </span>
                 )}
               </div>
             </div>
 
             {match.description && (
-              <p className="text-sm text-[#3a2f1f] mt-3 leading-relaxed">
+              <p className="text-sm text-slate-700 mt-3 leading-relaxed">
                 {match.description}
               </p>
             )}
@@ -830,10 +863,10 @@ function TreatView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
               {match.symptoms && match.symptoms.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-[#2c2418] mb-2">
-                    <span aria-hidden>🌿</span> Symptoms
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 mb-2">
+                    <Leaf className="h-4 w-4 text-emerald-700" /> Symptoms
                   </div>
-                  <ul className="space-y-1.5 text-sm text-[#3a2f1f] list-disc pl-4">
+                  <ul className="space-y-1.5 text-sm text-slate-700 list-disc pl-4">
                     {match.symptoms.map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
@@ -842,10 +875,10 @@ function TreatView({
               )}
               {match.causes && match.causes.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-[#2c2418] mb-2">
-                    <span aria-hidden>⚠️</span> Causes
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" /> Causes
                   </div>
-                  <ul className="space-y-1.5 text-sm text-[#3a2f1f] list-disc pl-4">
+                  <ul className="space-y-1.5 text-sm text-slate-700 list-disc pl-4">
                     {match.causes.map((c, i) => (
                       <li key={i}>{c}</li>
                     ))}
@@ -858,15 +891,15 @@ function TreatView({
       </div>
 
       {/* What to do next */}
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-5">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <FlaskConical className="h-4 w-4 text-[#6E3B1E]" />
-          <h3 className="text-base font-semibold text-[#2c2418]">
+          <ClipboardCheck className="h-4 w-4 text-teal-700" />
+          <h3 className="text-base font-semibold text-slate-950">
             What to do next
           </h3>
         </div>
 
-        <div className="border-b border-[#e7dcc8] flex items-center gap-6 mb-4">
+        <div className="border-b border-slate-200 flex items-center gap-6 mb-4">
           {(["organic", "chemical", "prevention"] as TreatmentTab[]).map((tab) => (
             <button
               key={tab}
@@ -874,8 +907,8 @@ function TreatView({
               onClick={() => onTreatmentTabChange(tab)}
               className={`pb-2 text-sm font-medium capitalize -mb-px border-b-2 transition-colors ${
                 treatmentTab === tab
-                  ? "border-[#1f3a23] text-[#1f3a23]"
-                  : "border-transparent text-[#5b4d36] hover:text-[#2c2418]"
+                  ? "border-emerald-700 text-emerald-700"
+                  : "border-transparent text-slate-500 hover:text-slate-950"
               }`}
             >
               {tab}
@@ -887,15 +920,15 @@ function TreatView({
           <ol className="space-y-3">
             {treatmentList.map((item, idx) => (
               <li key={idx} className="flex items-start gap-3">
-                <span className="flex-shrink-0 h-6 w-6 rounded-full bg-[#e7dcc8] text-[#2c2418] text-xs font-semibold flex items-center justify-center">
+                <span className="flex-shrink-0 h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center justify-center">
                   {idx + 1}
                 </span>
-                <span className="text-sm text-[#3a2f1f] pt-0.5">{item}</span>
+                <span className="text-sm text-slate-700 pt-0.5">{item}</span>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="text-sm text-[#5b4d36]">
+          <p className="text-sm text-slate-600">
             Recommendations for the{" "}
             <span className="font-medium">{treatmentTab}</span> approach are not
             available for this match yet.
@@ -904,11 +937,12 @@ function TreatView({
       </div>
 
       {/* Save record */}
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-5">
-        <h3 className="text-base font-semibold text-[#2c2418]">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+          <Save className="h-4 w-4 text-emerald-700" />
           Save this record
         </h3>
-        <p className="text-sm text-[#5b4d36] mt-1">
+        <p className="text-sm text-slate-600 mt-1">
           Add a note about where you found it and what you have tried. It will
           help you keep track.
         </p>
@@ -916,15 +950,15 @@ function TreatView({
           value={note}
           onChange={(e) => onNoteChange(e.target.value)}
           placeholder="For example: North side of the farm, row 4. Sprayed Mancozeb on Tuesday."
-          className="mt-3 bg-[#f9f3e7] border-[#e7dcc8] focus-visible:ring-[#1f3a23]"
+          className="mt-3 bg-slate-50 border-slate-200 focus-visible:ring-emerald-700"
           rows={4}
         />
         <div className="flex flex-wrap items-center gap-3 mt-4">
           <Button
             type="button"
             onClick={onSave}
-            disabled={saving}
-            className="bg-[#1f3a23] hover:bg-[#15291a] text-white rounded-full px-6"
+            disabled={saving || !canSave}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-6"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -937,7 +971,7 @@ function TreatView({
             type="button"
             variant="outline"
             onClick={onChooseDifferent}
-            className="rounded-full px-6 border-[#c8b896] text-[#2c2418] hover:bg-[#f3ece0]"
+            className="rounded-full px-6 border-teal-200 text-teal-800 hover:bg-teal-50"
           >
             Choose a different match
           </Button>
@@ -950,17 +984,18 @@ function TreatView({
 function SideTips() {
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-5">
-        <div className="text-[10px] tracking-wider font-semibold text-[#5b4d36] uppercase">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="flex items-center gap-1.5 text-[10px] tracking-wider font-semibold text-teal-700 uppercase">
+          <Camera className="h-3.5 w-3.5" />
           Tips
         </div>
         <h3
-          className="text-xl font-semibold text-[#2c2418] mt-1"
+          className="text-xl font-semibold text-slate-950 mt-1"
           style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
         >
           How to take a good photo
         </h3>
-        <ul className="mt-3 space-y-2.5 text-sm text-[#3a2f1f]">
+        <ul className="mt-3 space-y-2.5 text-sm text-slate-700">
           {[
             "Take photos during the day, no flash",
             "Focus on one leaf or fruit at a time",
@@ -968,16 +1003,16 @@ function SideTips() {
             "Flip the leaf and photograph the underside too",
           ].map((tip) => (
             <li key={tip} className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-[#1f3a23] mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-700 mt-0.5 flex-shrink-0" />
               <span>{tip}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="bg-[#1f3a23] text-white rounded-2xl p-5">
+      <div className="bg-slate-950 text-white rounded-2xl p-5 shadow-sm">
         <div className="flex items-center gap-2 text-xs tracking-wider font-semibold uppercase mb-2">
-          <ShieldAlert className="h-4 w-4 text-yellow-300" />
+          <ShieldAlert className="h-4 w-4 text-amber-300" />
           Safety
         </div>
         <p className="text-sm leading-relaxed text-white/90">
@@ -999,32 +1034,32 @@ interface HistoryListProps {
 function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-10 text-center">
-        <Loader2 className="h-6 w-6 text-[#1f3a23] animate-spin mx-auto" />
-        <p className="text-sm text-[#5b4d36] mt-3">Loading your history…</p>
+      <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+        <Loader2 className="h-6 w-6 text-emerald-700 animate-spin mx-auto" />
+        <p className="text-sm text-slate-600 mt-3">Loading your history...</p>
       </div>
     )
   }
 
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-[#e7dcc8] p-10 text-center">
-        <div className="h-14 w-14 rounded-full bg-[#f3ece0] flex items-center justify-center mx-auto">
-          <Leaf className="h-7 w-7 text-[#1f3a23]" />
+      <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+        <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+          <History className="h-7 w-7 text-emerald-700" />
         </div>
         <h3
-          className="text-xl font-semibold text-[#2c2418] mt-3"
+          className="text-xl font-semibold text-slate-950 mt-3"
           style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
         >
           No diagnoses yet
         </h3>
-        <p className="text-sm text-[#5b4d36] mt-1">
+        <p className="text-sm text-slate-600 mt-1">
           Run a new diagnosis to build your history.
         </p>
         <Button
           type="button"
           onClick={onStartNew}
-          className="mt-4 bg-[#1f3a23] hover:bg-[#15291a] text-white rounded-full px-6"
+          className="mt-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-6"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           New Diagnosis
@@ -1038,9 +1073,9 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
       {items.map((item) => (
         <div
           key={item.id}
-          className="bg-white rounded-2xl border border-[#e7dcc8] overflow-hidden flex flex-col"
+          className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col shadow-sm"
         >
-          <div className="grid grid-cols-2 h-40 bg-[#f3ece0]">
+          <div className="grid grid-cols-2 h-40 bg-slate-100">
             {item.uploadedImageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -1049,7 +1084,7 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-[#5b4d36]">
+              <div className="h-full w-full flex items-center justify-center text-emerald-700">
                 <Leaf className="h-6 w-6" />
               </div>
             )}
@@ -1061,21 +1096,21 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="h-full w-full flex items-center justify-center text-[#5b4d36] bg-[#ece2cd]">
+              <div className="h-full w-full flex items-center justify-center text-teal-700 bg-teal-50">
                 <Leaf className="h-6 w-6" />
               </div>
             )}
           </div>
           <div className="p-4 flex-1 flex flex-col">
-            <div className="text-xs text-[#5b4d36]">
+            <div className="text-xs text-slate-500">
               {item.match?.cropType ? `${item.match.cropType} · ` : ""}
               {formatHistoryDate(item.createdAt)}
             </div>
-            <div className="font-semibold text-[#2c2418] mt-0.5">
+            <div className="font-semibold text-slate-950 mt-0.5">
               {item.match?.name || "Plant Health"}
             </div>
             {item.note ? (
-              <p className="text-xs text-[#5b4d36] mt-2 line-clamp-2">
+              <p className="text-xs text-slate-600 mt-2 line-clamp-2">
                 {item.note}
               </p>
             ) : null}
@@ -1090,7 +1125,7 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
                 <span />
               )}
               {formatConfidence(item.match?.confidence) && (
-                <span className="text-xs font-semibold text-[#2c2418]">
+                <span className="text-xs font-semibold text-slate-950">
                   {formatConfidence(item.match?.confidence)}
                 </span>
               )}
@@ -1098,7 +1133,7 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
             <button
               type="button"
               onClick={() => onRemove(item.id)}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm text-[#5b4d36] hover:text-red-700 self-start"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-700 self-start"
             >
               <Trash2 className="h-4 w-4" />
               Remove

@@ -95,7 +95,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
   const progressPct = plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 lg:max-w-5xl lg:mx-auto">
       <Link
         href="/dashboard/pre-production-planning"
         className="inline-flex items-center gap-1 text-sm text-agri-700 hover:text-agri-900"

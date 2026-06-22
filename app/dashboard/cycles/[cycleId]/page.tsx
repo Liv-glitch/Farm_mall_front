@@ -93,10 +93,10 @@ export default function CycleDetailPage() {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="text-center py-12">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Farm preparation record not found</h2>
-          <p className="text-gray-600 mt-2 text-sm sm:text-base">The farm preparation record you're looking for doesn't exist.</p>
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Production cycle not found</h2>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">The production cycle you're looking for doesn't exist.</p>
           <Button onClick={() => router.push("/dashboard/cycles")} className="mt-4">
-            Back to Farm Preparation
+            Back to Production Cycles
           </Button>
         </div>
       </DashboardLayout>
@@ -167,7 +167,7 @@ export default function CycleDetailPage() {
     setCycle(updatedCycle)
     toast({
       title: "Success",
-      description: "Farm preparation record updated successfully",
+      description: "Production cycle updated successfully",
     })
   }
 
@@ -221,7 +221,7 @@ export default function CycleDetailPage() {
               className="w-fit text-agri-700 hover:bg-agri-50"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Farm Preparation
+              Back to Production Cycles
             </Button>
 
             <div className="space-y-2">
@@ -261,7 +261,7 @@ export default function CycleDetailPage() {
               className="w-full sm:w-auto bg-agri-700 hover:bg-agri-800"
             >
               <Edit className="h-4 w-4 mr-2" />
-              Edit Preparation
+              Edit Cycle
             </Button>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function CycleDetailPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs sm:text-sm">
-                <span>Preparation Progress</span>
+                <span>Cycle Progress</span>
                 <span className="font-medium">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2 sm:h-3" />
@@ -315,7 +315,7 @@ export default function CycleDetailPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg sm:text-xl font-semibold text-sage-600">{Math.round(progress)}%</p>
-                  <p className="text-xs text-gray-500">Preparation Progress</p>
+                  <p className="text-xs text-gray-500">Cycle Progress</p>
                 </div>
               </div>
 

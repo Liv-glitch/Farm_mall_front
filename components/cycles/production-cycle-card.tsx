@@ -105,13 +105,13 @@ export function ProductionCycleCard({
       await apiClient.deleteCycle(cycle.id)
       onDelete?.(cycle.id)
       toast({
-        title: "Crop tracker record deleted",
-        description: "The farm preparation record has been successfully deleted.",
+        title: "Production cycle deleted",
+        description: "The production cycle has been successfully deleted.",
       })
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete farm preparation record",
+        description: error.message || "Failed to delete production cycle",
         variant: "destructive",
       })
     } finally {
@@ -306,13 +306,13 @@ export function ProductionCycleCard({
         onUpdate={onUpdate}
       />
 
-      {/* Delete Preparation Dialog */}
+      {/* Delete Production Cycle Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Farm Preparation record</AlertDialogTitle>
+            <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this farm preparation record? This action cannot be undone.
+              Are you sure you want to delete this production cycle? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -328,11 +328,11 @@ export function ProductionCycleCard({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Preparation with Activities Dialog */}
+      {/* Delete Production Cycle with Activities Dialog */}
       <AlertDialog open={showDeleteWithActivitiesDialog} onOpenChange={setShowDeleteWithActivitiesDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Farm Preparation record</AlertDialogTitle>
+            <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
             <AlertDialogDescription>
               This record has {cycle.activities?.length} activities. Would you like to:
               <ul className="mt-2 space-y-1">

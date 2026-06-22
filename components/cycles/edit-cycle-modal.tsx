@@ -169,7 +169,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
 
       toast({
         title: "Crop tracker record updated",
-        description: "The farm preparation record has been successfully updated",
+        description: "The production cycle has been successfully updated",
       })
     } catch (error: any) {
       toast({
@@ -186,9 +186,9 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Farm Preparation record</DialogTitle>
+          <DialogTitle>Edit Production Cycle</DialogTitle>
           <DialogDescription>
-            Update the details of your farm preparation record.
+            Update the details of your production cycle.
           </DialogDescription>
         </DialogHeader>
 

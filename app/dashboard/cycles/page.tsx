@@ -223,29 +223,29 @@ export default function CyclesPage() {
         <div className="grid gap-4">
           <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-agri-800">Farm Preparation</h1>
-              <p className="text-sm text-agri-600 sm:text-base">Manage your farm preparation records and track progress</p>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-agri-800">Production Cycles</h1>
+              <p className="text-sm text-agri-600 sm:text-base">Manage your production cycles and track progress</p>
             </div>
             <Button 
               onClick={() => router.push("/dashboard/cycles/new")} 
               className="bg-agri-700 hover:bg-agri-800 w-full sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
-              New Preparation
+              New Cycle
             </Button>
           </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatsCard
-              title="Total Preparations"
+              title="Total Cycles"
               value={totalCycles}
-              description="All farm preparation records"
+              description="All production cycles"
               icon={Sprout}
               className="bg-agri-50 border-agri-100"
             />
             <StatsCard
-              title="Active Preparations"
+              title="Active Cycles"
               value={activeCycles}
               description="Currently running"
               icon={TrendingUp}
@@ -256,7 +256,7 @@ export default function CyclesPage() {
               value={formatLargeNumber(totalInvestment)}
               suffix={!isNaN(totalInvestment) && totalInvestment >= 1000000 ? "M" : (!isNaN(totalInvestment) && totalInvestment >= 1000 ? "K" : "")}
               prefix="KSh "
-              description="Across all preparations"
+              description="Across all cycles"
               icon={DollarSign}
               className="bg-tea-50 border-tea-100"
             />
@@ -277,7 +277,7 @@ export default function CyclesPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-agri-500" />
             <Input
-              placeholder="Search preparations..."
+              placeholder="Search production cycles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
@@ -310,7 +310,7 @@ export default function CyclesPage() {
           </div>
         </div>
 
-        {/* Farm Preparation Grid */}
+        {/* Production Cycles Grid */}
         <div className="grid gap-4">
           {error && (
             <Card className="bg-red-50 border-red-100">
@@ -330,15 +330,15 @@ export default function CyclesPage() {
             <Card className="bg-agri-50 border-agri-100">
               <CardContent className="flex flex-col items-center justify-center py-12 px-4">
                 <Sprout className="h-12 w-12 text-agri-400 mb-4" />
-                <h3 className="text-lg font-semibold text-agri-800 mb-2 text-center">No farm preparation records found</h3>
+                <h3 className="text-lg font-semibold text-agri-800 mb-2 text-center">No production cycles found</h3>
                 <p className="text-agri-600 text-center mb-4">
                   {searchTerm || statusFilter !== "all"
                     ? "Try adjusting your search or filter criteria"
-                    : "Get started by creating your first farm preparation record"}
+                    : "Get started by creating your first production cycle"}
                 </p>
                 <Button onClick={() => router.push("/dashboard/cycles/new")} className="bg-agri-700 hover:bg-agri-800">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create First Preparation
+                  Create First Cycle
                 </Button>
               </CardContent>
             </Card>
