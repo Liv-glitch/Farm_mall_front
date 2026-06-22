@@ -73,8 +73,7 @@ const toolsItems = [
   },
 ]
 
-// Dark forest-green base for the sidebar surfaces (matches the new design).
-const SIDEBAR_BG = "bg-[#1f3a23]"
+const SIDEBAR_BG = "bg-primary-950"
 
 export function UserSidebar() {
   const pathname = usePathname()
@@ -98,7 +97,7 @@ export function UserSidebar() {
   }
 
   return (
-    <Sidebar className={`${SIDEBAR_BG} border-r-0 text-white`}>
+    <Sidebar className={`${SIDEBAR_BG} border-r-0 text-white shadow-lift`}>
       <SidebarHeader className={`${SIDEBAR_BG} border-b border-white/10 p-4`}>
         <div className="flex items-center space-x-3">
           <Image
@@ -109,7 +108,7 @@ export function UserSidebar() {
             className="w-18 h-18"
             style={{ width: "72px", height: "72px" }}
           />
-          <span className="text-lg font-bold bg-gradient-to-r from-sage-700 to-warm-600 bg-clip-text text-transparent">
+          <span className="text-lg font-extrabold text-white">
             Farm Mall
           </span>
         </div>
@@ -127,7 +126,7 @@ export function UserSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    className="h-12 px-4 mb-1 rounded-lg text-white/85 hover:bg-white/10 hover:text-white data-[active=true]:bg-[#e87a3b] data-[active=true]:text-white data-[active=true]:hover:bg-[#d96b2d] data-[active=true]:hover:text-white relative z-50"
+                    className="relative z-50 mb-1 h-12 rounded-2xl px-4 text-white/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-primary data-[active=true]:text-white data-[active=true]:shadow-soft data-[active=true]:hover:bg-primary data-[active=true]:hover:text-white"
                   >
                     <Link
                       href={item.url}
@@ -154,7 +153,7 @@ export function UserSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    className="h-12 px-4 mb-1 rounded-lg text-white/85 hover:bg-white/10 hover:text-white data-[active=true]:bg-[#e87a3b] data-[active=true]:text-white data-[active=true]:hover:bg-[#d96b2d] data-[active=true]:hover:text-white relative z-50"
+                    className="relative z-50 mb-1 h-12 rounded-2xl px-4 text-white/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-primary data-[active=true]:text-white data-[active=true]:shadow-soft data-[active=true]:hover:bg-primary data-[active=true]:hover:text-white"
                   >
                     <Link
                       href={item.url}

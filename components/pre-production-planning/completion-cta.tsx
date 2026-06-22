@@ -22,18 +22,18 @@ export function CompletionCta({ plan }: CompletionCtaProps) {
   const href = `/dashboard/cycles?${params.toString()}`
 
   return (
-    <Card className="border-agri-300 bg-gradient-to-br from-agri-50 to-maize-50">
+    <Card className="border-0 bg-gradient-to-br from-primary-50 to-amber-50">
       <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="h-12 w-12 shrink-0 rounded-full bg-agri-100 flex items-center justify-center">
-          <PartyPopper className="h-6 w-6 text-agri-600" />
+        <div className="h-12 w-12 shrink-0 rounded-2xl bg-primary-100 flex items-center justify-center">
+          <PartyPopper className="h-6 w-6 text-primary-700" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-agri-900">You&apos;re ready to plant!</h3>
+          <h3 className="font-extrabold text-primary-900">You&apos;re ready to plant!</h3>
           <p className="text-sm text-muted-foreground">
             Every farm preparation step is complete. Start a crop tracker record, pre-filled with this plan&apos;s details.
           </p>
         </div>
-        <Button asChild className="bg-agri-600 hover:bg-agri-700 w-full sm:w-auto">
+        <Button asChild className="w-full sm:w-auto">
           <Link href={href}>
             Start crop tracker record <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>

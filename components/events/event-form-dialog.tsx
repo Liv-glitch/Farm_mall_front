@@ -187,7 +187,7 @@ export function EventFormDialog({ open, event, onOpenChange, onSaved }: EventFor
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button type="submit" disabled={loading} className="bg-agri-600 hover:bg-agri-700">
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

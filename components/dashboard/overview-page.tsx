@@ -122,23 +122,36 @@ export function OverviewPage() {
     })
   }, [weather])
 
+  const observedAt = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date())
+
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="min-w-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-agri-900">Overview</h1>
-        <p className="mt-1 max-w-2xl text-sm sm:text-base text-muted-foreground">
+        <h1 className="page-title">Overview</h1>
+        <p className="page-subtitle">
           A quick look at local conditions and the main Farm Mall tools.
         </p>
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="overflow-hidden border-agri-100">
-          <CardContent className="p-4 sm:p-5">
+        <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary-950 via-primary-900 to-primary-700 text-white shadow-lift">
+          <CardContent className="relative p-5 sm:p-7">
+            <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-20 left-10 h-44 w-44 rounded-full bg-primary-300/20 blur-3xl" />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground">Current weather</p>
-                <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold text-agri-900 sm:text-2xl">
-                  <CloudSun className="h-6 w-6 shrink-0 text-[#e87a3b]" />
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Current weather
+                </p>
+                <h2 className="mt-4 flex items-center gap-2 text-lg font-bold text-white sm:text-2xl">
+                  <CloudSun className="h-6 w-6 shrink-0 text-primary-100" />
                   <span className="truncate">{weather?.locationName || farmLocation || "Your farm"}</span>
                 </h2>
               </div>
@@ -146,59 +159,69 @@ export function OverviewPage() {
                 <img
                   src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
                   alt=""
-                  className="h-14 w-14 shrink-0"
+                  className="h-16 w-16 shrink-0 drop-shadow-lg"
                 />
               ) : null}
             </div>
 
             {loading || weatherLoading ? (
-              <div className="mt-6 flex min-h-32 items-center justify-center text-muted-foreground">
+              <div className="mt-6 flex min-h-32 items-center justify-center text-white/75">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Loading local weather...
               </div>
             ) : !hasLocation ? (
-              <div className="mt-6 rounded-lg border border-dashed border-agri-200 bg-agri-50/40 p-5">
-                <p className="font-medium text-agri-900">Add your farm location to see local weather.</p>
-                <p className="mt-1 text-sm text-muted-foreground">
+              <div className="mt-6 rounded-2xl bg-white/10 p-5">
+                <p className="font-bold text-white">Add your farm location to see local weather.</p>
+                <p className="mt-1 text-sm text-white/75">
                   Your dashboard will use your farm profile to show current conditions.
                 </p>
               </div>
             ) : weatherError ? (
-              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-5">
-                <p className="font-medium text-amber-900">Weather is unavailable right now.</p>
-                <p className="mt-1 text-sm text-amber-800">{weatherError}</p>
+              <div className="mt-6 rounded-2xl bg-amber-300/20 p-5">
+                <p className="font-bold text-white">Weather is unavailable right now.</p>
+                <p className="mt-1 text-sm text-white/75">{weatherError}</p>
               </div>
             ) : weather ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg bg-agri-50 p-3">
-                  <ThermometerSun className="mb-2 h-4 w-4 text-agri-700" />
-                  <div className="text-2xl font-bold text-agri-900">{formatNumber(weather.temperature, "°C")}</div>
-                  <div className="text-xs capitalize text-muted-foreground">{weather.condition}</div>
+              <>
+                <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                  <div>
+                    <div className="flex items-start gap-1">
+                      <span className="text-6xl font-extrabold leading-none tracking-tight sm:text-7xl">
+                        {formatNumber(weather.temperature, "")}
+                      </span>
+                      <span className="mt-2 text-2xl font-bold text-white/80">°C</span>
+                    </div>
+                    <p className="mt-2 text-sm font-medium capitalize text-white/75">{weather.condition}</p>
+                  </div>
+                  <p className="max-w-xs text-sm text-white/70 sm:text-right">{observedAt}</p>
                 </div>
-                <div className="rounded-lg bg-blue-50 p-3">
-                  <Droplets className="mb-2 h-4 w-4 text-blue-700" />
-                  <div className="text-2xl font-bold text-blue-900">{formatNumber(weather.humidity, "%")}</div>
-                  <div className="text-xs text-muted-foreground">Humidity</div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <Droplets className="mb-2 h-4 w-4 text-primary-100" />
+                    <div className="text-xl font-extrabold">{formatNumber(weather.humidity, "%")}</div>
+                    <div className="text-xs text-white/65">Humidity</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <Wind className="mb-2 h-4 w-4 text-primary-100" />
+                    <div className="text-xl font-extrabold">{formatNumber(weather.windSpeed, " km/h")}</div>
+                    <div className="text-xs text-white/65">Wind speed</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                    <ThermometerSun className="mb-2 h-4 w-4 text-primary-100" />
+                    <div className="truncate text-sm font-extrabold">{farm?.name || "Farm"}</div>
+                    <div className="truncate text-xs text-white/65">{farmLocation || weather.locationName}</div>
+                  </div>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <Wind className="mb-2 h-4 w-4 text-slate-700" />
-                  <div className="text-2xl font-bold text-slate-900">{formatNumber(weather.windSpeed, " km/h")}</div>
-                  <div className="text-xs text-muted-foreground">Wind speed</div>
-                </div>
-                <div className="rounded-lg bg-warm-50 p-3">
-                  <MapPin className="mb-2 h-4 w-4 text-warm-800" />
-                  <div className="truncate text-sm font-semibold text-warm-900">{farm?.name || "Farm"}</div>
-                  <div className="truncate text-xs text-muted-foreground">{farmLocation || weather.locationName}</div>
-                </div>
-              </div>
+              </>
             ) : null}
           </CardContent>
         </Card>
 
-        <Card className="border-agri-100 bg-agri-50/50">
+        <Card className="border-0 bg-white">
           <CardContent className="p-4 sm:p-5">
-            <p className="text-sm font-medium text-muted-foreground">Recommendation</p>
-            <h2 className="mt-1 text-xl font-semibold text-agri-900">What to consider today</h2>
+            <p className="text-sm font-bold text-primary-700">Recommendation</p>
+            <h2 className="mt-1 text-xl font-extrabold text-primary-900">What to consider today</h2>
             <p className="mt-4 text-sm leading-6 text-agri-950">
               {recommendation || "Weather-based recommendations will appear after current conditions load."}
             </p>
@@ -208,19 +231,19 @@ export function OverviewPage() {
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-xl font-semibold text-agri-900">Quick links</h2>
+          <h2 className="text-xl font-extrabold text-primary-900">Quick links</h2>
           <p className="text-sm text-muted-foreground">Jump into the main areas of your farm dashboard.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {quickLinks.map((item) => (
-            <Card key={item.href} className="border-agri-100 transition-colors hover:border-agri-300">
+            <Card key={item.href} className="border-0 transition-all hover:-translate-y-1 hover:shadow-card">
               <CardContent className="flex h-full flex-col gap-4 p-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-agri-100 text-agri-700">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-100 text-primary-700">
                   <item.icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-agri-900">{item.title}</h3>
+                  <h3 className="font-extrabold text-primary-900">{item.title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                 </div>
                 <Button asChild variant="outline" className="h-11 w-full">

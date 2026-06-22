@@ -9,6 +9,9 @@ import { apiClient } from "@/lib/api/client"
 import type { Activity as CropActivity, ProductionCycle } from "@/lib/types/production"
 import { ProductionCycleCard } from "./production-cycle-card"
 
+const HARVEST_IMAGE_URL =
+  "https://images.unsplash.com/photo-1741003132104-cae831b691e8?fm=jpg&q=80&w=1200&auto=format&fit=crop"
+
 function normalizeCycle(cycle: ProductionCycle): ProductionCycle {
   return {
     ...cycle,
@@ -95,15 +98,15 @@ export function CropTrackerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-agri-900 sm:text-3xl">Production Cycles</h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
+          <h1 className="page-title">Production Cycles</h1>
+          <p className="page-subtitle">
             Track crop progress, field activities, costs, and harvest timing.
           </p>
         </div>
-        <Button className="h-11 bg-agri-600 hover:bg-agri-700 sm:w-auto" disabled>
+        <Button className="sm:w-auto" disabled>
           New record
         </Button>
       </div>
@@ -114,12 +117,15 @@ export function CropTrackerPage() {
           Loading production cycles...
         </div>
       ) : cycles.length === 0 ? (
-        <Card className="border-2 border-dashed border-agri-200 bg-agri-50/40">
+        <Card className="border-0 bg-white">
           <CardContent className="flex flex-col items-center px-6 py-14 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-agri-100">
-              <Activity className="h-7 w-7 text-agri-600" />
+            <div className="mb-5 h-28 w-full max-w-sm overflow-hidden rounded-2xl shadow-card">
+              <img src={HARVEST_IMAGE_URL} alt="" className="h-full w-full object-cover" />
             </div>
-            <h3 className="font-semibold text-agri-900">No production cycles yet</h3>
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100">
+              <Activity className="h-7 w-7 text-primary-700" />
+            </div>
+            <h3 className="font-extrabold text-primary-900">No production cycles yet</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Start a production cycle from a completed farm preparation plan.
             </p>

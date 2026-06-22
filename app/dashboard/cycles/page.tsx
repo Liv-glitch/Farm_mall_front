@@ -218,17 +218,17 @@ export default function CyclesPage() {
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="page-shell">
         {/* Header with Stats */}
         <div className="grid gap-4">
           <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-agri-800">Production Cycles</h1>
-              <p className="text-sm text-agri-600 sm:text-base">Manage your production cycles and track progress</p>
+              <h1 className="page-title">Production Cycles</h1>
+              <p className="page-subtitle">Manage your production cycles and track progress</p>
             </div>
             <Button 
               onClick={() => router.push("/dashboard/cycles/new")} 
-              className="bg-agri-700 hover:bg-agri-800 w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
               New Cycle
@@ -242,14 +242,14 @@ export default function CyclesPage() {
               value={totalCycles}
               description="All production cycles"
               icon={Sprout}
-              className="bg-agri-50 border-agri-100"
+              className="border-0 bg-white"
             />
             <StatsCard
               title="Active Cycles"
               value={activeCycles}
               description="Currently running"
               icon={TrendingUp}
-              className="bg-maize-50 border-maize-100"
+              className="border-0 bg-white"
             />
             <StatsCard
               title="Total Investment"
@@ -258,7 +258,7 @@ export default function CyclesPage() {
               prefix="KSh "
               description="Across all cycles"
               icon={DollarSign}
-              className="bg-tea-50 border-tea-100"
+              className="border-0 bg-white"
             />
             <StatsCard
               title="Expected Revenue"
@@ -267,25 +267,25 @@ export default function CyclesPage() {
               prefix="KSh "
               description="Projected earnings"
               icon={BarChart3}
-              className="bg-agri-50 border-agri-100"
+              className="border-0 bg-white"
             />
           </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 bg-agri-50 border border-agri-100 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-soft sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-agri-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-600" />
             <Input
               placeholder="Search production cycles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+              className="pl-9"
             />
           </div>
           <div className="flex gap-3">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -297,7 +297,7 @@ export default function CyclesPage() {
             </Select>
             
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] h-10 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -321,22 +321,22 @@ export default function CyclesPage() {
           )}
 
           {loading ? (
-            <Card className="bg-agri-50 border-agri-100">
+            <Card className="border-0 bg-white">
               <CardContent className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agri-600"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
               </CardContent>
             </Card>
           ) : filteredCycles.length === 0 ? (
-            <Card className="bg-agri-50 border-agri-100">
+            <Card className="border-0 bg-white">
               <CardContent className="flex flex-col items-center justify-center py-12 px-4">
-                <Sprout className="h-12 w-12 text-agri-400 mb-4" />
-                <h3 className="text-lg font-semibold text-agri-800 mb-2 text-center">No production cycles found</h3>
-                <p className="text-agri-600 text-center mb-4">
+                <Sprout className="h-12 w-12 text-primary-500 mb-4" />
+                <h3 className="text-lg font-extrabold text-primary-900 mb-2 text-center">No production cycles found</h3>
+                <p className="text-muted-foreground text-center mb-4">
                   {searchTerm || statusFilter !== "all"
                     ? "Try adjusting your search or filter criteria"
                     : "Get started by creating your first production cycle"}
                 </p>
-                <Button onClick={() => router.push("/dashboard/cycles/new")} className="bg-agri-700 hover:bg-agri-800">
+                <Button onClick={() => router.push("/dashboard/cycles/new")}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create First Cycle
                 </Button>

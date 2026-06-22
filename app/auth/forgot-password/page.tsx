@@ -14,7 +14,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Loader2 className="h-8 w-8 animate-spin text-agri-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       }
     >
@@ -115,25 +115,25 @@ function ResetPasswordContent() {
 
   if (success && step === "request") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-0 shadow-lift">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6 text-primary-700" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Check your email</h2>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-extrabold text-primary-900">Check your email</h2>
+              <p className="text-muted-foreground">
                 We&apos;ve sent a password reset link to <strong>{email}</strong>
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Didn&apos;t receive it? Check your spam folder or{" "}
                 <button 
                   onClick={() => {
                     setSuccess(false)
                     setError("")
                   }}
-                  className="text-agri-600 hover:text-agri-700 hover:underline"
+                    className="font-bold text-primary-700 hover:text-primary-900 hover:underline"
                 >
                   try again
                 </button>
@@ -156,21 +156,21 @@ function ResetPasswordContent() {
 
   if (success && step === "reset") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-0 shadow-lift">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6 text-primary-700" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Password Reset Successfully!</h2>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-extrabold text-primary-900">Password Reset Successfully!</h2>
+              <p className="text-muted-foreground">
                 Your password has been changed. You can now log in with your new password.
               </p>
               <div className="pt-4">
                 <Button 
                   onClick={() => router.push("/auth/login")}
-                  className="w-full bg-agri-700 hover:bg-agri-800"
+                  className="w-full"
                 >
                   Go to Login
                 </Button>
@@ -183,17 +183,17 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-0 shadow-lift">
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2">
             <Link 
               href="/auth/login" 
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-muted-foreground hover:text-primary-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-extrabold">
               {step === "request" ? "Reset Password" : "Create New Password"}
             </CardTitle>
           </div>
@@ -207,7 +207,7 @@ function ResetPasswordContent() {
           {step === "request" ? (
             <form onSubmit={handleRequestReset} className="space-y-4">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -229,7 +229,7 @@ function ResetPasswordContent() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-agri-700 hover:bg-agri-800"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -245,7 +245,7 @@ function ResetPasswordContent() {
           ) : (
             <form onSubmit={handleResetPassword} className="space-y-4">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -272,13 +272,13 @@ function ResetPasswordContent() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-gray-500" />
+                      <EyeOff className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-4 h-4 text-gray-500" />
+                      <Eye className="w-4 h-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Password must be at least 8 characters long
                 </p>
               </div>
@@ -304,9 +304,9 @@ function ResetPasswordContent() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4 text-gray-500" />
+                      <EyeOff className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-4 h-4 text-gray-500" />
+                      <Eye className="w-4 h-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
@@ -314,7 +314,7 @@ function ResetPasswordContent() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-agri-700 hover:bg-agri-800"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -332,7 +332,7 @@ function ResetPasswordContent() {
           <div className="mt-6 text-center text-sm">
             <Link 
               href="/auth/login" 
-              className="text-agri-600 hover:text-agri-700 hover:underline"
+              className="font-bold text-primary-700 hover:text-primary-900 hover:underline"
             >
               Back to Login
             </Link>

@@ -72,8 +72,8 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
 
   return (
     <div
-      className={`rounded-lg border p-4 transition-colors ${
-        task.completed ? "border-agri-200 bg-agri-50/60" : "border-border bg-card"
+      className={`rounded-2xl p-4 shadow-soft transition-all ${
+        task.completed ? "bg-primary-50" : "bg-white"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -84,10 +84,10 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
         )}
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-start justify-between gap-3">
-            <h4 className="font-semibold text-agri-900">{task.title}</h4>
+            <h4 className="font-extrabold text-primary-900">{task.title}</h4>
             {task.completed && (
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-agri-100 text-agri-700">
+                <span className="status-pill bg-primary-100 text-primary-800">
                   Completed
                 </span>
                 <button
@@ -121,7 +121,7 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
           )}
 
           {task.expertTip && (
-            <div className="flex gap-2 rounded-md bg-maize-50 border border-maize-200 p-2.5 text-sm">
+            <div className="flex gap-2 rounded-2xl bg-amber-50 p-3 text-sm shadow-soft">
               <Lightbulb className="h-4 w-4 text-maize-600 shrink-0 mt-0.5" />
               <div>
                 <span className="font-medium text-foreground/80">Expert tip: </span>
@@ -152,7 +152,6 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
             <Button
               size="sm"
               onClick={() => setModalOpen(true)}
-              className="bg-agri-600 hover:bg-agri-700"
             >
               <CheckCircle2 className="mr-1.5 h-4 w-4" /> Mark as done
             </Button>
@@ -163,7 +162,7 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
       <Dialog open={modalOpen} onOpenChange={(open) => !open && setModalOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-agri-800">{task.title}</DialogTitle>
+            <DialogTitle>{task.title}</DialogTitle>
             <DialogDescription>
               Only the completion date is required. Add cost and supplier if they apply.
             </DialogDescription>
@@ -211,7 +210,7 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" disabled={saving} className="w-full bg-agri-600 hover:bg-agri-700">
+              <Button type="submit" disabled={saving} className="w-full">
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…

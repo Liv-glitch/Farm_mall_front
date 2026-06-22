@@ -66,7 +66,7 @@ export function NewPlanModal({ isOpen, onClose }: NewPlanModalProps) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-agri-800">New planting plan</DialogTitle>
+          <DialogTitle>New planting plan</DialogTitle>
           <DialogDescription>
             Tell us a few details. We&apos;ll build a personalised farm preparation checklist.
           </DialogDescription>
@@ -134,7 +134,7 @@ export function NewPlanModal({ isOpen, onClose }: NewPlanModalProps) {
           </div>
 
           <div className="flex flex-col gap-2 pt-2">
-            <Button type="submit" disabled={loading} className="w-full bg-agri-600 hover:bg-agri-700">
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating…

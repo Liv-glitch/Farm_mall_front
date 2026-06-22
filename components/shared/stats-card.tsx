@@ -24,23 +24,23 @@ export function StatsCard({
   className
 }: StatsCardProps) {
   return (
-    <Card className={cn("overflow-hidden group", className)}>
+    <Card className={cn("group overflow-hidden", className)}>
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-center space-x-2">
-          <div className="p-2 rounded-lg bg-background/80 group-hover:scale-110 transition-transform duration-300">
-            <Icon className="h-4 w-4 text-agri-600" />
+          <div className="rounded-2xl bg-primary-100 p-2 transition-transform duration-300 group-hover:scale-110">
+            <Icon className="h-4 w-4 text-primary-700" />
           </div>
-          <h3 className="text-sm font-medium text-agri-700">{title}</h3>
+          <h3 className="text-sm font-bold text-primary-800">{title}</h3>
         </div>
         <div className="mt-3 space-y-1">
-          <p className="text-2xl font-bold tracking-tight">
+          <p className="text-2xl font-extrabold tracking-tight text-primary-900">
             {prefix}
             <span className="tabular-nums">
               {typeof value === 'number' && !isNaN(value) ? value.toLocaleString() : '0'}
             </span>
             {suffix}
           </p>
-          <p className="text-xs text-agri-600">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         </div>
       </CardContent>
     </Card>

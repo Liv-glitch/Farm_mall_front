@@ -327,7 +327,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
               <Label htmlFor="estimatedHarvestDate">
                 Estimated Harvest Date
                 {selectedVariety?.maturityPeriodDays && (
-                  <span className="text-xs text-gray-500 ml-1">
+                  <span className="text-xs text-muted-foreground ml-1">
                     (Based on {selectedVariety.maturityPeriodDays} days maturity period)
                   </span>
                 )}
@@ -403,19 +403,19 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           )}
 
           {/* Summary */}
-          <div className="p-4 bg-gray-50 rounded-lg space-y-2">
-            <h4 className="font-medium">Financial Summary</h4>
+          <div className="space-y-2 rounded-2xl bg-primary-50 p-4">
+            <h4 className="font-extrabold text-primary-900">Financial Summary</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Expected Revenue:</span>
-                <div className="font-medium">
+                <span className="text-muted-foreground">Expected Revenue:</span>
+                <div className="font-extrabold text-primary-900">
                   KSh {(formData.expectedYield * formData.expectedPricePerKg).toLocaleString()}
                 </div>
               </div>
               {formData.status === "harvested" && formData.actualYield > 0 && formData.actualPricePerKg > 0 && (
                 <div>
-                  <span className="text-gray-600">Actual Revenue:</span>
-                  <div className="font-medium">
+                  <span className="text-muted-foreground">Actual Revenue:</span>
+                  <div className="font-extrabold text-primary-900">
                     KSh {(formData.actualYield * formData.actualPricePerKg).toLocaleString()}
                   </div>
                 </div>
@@ -426,16 +426,21 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           {/* Show image preview if available and type allows */}
           {('imageUrl' in cycle) && (cycle as any).imageUrl && (
             <div className="mb-2">
-              <img src={(cycle as any).imageUrl} alt="Farm preparation record" className="rounded w-full max-h-48 object-cover" />
+              <img src={(cycle as any).imageUrl} alt="Farm preparation record" className="w-full max-h-48 rounded-2xl object-cover shadow-card" />
             </div>
           )}
-          <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e => setImageFile(e.target.files?.[0] || null)}
+            className="block w-full rounded-xl bg-white p-3 text-sm shadow-soft file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-bold file:text-white"
+          />
 
           <div className="flex justify-end space-x-3">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-sage-700 hover:bg-sage-800">
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

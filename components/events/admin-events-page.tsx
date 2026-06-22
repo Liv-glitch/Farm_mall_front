@@ -102,18 +102,18 @@ export function AdminEventsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-agri-900">Manage Events</h1>
-          <p className="text-muted-foreground mt-1">Create, edit, and remove Farm Mall events.</p>
+          <h1 className="page-title">Manage Events</h1>
+          <p className="page-subtitle">Create, edit, and remove Farm Mall events.</p>
         </div>
-        <Button onClick={openNewForm} className="bg-agri-600 hover:bg-agri-700">
+        <Button onClick={openNewForm}>
           <Plus className="mr-2 h-4 w-4" /> New event
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-0 overflow-hidden">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -121,14 +121,14 @@ export function AdminEventsPage() {
             </div>
           ) : events.length === 0 ? (
             <div className="flex flex-col items-center text-center py-14 px-6">
-              <div className="h-14 w-14 rounded-full bg-agri-100 flex items-center justify-center mb-4">
-                <CalendarDays className="h-7 w-7 text-agri-600" />
-              </div>
-              <h3 className="font-semibold text-agri-900">No events yet</h3>
+                <div className="h-14 w-14 rounded-2xl bg-primary-100 flex items-center justify-center mb-4">
+                  <CalendarDays className="h-7 w-7 text-primary-700" />
+                </div>
+              <h3 className="font-extrabold text-primary-900">No events yet</h3>
               <p className="text-sm text-muted-foreground mt-1 mb-5 max-w-sm">
                 Create your first event to publish it for users.
               </p>
-              <Button onClick={openNewForm} className="bg-agri-600 hover:bg-agri-700">Create event</Button>
+              <Button onClick={openNewForm}>Create event</Button>
             </div>
           ) : (
             <>
@@ -149,7 +149,7 @@ export function AdminEventsPage() {
                     const past = isPast(event.date)
 
                     return (
-                      <TableRow key={event.id} className={past ? "bg-muted/40 text-muted-foreground" : ""}>
+                        <TableRow key={event.id} className={past ? "bg-muted/50 text-muted-foreground opacity-75" : ""}>
                         <TableCell className="font-medium min-w-[220px]">
                           <div className="flex items-center gap-2">
                             <span>{event.name}</span>
@@ -193,11 +193,11 @@ export function AdminEventsPage() {
                 return (
                   <div
                     key={event.id}
-                    className={`rounded-lg border p-4 ${past ? "bg-muted/40 text-muted-foreground" : "bg-background"}`}
+                    className={`rounded-2xl p-4 shadow-soft ${past ? "bg-muted/50 text-muted-foreground opacity-75" : "bg-white"}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h2 className="font-semibold text-agri-900 break-words">{event.name}</h2>
+                        <h2 className="font-extrabold text-primary-900 break-words">{event.name}</h2>
                         <p className="mt-1 text-sm text-muted-foreground">{formatDate(event.date)}</p>
                       </div>
                       {past ? <Badge variant="secondary" className="shrink-0">Past</Badge> : null}

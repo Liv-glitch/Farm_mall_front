@@ -16,6 +16,11 @@ import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import { useRouter } from "next/navigation"
 
+const FIELD_IMAGE_URL =
+  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
+const HARVEST_IMAGE_URL =
+  "https://images.unsplash.com/photo-1741003132104-cae831b691e8?fm=jpg&q=80&w=1200&auto=format&fit=crop"
+
 interface ProductionCycleCardProps {
   cycle: ProductionCycle
   onUpdate: (cycle: ProductionCycle) => void
@@ -45,11 +50,11 @@ export function ProductionCycleCard({
   const getStatusColor = (status: ProductionCycle["status"]) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800"
+        return "bg-primary-100 text-primary-800"
       case "harvested":
-        return "bg-purple-100 text-purple-800"
+        return "bg-amber-100 text-amber-800"
       case "archived":
-        return "bg-gray-100 text-gray-800"
+        return "bg-muted text-muted-foreground"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -91,6 +96,7 @@ export function ProductionCycleCard({
     }
     return sum + cost
   }, 0) || 0
+  const cardImageUrl = cycle.status === "harvested" ? HARVEST_IMAGE_URL : FIELD_IMAGE_URL
 
   const handleViewDetails = () => {
     router.push(`/dashboard/cycles/${cycle.id}`)
@@ -132,7 +138,7 @@ export function ProductionCycleCard({
   return (
     <>
       <Card 
-        className="w-full hover:shadow-md transition-shadow overflow-hidden cursor-pointer group"
+        className="group w-full cursor-pointer overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card"
         onClick={(e) => {
           // Prevent navigation if clicking on dropdown menu or buttons
           if (
@@ -145,22 +151,33 @@ export function ProductionCycleCard({
           router.push(`/dashboard/cycles/${cycle.id}`)
         }}
       >
+        <div className="photo-card-image m-3 mb-0 aspect-[16/9]">
+          <img src={cardImageUrl} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-950/70 via-primary-950/10 to-transparent" />
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
+            <div className="min-w-0 text-white">
+              <div className="text-xs font-bold uppercase tracking-wide text-white/70">Crop tracker</div>
+              <div className="truncate text-lg font-extrabold">{cycle.cropVariety?.name || "Unknown Variety"}</div>
+            </div>
+            <Badge className={`${getStatusColor(cycle.status)} shrink-0 text-xs`}>
+              {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
+            </Badge>
+          </div>
+        </div>
+
         <CardHeader className="pb-3">
           <div className="space-y-3">
             {/* Header */}
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sprout className="h-4 w-4 text-sage-600 flex-shrink-0" />
-                  <h3 className="text-base font-semibold truncate">
+                  <Sprout className="h-4 w-4 text-primary-700 flex-shrink-0" />
+                  <h3 className="text-base font-extrabold truncate text-primary-900">
                     {cycle.cropVariety?.name || "Unknown Variety"}
                   </h3>
-                  <Badge className={`${getStatusColor(cycle.status)} text-xs px-2 py-0.5`}>
-                    {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-                  </Badge>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate">{cycle.farmLocation}</span>
@@ -205,11 +222,11 @@ export function ProductionCycleCard({
             {/* Progress */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-600">Progress</span>
-                <span className="font-medium">{Math.round(progress)}%</span>
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-bold text-primary-900">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-1.5" />
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{format(cycle.plantingDate, "MMM dd, yyyy")}</span>
                 <span>
                   {daysRemaining > 0
@@ -226,20 +243,20 @@ export function ProductionCycleCard({
         <CardContent className="pt-0">
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="p-2 bg-gray-50 rounded-lg">
-              <div className="text-sm font-semibold text-sage-700">
+            <div className="rounded-2xl bg-primary-50 p-3">
+              <div className="text-sm font-extrabold text-primary-800">
                 KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
               </div>
-              <div className="text-xs text-gray-600">Cost</div>
+              <div className="text-xs text-muted-foreground">Cost</div>
             </div>
-            <div className="p-2 bg-gray-50 rounded-lg">
-              <div className="text-sm font-semibold text-sage-700">
+            <div className="rounded-2xl bg-primary-50 p-3">
+              <div className="text-sm font-extrabold text-primary-800">
                 KSh {(() => {
                   const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
                   return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
                 })()}k
               </div>
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-muted-foreground">
                 {cycle.status === "harvested" && actualRevenue > 0 ? "Revenue" : "Est. Revenue"}
               </div>
             </div>
@@ -247,9 +264,9 @@ export function ProductionCycleCard({
 
           {/* Next Activity Preview */}
           {nextActivity && (
-            <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-1.5 text-xs text-blue-800">
-                <TrendingUp className="h-3 w-3 text-blue-600" />
+            <div className="mt-3 rounded-2xl bg-primary-50 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-primary-800">
+                <TrendingUp className="h-3 w-3 text-primary-600" />
                 <span className="font-medium">Next:</span>
                 <span className="truncate">{nextActivity.description}</span>
                 <span className="ml-auto font-medium">

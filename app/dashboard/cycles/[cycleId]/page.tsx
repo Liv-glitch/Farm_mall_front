@@ -30,6 +30,11 @@ import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 
+const FIELD_IMAGE_URL =
+  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
+const HARVEST_IMAGE_URL =
+  "https://images.unsplash.com/photo-1741003132104-cae831b691e8?fm=jpg&q=80&w=1200&auto=format&fit=crop"
+
 export default function CycleDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -83,7 +88,7 @@ export default function CycleDetailPage() {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agri-600"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
     )
@@ -93,8 +98,8 @@ export default function CycleDetailPage() {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="text-center py-12">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Production cycle not found</h2>
-          <p className="text-gray-600 mt-2 text-sm sm:text-base">The production cycle you're looking for doesn't exist.</p>
+          <h2 className="text-xl font-extrabold text-primary-900 sm:text-2xl">Production cycle not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">The production cycle you're looking for doesn't exist.</p>
           <Button onClick={() => router.push("/dashboard/cycles")} className="mt-4">
             Back to Production Cycles
           </Button>
@@ -106,13 +111,13 @@ export default function CycleDetailPage() {
   const getStatusColor = (status: ProductionCycle["status"]) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800"
+        return "bg-primary-100 text-primary-800"
       case "harvested":
-        return "bg-purple-100 text-purple-800"
+        return "bg-amber-100 text-amber-800"
       case "archived":
-        return "bg-gray-100 text-gray-800"
+        return "bg-muted text-muted-foreground"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-muted text-muted-foreground"
     }
   }
 
@@ -160,6 +165,7 @@ export default function CycleDetailPage() {
     }
     return sum + cost
   }, 0)
+  const heroImageUrl = cycle.status === "harvested" ? HARVEST_IMAGE_URL : FIELD_IMAGE_URL
   const completedActivities = cycle.activities?.filter((a) => a.status === "completed").length || 0
   const totalActivities = cycle.activities?.length || 0
 
@@ -210,7 +216,7 @@ export default function CycleDetailPage() {
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="page-shell">
         {/* Header */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
           <div className="space-y-3 min-w-0 flex-1">
@@ -224,25 +230,28 @@ export default function CycleDetailPage() {
               Back to Production Cycles
             </Button>
 
-            <div className="space-y-2">
-              <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Sprout className="h-5 w-5 sm:h-6 sm:w-6 text-agri-600 flex-shrink-0" />
-                  <h1 className="text-xl sm:text-2xl font-bold truncate text-agri-800">{cycle.cropVariety?.name || "Unknown Variety"}</h1>
-                </div>
-                <Badge className={`${getStatusColor(cycle.status)} text-xs px-2 py-1 flex-shrink-0`}>
-                  {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-                </Badge>
-              </div>
-
-              <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-agri-600">
-                <div className="flex items-center gap-1 min-w-0">
-                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="truncate">{cycle.farmLocation}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span>{cycle.landSizeAcres} acres</span>
+            <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+              <div className="relative min-h-48">
+                <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-950/85 via-primary-900/45 to-primary-700/20" />
+                <div className="relative flex min-h-48 flex-col justify-end p-5 text-white sm:p-7">
+                  <Badge className={`${getStatusColor(cycle.status)} mb-4 w-fit text-xs`}>
+                    {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
+                  </Badge>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sprout className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                    <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">{cycle.cropVariety?.name || "Unknown Variety"}</h1>
+                  </div>
+                  <div className="mt-3 flex flex-col space-y-1 text-xs text-white/80 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0 sm:text-sm">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">{cycle.farmLocation}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span>{cycle.landSizeAcres} acres</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -258,7 +267,7 @@ export default function CycleDetailPage() {
             </Button>
             <Button
               onClick={() => setShowEditModal(true)}
-              className="w-full sm:w-auto bg-agri-700 hover:bg-agri-800"
+              className="w-full sm:w-auto"
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit Cycle
@@ -267,10 +276,10 @@ export default function CycleDetailPage() {
         </div>
 
         {/* Progress Overview + Calendar */}
-        <Card className="bg-agri-50 border-agri-100">
+        <Card className="border-0 bg-white">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-agri-800">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-agri-600" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
               Progress Overview
             </CardTitle>
           </CardHeader>
@@ -281,7 +290,7 @@ export default function CycleDetailPage() {
                 <span className="font-medium">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2 sm:h-3" />
-              <div className="flex flex-col space-y-1 sm:flex-row sm:justify-between sm:space-y-0 text-xs text-gray-500">
+              <div className="flex flex-col space-y-1 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:space-y-0">
                 <span>Planted: {cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd, yyyy") : "N/A"}</span>
                 <span>
                   {daysRemaining > 0
@@ -301,27 +310,27 @@ export default function CycleDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <ActivityIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sage-600" />
+                <ActivityIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
                 Activities & Progress
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl sm:text-3xl font-bold text-sage-700">
+                  <p className="text-2xl font-extrabold text-primary-900 sm:text-3xl">
                     {completedActivities}/{totalActivities}
                   </p>
-                  <p className="text-sm text-gray-600">Activities Completed</p>
+                  <p className="text-sm text-muted-foreground">Activities Completed</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg sm:text-xl font-semibold text-sage-600">{Math.round(progress)}%</p>
-                  <p className="text-xs text-gray-500">Cycle Progress</p>
+                  <p className="text-lg font-extrabold text-primary-800 sm:text-xl">{Math.round(progress)}%</p>
+                  <p className="text-xs text-muted-foreground">Cycle Progress</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Progress value={progress} className="h-2" />
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Started: {cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd") : "N/A"}</span>
                   <span>Target: {cycle.estimatedHarvestDate ? format(new Date(cycle.estimatedHarvestDate), "MMM dd") : "N/A"}</span>
                 </div>
@@ -333,7 +342,7 @@ export default function CycleDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-sage-600" />
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
                 Financial Overview
               </CardTitle>
             </CardHeader>
@@ -343,7 +352,7 @@ export default function CycleDetailPage() {
                   <p className="text-lg sm:text-xl font-bold text-red-600">
                     KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
                   </p>
-                  <p className="text-xs text-gray-600">Total Investment</p>
+                  <p className="text-xs text-muted-foreground">Total Investment</p>
                 </div>
                 <div>
                   <p className="text-lg sm:text-xl font-bold text-blue-600">
@@ -352,7 +361,7 @@ export default function CycleDetailPage() {
                       return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
                     })()}k
                   </p>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     {cycle.status === "harvested" && actualRevenue > 0 ? "Actual" : "Expected"} Revenue
                   </p>
                 </div>
@@ -368,7 +377,7 @@ export default function CycleDetailPage() {
                     KSh {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost) / 1000).toFixed(0)}k
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   ROI: {totalCost > 0 ? (((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / totalCost - 1) * 100).toFixed(1) : 0}%
                 </p>
               </div>
@@ -379,18 +388,18 @@ export default function CycleDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-sage-600" />
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
                 Cycle Timeline
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Planting Date</p>
+                  <p className="text-sm font-bold text-muted-foreground">Planting Date</p>
                   <p className="text-sm">{format(cycle.plantingDate, "MMM dd, yyyy")}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-600">Expected Harvest</p>
+                  <p className="text-sm font-bold text-muted-foreground">Expected Harvest</p>
                   <p className="text-sm">
                     {cycle.estimatedHarvestDate ?
                       format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") :
@@ -400,17 +409,17 @@ export default function CycleDetailPage() {
               </div>
 
               {cycle.actualHarvestDate && (
-                <div className="p-2 bg-green-50 rounded-lg">
+                <div className="rounded-2xl bg-primary-50 p-3">
                   <p className="text-sm font-medium text-green-800">Harvested</p>
                   <p className="text-sm text-green-700">{format(cycle.actualHarvestDate, "MMM dd, yyyy")}</p>
                 </div>
               )}
 
               <div className="text-center pt-2 border-t">
-                <p className="text-lg sm:text-xl font-bold text-sage-700">
+                <p className="text-lg font-extrabold text-primary-900 sm:text-xl">
                   {daysRemaining > 0 ? `${daysRemaining} days` : "Ready"}
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-muted-foreground">
                   {daysRemaining > 0 ? "remaining" : "to harvest"}
                 </p>
               </div>
@@ -421,28 +430,28 @@ export default function CycleDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Sprout className="h-4 w-4 sm:h-5 sm:w-5 text-sage-600" />
+                <Sprout className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
                 Farm Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Crop Variety</p>
+                  <p className="text-sm font-bold text-muted-foreground">Crop Variety</p>
                   <p className="text-sm">{cycle.cropVariety?.name}</p>
-                  <p className="text-xs text-gray-500">({cycle.cropVariety?.cropType})</p>
+                  <p className="text-xs text-muted-foreground">({cycle.cropVariety?.cropType})</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Land Size</p>
-                  <p className="text-sm font-semibold">{cycle.landSizeAcres} acres</p>
+                  <p className="text-sm font-bold text-muted-foreground">Land Size</p>
+                  <p className="text-sm font-extrabold">{cycle.landSizeAcres} acres</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-600">Location</p>
+                <p className="text-sm font-bold text-muted-foreground">Location</p>
                 <p className="text-sm truncate">{cycle.farmLocation}</p>
                 {cycle.farmLocationLat && cycle.farmLocationLng && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {formatNumber(cycle.farmLocationLat, 4)}, {formatNumber(cycle.farmLocationLng, 4)}
                   </p>
                 )}
@@ -450,13 +459,13 @@ export default function CycleDetailPage() {
 
               <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Expected Yield</p>
-                  <p className="text-sm font-semibold">{cycle.expectedYield?.toLocaleString() || 0} kg</p>
+                  <p className="text-sm font-bold text-muted-foreground">Expected Yield</p>
+                  <p className="text-sm font-extrabold">{cycle.expectedYield?.toLocaleString() || 0} kg</p>
                 </div>
                 {cycle.actualYield && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Actual Yield</p>
-                    <p className="text-sm font-semibold text-green-600">{cycle.actualYield.toLocaleString()} kg</p>
+                    <p className="text-sm font-bold text-muted-foreground">Actual Yield</p>
+                    <p className="text-sm font-extrabold text-primary-700">{cycle.actualYield.toLocaleString()} kg</p>
                   </div>
                 )}
               </div>

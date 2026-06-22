@@ -31,11 +31,11 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-agri-50/50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border-0 shadow-lift">
         <CardContent className="p-6 space-y-5">
           <div>
-            <h1 className="text-2xl font-bold text-agri-900">Log in to Farm Mall</h1>
+            <h1 className="text-2xl font-extrabold text-primary-900">Log in to Farm Mall</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Use your email or phone number and password.
             </p>
@@ -67,7 +67,7 @@ export function LoginPage() {
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-            <Button type="submit" disabled={loading} className="w-full bg-agri-600 hover:bg-agri-700">
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
@@ -79,7 +79,7 @@ export function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            New to Farm Mall? <Link href="/auth/register" className="text-agri-700 underline">Create an account</Link>
+            New to Farm Mall? <Link href="/auth/register" className="font-bold text-primary-700 underline">Create an account</Link>
           </p>
         </CardContent>
       </Card>

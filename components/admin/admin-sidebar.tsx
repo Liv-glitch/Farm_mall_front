@@ -74,8 +74,8 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar className="border-r-0 bg-primary-950 text-white shadow-lift">
+      <SidebarHeader className="bg-primary-950 border-b border-white/10">
         <div className="flex items-center space-x-3 px-2">
           <Image
             src="https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
@@ -84,21 +84,21 @@ export function AdminSidebar() {
             height={48}
             className="w-12 h-12"
           />
-          <span className="text-lg font-bold bg-gradient-to-r from-sage-700 to-warm-600 bg-clip-text text-transparent">
+          <span className="text-lg font-extrabold text-white">
             Admin Panel
           </span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="bg-primary-950">
         <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/60">Administration</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link href={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} className="mb-1 h-12 rounded-2xl text-white/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-primary data-[active=true]:text-white">
+                    <Link href={item.url} className="text-white/80 hover:text-white">
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -110,13 +110,13 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/60">System</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {systemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link href={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} className="mb-1 h-12 rounded-2xl text-white/80 hover:bg-white/10 hover:text-white data-[active=true]:bg-primary data-[active=true]:text-white">
+                    <Link href={item.url} className="text-white/80 hover:text-white">
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -128,9 +128,9 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="bg-primary-950 border-t border-white/10">
         <div className="p-4 text-center">
-          <div className="text-xs text-muted-foreground">Admin Panel v1.0.0</div>
+          <div className="text-xs text-white/60">Admin Panel v1.0.0</div>
         </div>
       </SidebarFooter>
 

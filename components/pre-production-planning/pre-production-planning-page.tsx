@@ -14,6 +14,9 @@ import type { PreproductionPlan } from "@/lib/types/preproduction"
 import { NewPlanModal } from "./new-plan-modal"
 import { DashboardCostCalculator } from "./dashboard-cost-calculator"
 
+const PREPARATION_IMAGE_URL =
+  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
+
 function formatShortDate(value: string | null): string {
   if (!value) return "—"
   const date = new Date(value)
@@ -55,11 +58,11 @@ export function PreproductionPlanningPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       {/* Heading */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-agri-900">Farm Preparations</h1>
-        <p className="text-muted-foreground mt-1 max-w-2xl">
+        <h1 className="page-title">Farm Preparations</h1>
+        <p className="page-subtitle">
           A clear checklist of everything to do before planting day — from picking the field to placing the first
           tuber in the ground.
         </p>
@@ -79,10 +82,10 @@ export function PreproductionPlanningPage() {
         <TabsContent value="plans" className="mt-6 space-y-5">
           <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
             <div>
-              <h2 className="text-lg font-semibold text-agri-900">Your plans</h2>
+              <h2 className="text-lg font-extrabold text-primary-900">Your plans</h2>
               <p className="text-sm text-muted-foreground">Create one plan per field or planting season.</p>
             </div>
-            <Button onClick={() => setModalOpen(true)} className="bg-agri-600 hover:bg-agri-700 w-full sm:w-auto">
+            <Button onClick={() => setModalOpen(true)} className="w-full sm:w-auto">
               <Plus className="mr-1.5 h-4 w-4" /> New plan
             </Button>
           </div>
@@ -92,16 +95,19 @@ export function PreproductionPlanningPage() {
               <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading plans…
             </div>
           ) : plans.length === 0 ? (
-            <Card className="border-dashed border-2 border-agri-200 bg-agri-50/40">
+            <Card className="border-0 bg-white">
               <CardContent className="flex flex-col items-center text-center py-14 px-6">
-                <div className="h-14 w-14 rounded-full bg-agri-100 flex items-center justify-center mb-4">
-                  <Sprout className="h-7 w-7 text-agri-600" />
+                <div className="mb-5 h-28 w-full max-w-sm overflow-hidden rounded-2xl shadow-card">
+                  <img src={PREPARATION_IMAGE_URL} alt="" className="h-full w-full object-cover" />
                 </div>
-                <h3 className="font-semibold text-agri-900">No plans yet</h3>
+                <div className="h-14 w-14 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+                  <Sprout className="h-7 w-7 text-primary-700" />
+                </div>
+                <h3 className="font-extrabold text-primary-900">No plans yet</h3>
                 <p className="text-sm text-muted-foreground mt-1 mb-5 max-w-xs">
                   Set up your first farm preparation checklist to get step-by-step guidance before planting.
                 </p>
-                <Button onClick={() => setModalOpen(true)} className="bg-agri-600 hover:bg-agri-700">
+                <Button onClick={() => setModalOpen(true)}>
                   Create your first plan
                 </Button>
               </CardContent>
@@ -110,20 +116,24 @@ export function PreproductionPlanningPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {plans.map((plan) => (
                 <Link key={plan.id} href={`/dashboard/pre-production-planning/${plan.id}`} className="group">
-                  <Card className="h-full border border-agri-100 hover:border-agri-300 hover:shadow-md transition-all">
+                  <Card className="h-full overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card">
+                    <div className="photo-card-image m-3 mb-0 aspect-[16/9]">
+                      <img src={PREPARATION_IMAGE_URL} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-primary-950/55 via-primary-950/5 to-transparent" />
+                      <Badge className="absolute bottom-3 left-3 bg-white/90 text-primary-900 hover:bg-white">
+                        {plan.potatoVariety}
+                      </Badge>
+                    </div>
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-9 w-9 shrink-0 rounded-lg bg-agri-100 flex items-center justify-center">
-                            <Sprout className="h-5 w-5 text-agri-600" />
+                          <div className="h-10 w-10 shrink-0 rounded-2xl bg-primary-100 flex items-center justify-center">
+                            <Sprout className="h-5 w-5 text-primary-700" />
                           </div>
-                          <h3 className="font-semibold text-agri-900 truncate group-hover:text-agri-700">
+                          <h3 className="font-extrabold text-primary-900 truncate group-hover:text-primary-700">
                             {plan.name}
                           </h3>
                         </div>
-                        <Badge variant="secondary" className="bg-agri-100 text-agri-700 hover:bg-agri-100 shrink-0">
-                          {plan.potatoVariety}
-                        </Badge>
                       </div>
 
                       <div className="space-y-1.5 text-sm text-muted-foreground">
@@ -137,9 +147,9 @@ export function PreproductionPlanningPage() {
 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs font-medium">
-                          <span className="text-agri-700">{plan.completedSteps} of {plan.totalSteps} completed</span>
+                          <span className="text-primary-700">{plan.completedSteps} of {plan.totalSteps} completed</span>
                           {plan.status === "completed" && (
-                            <span className="text-agri-600">Done</span>
+                            <span className="text-primary-700">Done</span>
                           )}
                         </div>
                         <Progress

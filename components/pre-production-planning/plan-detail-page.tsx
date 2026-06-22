@@ -20,11 +20,14 @@ function formatShortDate(value: string | null): string {
 }
 
 const STATUS_PILL: Record<PreproductionStepStatus, { label: string; className: string }> = {
-  done: { label: "Done", className: "bg-agri-100 text-agri-700" },
-  current: { label: "Current", className: "bg-[#e87a3b]/15 text-[#c25a22]" },
+  done: { label: "Done", className: "bg-primary-100 text-primary-800" },
+  current: { label: "Current", className: "bg-amber-100 text-amber-800" },
   upcoming: { label: "Upcoming", className: "bg-muted text-muted-foreground" },
   past: { label: "Past", className: "bg-amber-100 text-amber-700" },
 }
+
+const PREPARATION_IMAGE_URL =
+  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
 
 interface PlanDetailPageProps {
   planId: string
@@ -95,7 +98,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
   const progressPct = plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0
 
   return (
-    <div className="space-y-6 lg:max-w-5xl lg:mx-auto">
+    <div className="page-shell lg:max-w-5xl lg:mx-auto">
       <Link
         href="/dashboard/pre-production-planning"
         className="inline-flex items-center gap-1 text-sm text-agri-700 hover:text-agri-900"
@@ -104,11 +107,14 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
       </Link>
 
       {/* Header */}
-      <div className="rounded-xl border border-agri-100 bg-card p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-agri-900">{plan.name}</h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1.5">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+        <div className="relative min-h-44">
+          <img src={PREPARATION_IMAGE_URL} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-950/85 via-primary-900/45 to-primary-700/20" />
+          <div className="relative flex h-full min-h-44 flex-col justify-end p-5 text-white sm:p-7">
+            <Badge className="mb-4 w-fit bg-white/90 text-primary-900 hover:bg-white">{plan.potatoVariety}</Badge>
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-4xl">{plan.name}</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/80">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" /> {plan.location}
               </span>
@@ -117,13 +123,14 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
               </span>
             </div>
           </div>
-          <Badge variant="secondary" className="bg-agri-100 text-agri-700 hover:bg-agri-100">
-            {plan.potatoVariety}
-          </Badge>
         </div>
 
-        <div className="space-y-1.5">
-          <div className="text-xs font-medium text-agri-700">
+        <div className="space-y-2 p-5 sm:p-6">
+          <div className="flex items-center justify-between text-xs font-bold text-primary-700">
+            <span>Preparation progress</span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+          <div className="text-xs font-medium text-muted-foreground">
             {plan.completedSteps} of {plan.totalSteps} completed
           </div>
           <Progress value={progressPct} className="h-2" />
@@ -140,23 +147,23 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
             <AccordionItem
               key={step.id}
               value={step.id}
-              className="rounded-xl border border-agri-100 bg-card px-4 data-[state=open]:border-agri-200"
+              className="rounded-2xl border-0 bg-card px-4 shadow-soft data-[state=open]:shadow-card"
             >
               <AccordionTrigger className="hover:no-underline py-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
                   <div
                     className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold ${
                       step.status === "done"
-                        ? "bg-agri-600 text-white"
+                        ? "bg-primary text-white"
                         : step.status === "current"
-                          ? "bg-[#e87a3b] text-white"
+                          ? "bg-amber-500 text-white"
                           : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {step.order}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-agri-900 truncate">{step.title}</div>
+                    <div className="font-extrabold text-primary-900 truncate">{step.title}</div>
                     <div className="text-xs text-muted-foreground">
                       {formatShortDate(step.dateRangeStart)} – {formatShortDate(step.dateRangeEnd)}
                     </div>

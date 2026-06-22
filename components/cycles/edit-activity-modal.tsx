@@ -151,7 +151,7 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-h-[85vh] md:max-h-[80vh]">
-        <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b">
+        <DialogHeader className="sticky top-0 z-10 bg-background/95 pb-4 backdrop-blur">
           <DialogTitle>Edit {formData.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</DialogTitle>
           <DialogDescription>
             Update the details of this activity in your production cycle.
@@ -332,7 +332,7 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-sage-700 hover:bg-sage-800">
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

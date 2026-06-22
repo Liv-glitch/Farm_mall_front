@@ -296,7 +296,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto p-0 gap-0">
-        <DialogHeader className="p-4 sm:p-6 sticky top-0 bg-white border-b">
+        <DialogHeader className="sticky top-0 z-10 bg-background/95 p-4 backdrop-blur sm:p-6">
           <DialogTitle>Add New Activity</DialogTitle>
           <DialogDescription>
             Add a new activity to your production cycle. You can use predefined templates or create a custom activity.
@@ -330,13 +330,13 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 {activityTemplates.slice(0, 6).map((template) => (
                   <Card
                     key={template.name}
-                    className={`cursor-pointer transition-colors hover:bg-muted ${
-                      selectedTemplate?.name === template.name ? "border-2 border-sage-600" : ""
+                    className={`cursor-pointer border-0 transition-all hover:-translate-y-0.5 hover:shadow-card ${
+                      selectedTemplate?.name === template.name ? "ring-2 ring-primary" : ""
                     }`}
                     onClick={() => handleTemplateSelect(template)}
                   >
                     <CardContent className="p-2 sm:p-3">
-                      <h4 className="font-medium text-xs sm:text-sm mb-1 line-clamp-1">{template.name}</h4>
+                      <h4 className="font-bold text-xs sm:text-sm mb-1 line-clamp-1 text-primary-900">{template.name}</h4>
                       <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 hidden sm:block">{template.description}</p>
                     </CardContent>
                   </Card>
@@ -348,7 +348,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Activity Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Activity Details</h3>
+              <h3 className="text-lg font-extrabold text-primary-900">Activity Details</h3>
               
               <div className="space-y-2">
                 <Label htmlFor="name">Activity Name</Label>
@@ -440,7 +440,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
             {/* Inputs Used */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Inputs Used</h3>
+                <h3 className="text-lg font-extrabold text-primary-900">Inputs Used</h3>
                 <Button
                   type="button"
                   variant="outline"
@@ -455,9 +455,9 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
 
               <div className="space-y-4 max-h-[400px] overflow-y-auto">
                 {inputs.map((input, index) => (
-                  <Card key={index} className="p-4">
+                  <Card key={index} className="border-0 p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-medium text-sm">Input #{index + 1}</h4>
+                      <h4 className="font-bold text-sm text-primary-900">Input #{index + 1}</h4>
                       {inputs.length > 1 && (
                         <Button
                           type="button"
@@ -527,8 +527,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 ))}
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center text-lg font-semibold">
+              <div className="pt-4">
+                <div className="flex items-center justify-between rounded-2xl bg-primary-50 p-4 text-lg font-extrabold text-primary-900">
                   <span>Total Cost:</span>
                   <span>KSh {calculateTotalCost().toFixed(2)}</span>
                 </div>
@@ -537,11 +537,11 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
           </div>
 
           {/* Submit Buttons */}
-          <div className="sticky bottom-0 bg-white border-t p-4 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 mt-8">
+          <div className="sticky bottom-0 -mx-4 -mb-4 mt-8 bg-background/95 p-4 backdrop-blur sm:-mx-6 sm:-mb-6">
             <div className="flex gap-3">
               <Button 
                 type="submit" 
-                className="flex-1 bg-green-600 hover:bg-green-700" 
+                className="flex-1" 
                 disabled={loading}
               >
                 {loading ? (

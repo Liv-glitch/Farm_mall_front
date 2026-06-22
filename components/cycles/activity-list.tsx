@@ -117,13 +117,13 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
   const getStatusColor = (status: ActivityStatusWithOverdue) => {
     switch (status) {
       case "in_progress":
-        return "bg-maize-100 text-maize-800"
+        return "bg-amber-100 text-amber-800"
       case "completed":
-        return "bg-agri-100 text-agri-800"
+        return "bg-primary-100 text-primary-800"
       case "overdue":
         return "bg-red-100 text-red-800"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-muted text-muted-foreground"
     }
   }
 
@@ -166,8 +166,8 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="space-y-2 flex-1">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm sm:text-base font-medium">Activities Progress</h4>
-              <span className="text-xs sm:text-sm font-medium text-muted-foreground">
+              <h4 className="text-sm sm:text-base font-extrabold text-primary-900">Activities Progress</h4>
+              <span className="text-xs sm:text-sm font-bold text-muted-foreground">
                 {completedActivities}/{totalActivities} completed
               </span>
             </div>
@@ -178,14 +178,14 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
         {/* Activities List */}
         <div className="space-y-3 pb-16 sm:pb-0">
           {sortedActivities.length === 0 ? (
-            <Card>
+            <Card className="border-0">
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <Calendar className="h-8 w-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-600 text-center">No activities scheduled yet</p>
                 <Button 
                   onClick={() => setShowAddModal(true)}
                   size="sm"
-                  className="mt-3 bg-sage-700 hover:bg-sage-800"
+                  className="mt-3"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add First Activity
@@ -198,7 +198,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
               const actualStatus: ActivityStatusWithOverdue = isOverdue ? "overdue" : activity.status
 
               return (
-                <Card key={activity.id} className="hover:shadow-sm transition-shadow">
+                <Card key={activity.id} className="border-0 transition-all hover:shadow-card">
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 mt-1">
@@ -208,7 +208,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex flex-col space-y-2 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
                           <div className="min-w-0 flex-1">
-                            <h5 className="text-sm sm:text-base font-medium truncate">
+                            <h5 className="text-sm sm:text-base font-extrabold truncate text-primary-900">
                               {getActivityTitle(activity)}
                             </h5>
                             {activity.description && (
@@ -219,13 +219,13 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                           </div>
                           
                           <div className="flex items-center space-x-2 flex-shrink-0">
-                            <Badge className={`${getStatusColor(actualStatus)} text-xs px-2 py-1`}>
+                            <Badge className={`${getStatusColor(actualStatus)} text-xs`}>
                               {formatStatus(actualStatus)}
                             </Badge>
                             
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-8 sm:w-8">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
                                   <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -268,15 +268,15 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
 
                           return (
                             <div className="mt-3 space-y-2">
-                              <div className="flex items-center text-xs sm:text-sm font-medium text-gray-700">
+                              <div className="flex items-center text-xs sm:text-sm font-bold text-primary-900">
                                 <Package className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                                 Inputs Used
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-5 sm:pl-6">
                                 {parsedInputs.map((input: any, idx: number) => (
-                                  <div key={idx} className="text-xs sm:text-sm bg-gray-50 rounded-md p-2 border border-gray-200">
-                                    <div className="font-medium text-gray-900">{input.name}</div>
-                                    <div className="text-gray-600 mt-0.5">
+                                  <div key={idx} className="rounded-xl bg-primary-50 p-3 text-xs sm:text-sm">
+                                    <div className="font-bold text-primary-900">{input.name}</div>
+                                    <div className="text-muted-foreground mt-0.5">
                                       Qty: {input.quantity} × KSh {input.cost.toLocaleString()} = KSh {(input.quantity * input.cost).toLocaleString()}
                                     </div>
                                     {input.brand && (
@@ -300,7 +300,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
 
                         {activity.completedDate && (
                           <div className="text-xs text-green-600 mt-2">
-                            ✓ Completed on {format(new Date(activity.completedDate), "MMM dd, yyyy")}
+                            Completed on {format(new Date(activity.completedDate), "MMM dd, yyyy")}
                           </div>
                         )}
                       </div>
@@ -313,11 +313,11 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
         </div>
 
         {/* Fixed Add Button on Mobile */}
-        <div className="fixed bottom-4 left-0 right-0 px-4 sm:hidden z-50">
+        <div className="fixed bottom-5 left-0 right-0 px-5 sm:hidden z-50">
           <Button 
             onClick={() => setShowAddModal(true)} 
             size="lg"
-            className="w-full bg-sage-700 hover:bg-sage-800 shadow-lg"
+            className="mx-auto flex h-14 w-full max-w-sm shadow-lift"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Activity
@@ -329,7 +329,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
           <Button 
             onClick={() => setShowAddModal(true)} 
             size="sm"
-            className="bg-sage-700 hover:bg-sage-800 w-auto ml-4"
+            className="w-auto ml-4"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Activity

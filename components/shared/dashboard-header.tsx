@@ -27,10 +27,10 @@ export function DashboardHeader() {
   }
 
   // Extract user data from potentially nested structure
-  const userData = user?.user || user
+  const userData = ((user as any)?.user || user) as any
 
   return (
-    <header className="flex h-16 w-full shrink-0 items-center gap-2 border-b bg-background px-2 sm:px-4">
+    <header className="flex h-16 w-full shrink-0 items-center gap-2 border-b border-border/50 bg-white/85 px-2 shadow-soft backdrop-blur sm:px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
 
@@ -44,7 +44,7 @@ export function DashboardHeader() {
               height={36}
               className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
             />
-            <h1 className="text-sm sm:text-lg font-semibold truncate">
+            <h1 className="text-sm font-extrabold text-primary-900 sm:text-lg truncate">
               {userData?.role === "admin" ? "Admin Dashboard" : "Farm Dashboard"}
             </h1>
           </Link>
@@ -61,10 +61,10 @@ export function DashboardHeader() {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={userData?.profilePictureUrl || "/placeholder.svg"} alt={userData?.fullName} />
-                  <AvatarFallback className="text-xs">
+                  <AvatarFallback className="bg-primary-100 text-xs font-bold text-primary-800">
                     {(userData?.fullName || userData?.name || 'U')
                       ?.split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")
                       .toUpperCase()}
                   </AvatarFallback>
