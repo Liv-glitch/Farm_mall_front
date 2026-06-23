@@ -92,7 +92,7 @@ export function FarmToolsPage() {
               }}
               className="group flex cursor-pointer border-agri-100 bg-white transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500 md:[&:nth-child(5)]:col-span-2 lg:col-span-2 lg:[&:nth-child(4)]:col-start-2 lg:[&:nth-child(5)]:col-span-2"
             >
-              <CardContent className="flex h-full w-full flex-col items-center gap-5 px-5 pb-5 pt-7 text-center">
+              <CardContent className="flex h-full w-full flex-col items-center gap-5 px-5 pb-5 pt-10 text-center">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-agri-50 text-agri-700 ring-1 ring-agri-100 transition-colors group-hover:bg-agri-600 group-hover:text-white group-hover:ring-agri-600">
                   <tool.icon className="h-11 w-11" />
                 </div>

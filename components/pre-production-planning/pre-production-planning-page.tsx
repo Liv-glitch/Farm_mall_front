@@ -14,8 +14,32 @@ import type { PreproductionPlan } from "@/lib/types/preproduction"
 import { NewPlanModal } from "./new-plan-modal"
 import { DashboardCostCalculator } from "./dashboard-cost-calculator"
 
-const PREPARATION_IMAGE_URL =
-  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
+const planCardPalette = [
+  {
+    card: "bg-primary-50",
+    panel: "bg-primary-100 text-primary-900",
+    icon: "bg-white/75 text-primary-700",
+    badge: "bg-white/80 text-primary-900 hover:bg-white/80",
+  },
+  {
+    card: "bg-maize-50",
+    panel: "bg-maize-100 text-secondary-900",
+    icon: "bg-white/75 text-secondary-700",
+    badge: "bg-white/80 text-secondary-900 hover:bg-white/80",
+  },
+  {
+    card: "bg-emerald-50",
+    panel: "bg-emerald-100 text-emerald-950",
+    icon: "bg-white/75 text-emerald-700",
+    badge: "bg-white/80 text-emerald-950 hover:bg-white/80",
+  },
+  {
+    card: "bg-sky-50",
+    panel: "bg-sky-100 text-sky-950",
+    icon: "bg-white/75 text-sky-700",
+    badge: "bg-white/80 text-sky-950 hover:bg-white/80",
+  },
+]
 
 function formatShortDate(value: string | null): string {
   if (!value) return "—"
@@ -95,11 +119,8 @@ export function PreproductionPlanningPage() {
               <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading plans…
             </div>
           ) : plans.length === 0 ? (
-            <Card className="border-0 bg-white">
+            <Card className="border-0 bg-primary-50">
               <CardContent className="flex flex-col items-center text-center py-14 px-6">
-                <div className="mb-5 h-28 w-full max-w-sm overflow-hidden rounded-2xl shadow-card">
-                  <img src={PREPARATION_IMAGE_URL} alt="" className="h-full w-full object-cover" />
-                </div>
                 <div className="h-14 w-14 rounded-full bg-primary-100 flex items-center justify-center mb-4">
                   <Sprout className="h-7 w-7 text-primary-700" />
                 </div>
@@ -114,53 +135,58 @@ export function PreproductionPlanningPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {plans.map((plan) => (
-                <Link key={plan.id} href={`/dashboard/pre-production-planning/${plan.id}`} className="group">
-                  <Card className="h-full overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card">
-                    <div className="photo-card-image m-3 mb-0 aspect-[16/9]">
-                      <img src={PREPARATION_IMAGE_URL} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-primary-950/55 via-primary-950/5 to-transparent" />
-                      <Badge className="absolute bottom-3 left-3 bg-white/90 text-primary-900 hover:bg-white">
-                        {plan.potatoVariety}
-                      </Badge>
-                    </div>
-                    <CardContent className="p-5 space-y-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-10 w-10 shrink-0 rounded-2xl bg-primary-100 flex items-center justify-center">
-                            <Sprout className="h-5 w-5 text-primary-700" />
+              {plans.map((plan, index) => {
+                const palette = planCardPalette[index % planCardPalette.length]
+
+                return (
+                  <Link key={plan.id} href={`/dashboard/pre-production-planning/${plan.id}`} className="group">
+                    <Card className={`h-full overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card ${palette.card}`}>
+                      <div className={`m-3 mb-0 flex min-h-28 items-end justify-between rounded-2xl p-4 ${palette.panel}`}>
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${palette.icon}`}>
+                          <Sprout className="h-6 w-6" />
+                        </div>
+                        <Badge className={palette.badge}>
+                          {plan.potatoVariety}
+                        </Badge>
+                      </div>
+                      <CardContent className="p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="h-10 w-10 shrink-0 rounded-2xl bg-primary-100 flex items-center justify-center">
+                              <Sprout className="h-5 w-5 text-primary-700" />
+                            </div>
+                            <h3 className="font-extrabold text-primary-900 truncate group-hover:text-primary-700">
+                              {plan.name}
+                            </h3>
                           </div>
-                          <h3 className="font-extrabold text-primary-900 truncate group-hover:text-primary-700">
-                            {plan.name}
-                          </h3>
                         </div>
-                      </div>
 
-                      <div className="space-y-1.5 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5" /> <span className="truncate">{plan.location}</span>
+                        <div className="space-y-1.5 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5" /> <span className="truncate">{plan.location}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5" /> Plant by {formatShortDate(plan.plantingDate)}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5" /> Plant by {formatShortDate(plan.plantingDate)}
-                        </div>
-                      </div>
 
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-medium">
-                          <span className="text-primary-700">{plan.completedSteps} of {plan.totalSteps} completed</span>
-                          {plan.status === "completed" && (
-                            <span className="text-primary-700">Done</span>
-                          )}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-medium">
+                            <span className="text-primary-700">{plan.completedSteps} of {plan.totalSteps} completed</span>
+                            {plan.status === "completed" && (
+                              <span className="text-primary-700">Done</span>
+                            )}
+                          </div>
+                          <Progress
+                            value={plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0}
+                            className="h-2"
+                          />
                         </div>
-                        <Progress
-                          value={plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0}
-                          className="h-2"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </TabsContent>

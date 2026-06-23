@@ -9,8 +9,32 @@ import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { Event } from "@/lib/types/event"
 
-const EVENT_IMAGE_URL =
-  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
+const eventCardPalette = [
+  {
+    card: "bg-primary-50",
+    panel: "bg-primary-100 text-primary-900",
+    icon: "bg-white/75 text-primary-700",
+    badge: "bg-white/80 text-primary-900 hover:bg-white/80",
+  },
+  {
+    card: "bg-maize-50",
+    panel: "bg-maize-100 text-secondary-900",
+    icon: "bg-white/75 text-secondary-700",
+    badge: "bg-white/80 text-secondary-900 hover:bg-white/80",
+  },
+  {
+    card: "bg-sky-50",
+    panel: "bg-sky-100 text-sky-950",
+    icon: "bg-white/75 text-sky-700",
+    badge: "bg-white/80 text-sky-950 hover:bg-white/80",
+  },
+  {
+    card: "bg-emerald-50",
+    panel: "bg-emerald-100 text-emerald-950",
+    icon: "bg-white/75 text-emerald-700",
+    badge: "bg-white/80 text-emerald-950 hover:bg-white/80",
+  },
+]
 
 function formatEventDate(value: string): string {
   const date = new Date(value)
@@ -69,11 +93,8 @@ export function EventsPage() {
           <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading events...
         </div>
       ) : events.length === 0 ? (
-        <Card className="border-0 bg-white">
+        <Card className="border-0 bg-primary-50">
           <CardContent className="flex flex-col items-center text-center py-14 px-6">
-            <div className="mb-5 h-28 w-full max-w-sm overflow-hidden rounded-2xl shadow-card">
-              <img src={EVENT_IMAGE_URL} alt="" className="h-full w-full object-cover" />
-            </div>
             <div className="h-14 w-14 rounded-2xl bg-primary-100 flex items-center justify-center mb-4">
               <CalendarDays className="h-7 w-7 text-primary-700" />
             </div>
@@ -85,16 +106,18 @@ export function EventsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {events.map((event) => {
+          {events.map((event, index) => {
             const isExpanded = expandedEventId === event.id
             const isPhysical = event.mode === "physical"
+            const palette = eventCardPalette[index % eventCardPalette.length]
 
             return (
-              <Card key={event.id} className="overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card">
-                <div className="photo-card-image m-3 mb-0 aspect-[16/9]">
-                  <img src={EVENT_IMAGE_URL} alt="" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary-950/70 via-primary-950/10 to-transparent" />
-                  <Badge className={isPhysical ? "absolute bottom-3 left-3 bg-amber-100 text-amber-800 hover:bg-amber-100" : "absolute bottom-3 left-3 bg-white/90 text-primary-900 hover:bg-white"}>
+              <Card key={event.id} className={`overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card ${palette.card}`}>
+                <div className={`m-3 mb-0 flex min-h-28 items-end justify-between rounded-2xl p-4 ${palette.panel}`}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${palette.icon}`}>
+                    <CalendarDays className="h-6 w-6" />
+                  </div>
+                  <Badge className={palette.badge}>
                     {isPhysical ? <Users className="mr-1 h-3 w-3" /> : <Monitor className="mr-1 h-3 w-3" />}
                     {isPhysical ? "Physical" : "Online"}
                   </Badge>
