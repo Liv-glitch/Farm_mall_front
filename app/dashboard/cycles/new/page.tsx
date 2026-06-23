@@ -45,54 +45,8 @@ export default function NewProductionCyclePage() {
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const response = await apiClient.getCropVarieties()
-
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
-
-      const processedVarieties = varieties.map((variety: any) => ({
-        ...variety,
-        // Process all the new per-acre cost fields
-        seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize1CostPerAcre)
-          : variety.seedSize1CostPerAcre,
-        seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
-          ? Number.parseFloat(variety.seedSize2CostPerAcre)
-          : variety.seedSize2CostPerAcre,
-        fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
-          ? Number.parseFloat(variety.fertilizerCostPerAcre)
-          : variety.fertilizerCostPerAcre,
-        herbicideCostPerAcre: typeof variety.herbicideCostPerAcre === "string"
-          ? Number.parseFloat(variety.herbicideCostPerAcre)
-          : variety.herbicideCostPerAcre,
-        fungicideCostPerAcre: typeof variety.fungicideCostPerAcre === "string"
-          ? Number.parseFloat(variety.fungicideCostPerAcre)
-          : variety.fungicideCostPerAcre,
-        insecticideCostPerAcre: typeof variety.insecticideCostPerAcre === "string"
-          ? Number.parseFloat(variety.insecticideCostPerAcre)
-          : variety.insecticideCostPerAcre,
-        laborCostPerAcre: typeof variety.laborCostPerAcre === "string"
-          ? Number.parseFloat(variety.laborCostPerAcre)
-          : variety.laborCostPerAcre,
-        landPreparationCostPerAcre: typeof variety.landPreparationCostPerAcre === "string"
-          ? Number.parseFloat(variety.landPreparationCostPerAcre)
-          : variety.landPreparationCostPerAcre,
-        miscellaneousCostPerAcre: typeof variety.miscellaneousCostPerAcre === "string"
-          ? Number.parseFloat(variety.miscellaneousCostPerAcre)
-          : variety.miscellaneousCostPerAcre,
-        averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
-          ? Number.parseFloat(variety.averageYieldPerAcre)
-          : variety.averageYieldPerAcre,
-        createdAt: variety.createdAt ? new Date(variety.createdAt) : new Date(),
-      }))
-
-      setCropVarieties(processedVarieties)
+      const varieties = await apiClient.getCropVarieties()
+      setCropVarieties(varieties)
     } catch (error) {
       console.error("Failed to load crop varieties:", error)
       // Fallback to shared hardcoded varieties so user can still see all options

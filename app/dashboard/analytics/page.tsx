@@ -129,18 +129,21 @@ export default function AnalyticsPage() {
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 bg-white">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800">
+              <TabsList className="flex w-full justify-start overflow-x-auto rounded-xl bg-white p-1 sm:grid sm:grid-cols-4">
+                <TabsTrigger value="overview" className="shrink-0 px-3 text-xs data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 sm:text-sm">
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="profit" className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800">
-                  Profit Analysis
+                <TabsTrigger value="profit" className="shrink-0 px-3 text-xs data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 sm:text-sm">
+                  <span className="sm:hidden">Profit</span>
+                  <span className="hidden sm:inline">Profit Analysis</span>
                 </TabsTrigger>
-                <TabsTrigger value="production" className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800">
-                  Production Trends
+                <TabsTrigger value="production" className="shrink-0 px-3 text-xs data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 sm:text-sm">
+                  <span className="sm:hidden">Production</span>
+                  <span className="hidden sm:inline">Production Trends</span>
                 </TabsTrigger>
-                <TabsTrigger value="financial" className="data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800">
-                  Financial Reports
+                <TabsTrigger value="financial" className="shrink-0 px-3 text-xs data-[state=active]:bg-agri-100 data-[state=active]:text-agri-800 sm:text-sm">
+                  <span className="sm:hidden">Reports</span>
+                  <span className="hidden sm:inline">Financial Reports</span>
                 </TabsTrigger>
               </TabsList>
 

@@ -248,11 +248,17 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                     <SelectValue placeholder={loadingVarieties ? "Loading varieties..." : "Select crop variety"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {cropVarieties.map((variety) => (
-                      <SelectItem key={variety.id} value={variety.id}>
-                        {variety.name} ({variety.cropType})
+                    {cropVarieties.length > 0 ? (
+                      cropVarieties.map((variety) => (
+                        <SelectItem key={variety.id} value={variety.id}>
+                          {variety.name} ({variety.cropType})
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-varieties" disabled>
+                        No varieties available
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>

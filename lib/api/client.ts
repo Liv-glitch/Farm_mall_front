@@ -2,6 +2,54 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse,
 import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
 import type { Event, EventFormData } from "@/lib/types/event"
+import type { CropVariety } from "@/lib/types/production"
+
+const CROP_VARIETY_NUMBER_FIELDS = [
+  "maturityPeriodDays",
+  "seedSize1BagsPerAcre",
+  "seedSize2BagsPerAcre",
+  "seedSize1CostPerAcre",
+  "seedSize2CostPerAcre",
+  "fertilizerCostPerAcre",
+  "herbicideCostPerAcre",
+  "fungicideCostPerAcre",
+  "insecticideCostPerAcre",
+  "laborCostPerAcre",
+  "landPreparationCostPerAcre",
+  "miscellaneousCostPerAcre",
+  "averageYieldPerAcre",
+] as const
+
+function normalizeCropVarietiesResponse(response: any): CropVariety[] {
+  const rawVarieties = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.varieties)
+      ? response.varieties
+      : Array.isArray(response?.data?.varieties)
+        ? response.data.varieties
+        : []
+
+  return rawVarieties.map((variety: any) => {
+    const normalized = { ...variety }
+
+    CROP_VARIETY_NUMBER_FIELDS.forEach((field) => {
+      if (typeof normalized[field] === "string") {
+        const parsed = Number.parseFloat(normalized[field])
+        normalized[field] = Number.isNaN(parsed) ? 0 : parsed
+      }
+    })
+
+    if (typeof normalized.createdAt === "string") {
+      normalized.createdAt = new Date(normalized.createdAt)
+    }
+
+    if (typeof normalized.costDataUpdatedAt === "string") {
+      normalized.costDataUpdatedAt = new Date(normalized.costDataUpdatedAt)
+    }
+
+    return normalized as CropVariety
+  })
+}
 
 class ApiClient {
   private client: AxiosInstance
@@ -404,14 +452,13 @@ class ApiClient {
     })
   }
 
-  async getCropVarieties() {
+  async getCropVarieties(): Promise<CropVariety[]> {
     const response = await this.request({
       method: "GET",
       url: "/production/crop-varieties",
     }) as any
 
-    // Extract varieties array from nested response
-    return response?.varieties || response || []
+    return normalizeCropVarietiesResponse(response)
   }
 
   // Admin endpoints

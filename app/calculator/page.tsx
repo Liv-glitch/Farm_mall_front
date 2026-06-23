@@ -13,18 +13,21 @@ export default function CalculatorPage() {
       <header className="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="hidden items-center space-x-2 sm:flex">
               <Leaf className="h-8 w-8 text-agri-700" />
               <span className="text-xl font-bold text-agri-800">Farm Mall</span>
             </Link>
-            <div className="flex items-center space-x-4">
+            <Link href="/auth/register" className="sm:hidden">
+              <Button className="bg-agri-700 hover:bg-agri-800">Sign Up</Button>
+            </Link>
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/">
                 <Button variant="ghost" className="text-agri-700 hover:text-agri-800">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
                 </Button>
               </Link>
-              <Link href="/auth/register">
+              <Link href="/auth/register" className="hidden sm:block">
                 <Button className="bg-agri-700 hover:bg-agri-800">Sign Up</Button>
               </Link>
             </div>

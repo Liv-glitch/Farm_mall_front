@@ -82,33 +82,8 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     setLoadingVarieties(true)
     setVarietiesError(null)
     apiClient.getCropVarieties()
-      .then((response) => {
-        let varieties = []
-        if (Array.isArray(response)) {
-          varieties = response
-        } else if (response?.varieties && Array.isArray(response.varieties)) {
-          varieties = response.varieties
-        } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-          varieties = response.data.varieties
-        }
-        // Process the new per-acre cost fields and parse createdAt
-        const processedVarieties = varieties.map((variety: any) => ({
-          ...variety,
-          seedSize1CostPerAcre: typeof variety.seedSize1CostPerAcre === "string"
-            ? Number.parseFloat(variety.seedSize1CostPerAcre)
-            : variety.seedSize1CostPerAcre,
-          seedSize2CostPerAcre: typeof variety.seedSize2CostPerAcre === "string"
-            ? Number.parseFloat(variety.seedSize2CostPerAcre)
-            : variety.seedSize2CostPerAcre,
-          fertilizerCostPerAcre: typeof variety.fertilizerCostPerAcre === "string"
-            ? Number.parseFloat(variety.fertilizerCostPerAcre)
-            : variety.fertilizerCostPerAcre,
-          averageYieldPerAcre: typeof variety.averageYieldPerAcre === "string"
-            ? Number.parseFloat(variety.averageYieldPerAcre)
-            : variety.averageYieldPerAcre,
-          createdAt: variety.createdAt ? new Date(variety.createdAt) : new Date(),
-        }))
-        setCropVarieties(processedVarieties)
+      .then((varieties) => {
+        setCropVarieties(varieties)
       })
       .catch((error) => {
         setVarietiesError(error.message || "Failed to load crop varieties")

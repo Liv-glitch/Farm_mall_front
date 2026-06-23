@@ -67,7 +67,7 @@ export function FarmToolsPage() {
 
   return (
     <>
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-5">
         {farmTools.map((tool) => (
           <Card
             key={tool.id}
@@ -80,19 +80,19 @@ export function FarmToolsPage() {
                 setActiveTool(tool.id)
               }
             }}
-            className="group flex h-full cursor-pointer border-agri-100 transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500"
+            className="group flex cursor-pointer border-agri-100 transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500"
           >
-            <CardContent className="flex h-full flex-col p-6">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-agri-100 text-agri-700 transition-colors group-hover:bg-agri-600 group-hover:text-white">
+            <CardContent className="flex w-full flex-col gap-5 p-6 sm:flex-row sm:items-center">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-agri-100 text-agri-700 transition-colors group-hover:bg-agri-600 group-hover:text-white">
                 <tool.icon className="h-7 w-7" />
               </div>
-              <div className="space-y-2">
+              <div className="min-w-0 flex-1 space-y-2">
                 <h3 className="text-lg font-semibold text-gray-950">{tool.title}</h3>
                 <p className="text-sm leading-6 text-gray-600">{tool.description}</p>
               </div>
               <Button
                 type="button"
-                className="mt-6 w-full bg-agri-700 text-white hover:bg-agri-800"
+                className="w-full bg-agri-700 text-white hover:bg-agri-800 sm:w-auto sm:min-w-56"
                 onClick={(event) => {
                   event.stopPropagation()
                   setActiveTool(tool.id)

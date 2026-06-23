@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calculator, TrendingUp, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
-import type { CostCalculationRequest, CostCalculationResponse, CropVariety } from "@/lib/types/calculator"
+import type { CostCalculationRequest, CostCalculationResponse } from "@/lib/types/calculator"
+import type { CropVariety } from "@/lib/types/production"
 
 interface CostCalculatorModalProps {
   open: boolean
@@ -142,11 +143,17 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                         <SelectValue placeholder="Select crop variety" />
                       </SelectTrigger>
                       <SelectContent>
-                        {cropVarieties.map((variety) => (
-                          <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType})
+                        {cropVarieties.length > 0 ? (
+                          cropVarieties.map((variety) => (
+                            <SelectItem key={variety.id} value={variety.id}>
+                              {variety.name} ({variety.cropType})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-varieties" disabled>
+                            No varieties available
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

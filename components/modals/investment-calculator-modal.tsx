@@ -47,15 +47,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      const response = await apiClient.getCropVarieties()
-      let varieties = []
-      if (Array.isArray(response)) {
-        varieties = response
-      } else if (response?.varieties && Array.isArray(response.varieties)) {
-        varieties = response.varieties
-      } else if (response?.data?.varieties && Array.isArray(response.data.varieties)) {
-        varieties = response.data.varieties
-      }
+      const varieties = await apiClient.getCropVarieties()
       setCropVarieties(varieties)
     } catch (error: any) {
       toast({
@@ -205,11 +197,17 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                         <SelectValue placeholder="Select crop variety" />
                       </SelectTrigger>
                       <SelectContent>
-                        {cropVarieties.map((variety) => (
-                          <SelectItem key={variety.id} value={variety.id}>
-                            {variety.name} ({variety.cropType})
+                        {cropVarieties.length > 0 ? (
+                          cropVarieties.map((variety) => (
+                            <SelectItem key={variety.id} value={variety.id}>
+                              {variety.name} ({variety.cropType})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-varieties" disabled>
+                            No varieties available
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
