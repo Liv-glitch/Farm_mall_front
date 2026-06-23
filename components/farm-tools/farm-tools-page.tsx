@@ -82,7 +82,7 @@ export function FarmToolsPage() {
             }}
             className="group flex cursor-pointer border-agri-100 transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500"
           >
-            <CardContent className="flex w-full flex-col gap-5 p-6 sm:flex-row sm:items-center">
+            <CardContent className="flex w-full flex-col gap-5 px-6 pb-6 pt-8">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-agri-100 text-agri-700 transition-colors group-hover:bg-agri-600 group-hover:text-white">
                 <tool.icon className="h-7 w-7" />
               </div>
@@ -92,7 +92,7 @@ export function FarmToolsPage() {
               </div>
               <Button
                 type="button"
-                className="w-full bg-agri-700 text-white hover:bg-agri-800 sm:w-auto sm:min-w-56"
+                className="w-full bg-agri-700 text-white hover:bg-agri-800 sm:w-fit sm:min-w-56"
                 onClick={(event) => {
                   event.stopPropagation()
                   setActiveTool(tool.id)

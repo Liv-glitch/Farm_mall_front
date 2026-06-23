@@ -3,6 +3,7 @@ import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
 import type { Event, EventFormData } from "@/lib/types/event"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 const CROP_VARIETY_NUMBER_FIELDS = [
   "maturityPeriodDays",
@@ -29,7 +30,7 @@ function normalizeCropVarietiesResponse(response: any): CropVariety[] {
         ? response.data.varieties
         : []
 
-  return rawVarieties.map((variety: any) => {
+  const varieties = rawVarieties.map((variety: any) => {
     const normalized = { ...variety }
 
     CROP_VARIETY_NUMBER_FIELDS.forEach((field) => {
@@ -49,6 +50,8 @@ function normalizeCropVarietiesResponse(response: any): CropVariety[] {
 
     return normalized as CropVariety
   })
+
+  return varieties.length > 0 ? varieties : POTATO_VARIETIES
 }
 
 class ApiClient {
@@ -222,9 +225,13 @@ class ApiClient {
                 errorMessage = errorData.errors.join(", ")
               } else if (errorData.message) {
                 errorMessage = errorData.message
+              } else if (errorData.error?.message) {
+                errorMessage = errorData.error.message
               }
             } else if (errorData?.message) {
               errorMessage = errorData.message
+            } else if (errorData?.error?.message) {
+              errorMessage = errorData.error.message
             } else {
               errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`
             }
@@ -239,7 +246,14 @@ class ApiClient {
 
 
         // Create a new error with the processed message
-        const processedError = new Error(errorMessage)
+        const processedError = new Error(errorMessage) as Error & {
+          status?: number
+          responseData?: any
+          retryAfter?: string
+        }
+        processedError.status = error.response?.status
+        processedError.responseData = error.response?.data
+        processedError.retryAfter = error.response?.headers?.['retry-after']
         return Promise.reject(processedError)
       },
     )

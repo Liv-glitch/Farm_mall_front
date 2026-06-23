@@ -259,6 +259,15 @@ export function DiagnosisPage() {
 
       const extracted = extractMatches(res)
       const data = extractData(res)
+      const providerMetadata = data?.providerMetadata || res?.metadata?.providerMetadata
+      if (data?.provider === "gemini" && providerMetadata) {
+        console.info("Diagnosis used Gemini fallback", {
+          reason: providerMetadata.reason,
+          huggingFace: providerMetadata.hfMetadata,
+          huggingFaceError: providerMetadata.hfError,
+          geminiModel: providerMetadata.geminiModel,
+        })
+      }
       if (extracted.length === 0) {
         toast({
           title: "No matches found",
@@ -280,9 +289,24 @@ export function DiagnosisPage() {
       setStep("match")
     } catch (err: any) {
       console.error("Diagnosis failed", err)
+      if (err?.responseData) {
+        console.error("Diagnosis failure details", err.responseData)
+      }
+
+      const providerMetadata = err?.responseData?.metadata?.providerMetadata
+      const hfError = providerMetadata?.hfError
+      const fallbackReason = providerMetadata?.fallbackReason || providerMetadata?.geminiDisabledReason || providerMetadata?.geminiError
+      const failureDetail = err?.status === 429
+        ? "This is Farm Mall's AI request limit, not Gemini or Hugging Face. The diagnosis did not reach the model providers."
+        : hfError
+          ? `Hugging Face failed: ${hfError.message || hfError}. Fallback reason: ${fallbackReason || "not provided"}.`
+          : fallbackReason
+            ? `Fallback reason: ${fallbackReason}.`
+            : err?.message || "Please try again with a different photo."
+
       toast({
         title: "Diagnosis failed",
-        description: err?.message || "Please try again with a different photo.",
+        description: failureDetail,
         variant: "destructive",
       })
       resetWizard()
