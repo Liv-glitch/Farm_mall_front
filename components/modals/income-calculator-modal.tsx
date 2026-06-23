@@ -11,6 +11,7 @@ import { DollarSign, TrendingUp, Calculator, Minus, Plus } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface IncomeCalculatorModalProps {
   open: boolean
@@ -72,10 +73,12 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
       const varieties = await apiClient.getCropVarieties()
       setCropVarieties(varieties)
     } catch (error: any) {
+      setCropVarieties(POTATO_VARIETIES)
       toast({
-        title: "Error",
-        description: error.message || "Failed to load crop varieties",
-        variant: "destructive",
+        title: "Using saved crop varieties",
+        description: error.message
+          ? `Could not load live crop varieties: ${error.message}`
+          : "Could not load live crop varieties. Using saved potato varieties.",
       })
     } finally {
       setLoadingVarieties(false)

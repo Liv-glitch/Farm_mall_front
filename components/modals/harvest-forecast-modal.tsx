@@ -12,6 +12,7 @@ import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { HarvestPredictionRequest, HarvestPredictionResponse } from "@/lib/types/calculator"
 import type { CropVariety } from "@/lib/types/production"
+import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface HarvestForecastModalProps {
   open: boolean
@@ -42,21 +43,16 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
   const loadCropVarieties = async () => {
     try {
       setLoadingVarieties(true)
-      console.log("🌱 Loading crop varieties for forecast...")
-
       const varieties = await apiClient.getCropVarieties()
-
-      console.log("🌱 Processed varieties:", varieties)
-      console.log("🌱 Varieties count:", varieties.length)
-
       setCropVarieties(varieties)
-      console.log("🌱 Final processed varieties:", varieties)
     } catch (error: any) {
       console.error("Failed to load crop varieties:", error)
+      setCropVarieties(POTATO_VARIETIES)
       toast({
-        title: "Error",
-        description: error.message || "Failed to load crop varieties",
-        variant: "destructive",
+        title: "Using saved crop varieties",
+        description: error.message
+          ? `Could not load live crop varieties: ${error.message}`
+          : "Could not load live crop varieties. Using saved potato varieties.",
       })
     } finally {
       setLoadingVarieties(false)
@@ -96,10 +92,6 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
         startWindow.setDate(startWindow.getDate() - 7)
         const endWindow = new Date(harvestDate)
         endWindow.setDate(endWindow.getDate() + 7)
-
-        console.log("🌾 Selected variety averageYieldPerAcre:", selectedVariety.averageYieldPerAcre)
-        console.log("🌾 Land size acres:", formData.landSizeAcres)
-        console.log("🌾 Total expected yield:", (formData.landSizeAcres || 1) * selectedVariety.averageYieldPerAcre)
 
         const mockResult: HarvestPredictionResponse = {
           cropVarietyId: selectedVariety.id,
