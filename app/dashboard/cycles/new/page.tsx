@@ -11,36 +11,57 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Loader2, Sprout, MapPin, Target, DollarSign } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ArrowLeft, AlertCircle, Loader2, Sprout } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { CropVariety, CreateProductionCycleRequest } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
+import { AdvancedLocationEntry, type BoundaryPoint } from "@/components/cycles/advanced-location-entry"
+
+interface FarmOption {
+  id: string
+  name?: string
+  location?: string
+  sizeAcres?: number
+  size?: number
+}
 
 export default function NewProductionCyclePage() {
   const router = useRouter()
-  const { farm, loading: authLoading } = useAuth()
+  const { farm, loading: authLoading, refreshUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
+  const [loadingFarms, setLoadingFarms] = useState(true)
+  const [farms, setFarms] = useState<FarmOption[]>([])
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
-
-
+  const [advancedLocationOpen, setAdvancedLocationOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     cropVarietyId: "",
     landSizeAcres: 0,
+    farmCounty: "",
+    farmSubcounty: "",
+    farmLocationName: "",
     farmLocation: "",
     farmLocationLat: null as number | null,
     farmLocationLng: null as number | null,
+    farmBoundaryCoordinates: [] as BoundaryPoint[],
     plantingDate: new Date().toISOString(),
-    expectedYield: null as number | null,
-    expectedPricePerKg: null as number | null,
+    selectedFarmId: "",
   })
 
   useEffect(() => {
     loadCropVarieties()
   }, [])
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadFarms()
+    }
+  }, [authLoading])
 
   const loadCropVarieties = async () => {
     try {
@@ -56,37 +77,64 @@ export default function NewProductionCyclePage() {
     }
   }
 
+  const loadFarms = async () => {
+    try {
+      setLoadingFarms(true)
+      const userFarms = await apiClient.getUserFarms()
+      const farmOptions = Array.isArray(userFarms) ? userFarms : []
+      setFarms(farmOptions)
+
+      if (farmOptions.length > 0) {
+        setFormData((prev) => ({ ...prev, selectedFarmId: prev.selectedFarmId || farmOptions[0].id }))
+      } else if (farmOptions.length === 0 && farm?.id) {
+        setFarms([{
+          id: farm.id,
+          name: farm.name,
+          location: farm.location,
+          size: farm.size,
+        }])
+        setFormData((prev) => ({ ...prev, selectedFarmId: farm.id }))
+      } else {
+        setFormData((prev) => ({ ...prev, selectedFarmId: "" }))
+      }
+    } catch (error) {
+      console.error("Failed to load farms:", error)
+      if (farm?.id) {
+        setFarms([{
+          id: farm.id,
+          name: farm.name,
+          location: farm.location,
+          size: farm.size,
+        }])
+        setFormData((prev) => ({ ...prev, selectedFarmId: farm.id }))
+      } else {
+        setFarms([])
+        setFormData((prev) => ({ ...prev, selectedFarmId: "" }))
+      }
+    } finally {
+      setLoadingFarms(false)
+    }
+  }
+
   const selectedCropVariety = cropVarieties.find((v) => v.id === formData.cropVarietyId)
-
-  // Calculate total cost per acre using new cost structure
-  const costPerAcre = selectedCropVariety ? (
-    selectedCropVariety.seedSize1CostPerAcre +
-    selectedCropVariety.fertilizerCostPerAcre +
-    selectedCropVariety.herbicideCostPerAcre +
-    selectedCropVariety.fungicideCostPerAcre +
-    selectedCropVariety.insecticideCostPerAcre +
-    selectedCropVariety.laborCostPerAcre +
-    selectedCropVariety.landPreparationCostPerAcre +
-    selectedCropVariety.miscellaneousCostPerAcre
-  ) : 0
-
-  const totalEstimatedCost = costPerAcre * formData.landSizeAcres
-  const expectedRevenue = (formData.expectedYield != null && formData.expectedPricePerKg != null)
-    ? formData.expectedYield * formData.expectedPricePerKg
-    : null
-  const expectedProfit = expectedRevenue != null ? expectedRevenue - totalEstimatedCost : null
+  const composedFarmLocation = [
+    formData.farmLocationName.trim(),
+    formData.farmSubcounty.trim(),
+    formData.farmCounty.trim(),
+  ].filter(Boolean).join(", ")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setSubmitError(null)
 
     try {
       // Validate required fields
       if (!formData.cropVarietyId) {
         throw new Error("Please select a crop variety")
       }
-      if (!farm?.id) {
-        throw new Error("No farm found. Please contact support.")
+      if (farms.length > 1 && !formData.selectedFarmId) {
+        throw new Error("Please select the farm for this production cycle")
       }
       if (!formData.landSizeAcres || formData.landSizeAcres <= 0) {
         throw new Error("Please enter a valid land size")
@@ -94,18 +142,22 @@ export default function NewProductionCyclePage() {
       if (!formData.plantingDate) {
         throw new Error("Please select a planting date")
       }
-      if (!formData.farmLocation.trim()) {
+      if (!formData.farmCounty.trim() || !formData.farmSubcounty.trim() || !formData.farmLocationName.trim()) {
         throw new Error("Please enter farm location")
       }
 
       const payload: CreateProductionCycleRequest = {
         cropVarietyId: formData.cropVarietyId,
-        farmId: farm.id,
         landSizeAcres: Number(formData.landSizeAcres),
-        farmLocation: formData.farmLocation.trim(),
+        farmLocation: composedFarmLocation,
+        farmCounty: formData.farmCounty.trim(),
+        farmSubcounty: formData.farmSubcounty.trim(),
+        farmLocationName: formData.farmLocationName.trim(),
         plantingDate: new Date(formData.plantingDate).toISOString().split('T')[0], // Convert to YYYY-MM-DD
-        expectedYield: formData.expectedYield != null ? Number(formData.expectedYield) : null,
-        expectedPricePerKg: formData.expectedPricePerKg != null ? Number(formData.expectedPricePerKg) : null,
+      }
+
+      if (formData.selectedFarmId) {
+        payload.farmId = formData.selectedFarmId
       }
 
       // Calculate estimated harvest date based on maturity period
@@ -131,7 +183,12 @@ export default function NewProductionCyclePage() {
         }
       }
 
+      if (formData.farmBoundaryCoordinates.length >= 3) {
+        payload.farmBoundaryCoordinates = formData.farmBoundaryCoordinates
+      }
+
       const response = await apiClient.createProductionCycle(payload)
+      await refreshUser()
 
       toast({
         title: "Success!",
@@ -146,9 +203,11 @@ export default function NewProductionCyclePage() {
       }
     } catch (error: any) {
       console.error("Error creating this cycle:", error)
+      const message = error.message || "Failed to create production cycle. Please try again."
+      setSubmitError(message)
       toast({
         title: "Error",
-        description: error.message || "Failed to create production cycle. Please try again.",
+        description: message,
         variant: "destructive",
       })
     } finally {
@@ -156,13 +215,13 @@ export default function NewProductionCyclePage() {
     }
   }
 
-  if (loadingVarieties || authLoading) {
+  if (loadingVarieties || loadingFarms || authLoading) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>{authLoading ? "Loading user data..." : "Loading crop varieties..."}</p>
+            <p>{authLoading ? "Loading user data..." : loadingFarms ? "Loading farms..." : "Loading crop varieties..."}</p>
           </div>
         </div>
       </DashboardLayout>
@@ -180,11 +239,19 @@ export default function NewProductionCyclePage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-agri-800">Create New Production Cycle</h1>
-            <p className="text-agri-600">Set up a new production cycle with activities and projections</p>
+            <p className="text-agri-600">Set up the crop, land size, planting date, and farm location.</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Could not create production cycle</AlertTitle>
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
             <div className="lg:col-span-2 space-y-6">
@@ -215,6 +282,36 @@ export default function NewProductionCyclePage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {farms.length > 1 && (
+                    <div>
+                      <Label htmlFor="selectedFarmId">Farm *</Label>
+                      <Select
+                        value={formData.selectedFarmId}
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, selectedFarmId: value }))}
+                      >
+                        <SelectTrigger className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500">
+                          <SelectValue placeholder="Select farm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {farms.map((farmOption) => (
+                            <SelectItem key={farmOption.id} value={farmOption.id}>
+                              {farmOption.name || farmOption.location || "Unnamed farm"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {farms.length === 0 && (
+                    <Alert className="border-agri-200 bg-white/80 text-agri-800">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        No farm record is linked to your account yet. We will create one from this cycle's location when you submit.
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -248,114 +345,69 @@ export default function NewProductionCyclePage() {
                       />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Location */}
-              <Card className="bg-maize-50 border-maize-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-agri-800">
-                    <MapPin className="h-5 w-5 text-agri-600" />
-                    Farm Location
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="farmLocation" className="text-agri-700">Farm Location *</Label>
-                    <Input
-                      id="farmLocation"
-                      value={formData.farmLocation}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, farmLocation: e.target.value }))}
-                      placeholder="e.g., Meru County, Kenya"
-                      className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="farmLocationLat" className="text-agri-700">Latitude (Optional)</Label>
+                      <Label htmlFor="farmCounty" className="text-agri-700">County *</Label>
                       <Input
-                        id="farmLocationLat"
-                        type="number"
-                        step="0.000001"
-                        min="-90"
-                        max="90"
-                        value={formData.farmLocationLat || ""}
-                        onChange={(e) => {
-                          const value = e.target.value.trim()
-                          setFormData((prev) => ({
-                            ...prev,
-                            farmLocationLat: value === "" ? null : Number.parseFloat(value) || null
-                          }))
-                        }}
-                        placeholder="e.g., -0.2367"
+                        id="farmCounty"
+                        value={formData.farmCounty}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, farmCounty: e.target.value }))}
+                        placeholder="e.g., Meru"
                         className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                        required
                       />
-                      <p className="text-xs text-agri-500 mt-1">Range: -90 to 90 degrees</p>
                     </div>
                     <div>
-                      <Label htmlFor="farmLocationLng" className="text-agri-700">Longitude (Optional)</Label>
+                      <Label htmlFor="farmSubcounty" className="text-agri-700">Subcounty *</Label>
                       <Input
-                        id="farmLocationLng"
-                        type="number"
-                        step="0.000001"
-                        min="-180"
-                        max="180"
-                        value={formData.farmLocationLng || ""}
-                        onChange={(e) => {
-                          const value = e.target.value.trim()
-                          setFormData((prev) => ({
-                            ...prev,
-                            farmLocationLng: value === "" ? null : Number.parseFloat(value) || null
-                          }))
-                        }}
-                        placeholder="e.g., 37.6531"
+                        id="farmSubcounty"
+                        value={formData.farmSubcounty}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, farmSubcounty: e.target.value }))}
+                        placeholder="e.g., Imenti North"
                         className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                        required
                       />
-                      <p className="text-xs text-agri-500 mt-1">Range: -180 to 180 degrees</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="farmLocationName" className="text-agri-700">Location *</Label>
+                      <Input
+                        id="farmLocationName"
+                        value={formData.farmLocationName}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, farmLocationName: e.target.value }))}
+                        placeholder="e.g., Gakoromone"
+                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
+                        required
+                      />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Yield & Pricing */}
-              <Card className="bg-tea-50 border-tea-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-agri-800">
-                    <Target className="h-5 w-5 text-agri-600" />
-                    Yield & Pricing Projections
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expectedYield" className="text-agri-700">Expected Yield (kg)</Label>
-                      <Input
-                        id="expectedYield"
-                        type="number"
-                        min="1"
-                        value={formData.expectedYield || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, expectedYield: e.target.value === "" ? null : Number.parseInt(e.target.value) }))
-                        }
-                        placeholder="e.g., 8000"
-                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="expectedPricePerKg" className="text-agri-700">Expected Price per Kg (KSh)</Label>
-                      <Input
-                        id="expectedPricePerKg"
-                        type="number"
-                        min="1"
-                        value={formData.expectedPricePerKg || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, expectedPricePerKg: e.target.value === "" ? null : Number.parseInt(e.target.value) }))
-                        }
-                        placeholder="e.g., 45"
-                        className="mt-2 border-agri-200 focus:border-agri-500 focus:ring-agri-500"
-                      />
+                  <div className="rounded-xl border border-maize-200 bg-white/70 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="font-semibold text-agri-800">Advanced Location Entry</div>
+                        <p className="text-sm text-agri-600">
+                          Add exact coordinates or draw the farm boundary on Google Maps.
+                        </p>
+                        {(formData.farmLocationLat && formData.farmLocationLng) || formData.farmBoundaryCoordinates.length > 0 ? (
+                          <p className="mt-1 text-xs font-medium text-agri-700">
+                            {formData.farmLocationLat && formData.farmLocationLng
+                              ? `Coordinates saved: ${formData.farmLocationLat.toFixed(5)}, ${formData.farmLocationLng.toFixed(5)}`
+                              : ""}
+                            {formData.farmBoundaryCoordinates.length > 0
+                              ? ` · ${formData.farmBoundaryCoordinates.length} boundary points`
+                              : ""}
+                          </p>
+                        ) : null}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-agri-200 text-agri-700 hover:bg-agri-50"
+                        onClick={() => setAdvancedLocationOpen(true)}
+                      >
+                        Open Advanced Location Entry
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -364,28 +416,6 @@ export default function NewProductionCyclePage() {
 
             {/* Summary Sidebar */}
             <div className="space-y-6">
-              {/* Farm Info */}
-              {farm && (
-                <Card className="bg-agri-50 border-agri-100">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-agri-800">Farm Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <div className="font-medium text-lg text-agri-800">{farm.name}</div>
-                      <div className="text-sm text-agri-600">{farm.location}</div>
-                    </div>
-                    <Separator />
-                    <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span>Total Size:</span>
-                        <span className="font-medium">{farm.size} acres</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Crop Info */}
               {selectedCropVariety && (
                 <Card className="bg-maize-50 border-maize-100">
@@ -416,50 +446,6 @@ export default function NewProductionCyclePage() {
                 </Card>
               )}
 
-              {/* Financial Summary */}
-              <Card className="bg-tea-50 border-tea-100">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2 text-agri-800">
-                    <DollarSign className="h-5 w-5 text-agri-600" />
-                    Financial Projection
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Total Land Size:</span>
-                      <span className="font-medium">{formData.landSizeAcres} acres</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="text-sm">Estimated Total Cost:</span>
-                      <span className="font-medium">KSh {totalEstimatedCost.toLocaleString()}</span>
-                    </div>
-                    <Separator />
-                    {expectedRevenue != null && expectedProfit != null && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Expected Revenue:</span>
-                          <span className="font-medium text-green-600">KSh {expectedRevenue.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Expected Profit:</span>
-                          <span className={`font-medium ${expectedProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            KSh {expectedProfit.toLocaleString()}
-                          </span>
-                        </div>
-                        {expectedRevenue > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-sm">Profit Margin:</span>
-                            <span className="font-medium">{Math.round((expectedProfit / expectedRevenue) * 100)}%</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
@@ -468,7 +454,11 @@ export default function NewProductionCyclePage() {
                   disabled={
                     loading ||
                     !formData.cropVarietyId ||
-                    !formData.landSizeAcres
+                    (farms.length > 1 && !formData.selectedFarmId) ||
+                    !formData.landSizeAcres ||
+                    !formData.farmCounty ||
+                    !formData.farmSubcounty ||
+                    !formData.farmLocationName
                   }
                 >
                   {loading ? (
@@ -492,6 +482,24 @@ export default function NewProductionCyclePage() {
             </div>
           </div>
         </form>
+        <AdvancedLocationEntry
+          open={advancedLocationOpen}
+          onOpenChange={setAdvancedLocationOpen}
+          county={formData.farmCounty}
+          subcounty={formData.farmSubcounty}
+          locationName={formData.farmLocationName}
+          latitude={formData.farmLocationLat}
+          longitude={formData.farmLocationLng}
+          boundary={formData.farmBoundaryCoordinates}
+          onSave={({ latitude, longitude, boundary }) =>
+            setFormData((prev) => ({
+              ...prev,
+              farmLocationLat: latitude,
+              farmLocationLng: longitude,
+              farmBoundaryCoordinates: boundary,
+            }))
+          }
+        />
       </div>
     </DashboardLayout>
   )

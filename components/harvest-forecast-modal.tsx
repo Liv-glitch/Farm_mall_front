@@ -128,7 +128,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
               {showForecast ? (
                 <div className="space-y-6">
                   <div className="text-center p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Expected Harvest Date</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Estimated Harvest Date</div>
                     <div className="text-2xl font-bold text-orange-600 mb-1">
                       {harvestDate.split(",")[1]} {harvestDate.split(",")[2]}
                     </div>
@@ -184,7 +184,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                   </div>
 
                   <div>
-                    <h4 className="font-medium mb-3">Expected Weather Pattern</h4>
+                    <h4 className="font-medium mb-3">Estimated Weather Pattern</h4>
                     <div className="grid grid-cols-4 gap-3">
                       <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <Sun className="w-6 h-6 mx-auto mb-2 text-yellow-500" />

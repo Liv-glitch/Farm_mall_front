@@ -114,7 +114,7 @@ export default function CyclesPage() {
     return sum + activityCosts
   }, 0)
 
-  // Calculate expected revenue
+  // Calculate estimated revenue
   const expectedRevenue = cycles.reduce((sum, cycle) => {
     let cycleRevenue = 0
     if (cycle.status === "harvested" && cycle.actualYield && cycle.actualPricePerKg) {
@@ -122,9 +122,12 @@ export default function CyclesPage() {
       const actualPrice = isNaN(cycle.actualPricePerKg) ? 0 : cycle.actualPricePerKg
       cycleRevenue = actualYield * actualPrice
     } else {
-      const expectedYield = isNaN(cycle.expectedYield) ? 0 : cycle.expectedYield
-      const expectedPrice = isNaN(cycle.expectedPricePerKg) ? 0 : cycle.expectedPricePerKg
-      cycleRevenue = expectedYield * expectedPrice
+      const expectedYield = Number(cycle.expectedYield)
+      const expectedPrice = Number(cycle.expectedPricePerKg)
+      cycleRevenue =
+        Number.isFinite(expectedYield) && expectedYield > 0 && Number.isFinite(expectedPrice) && expectedPrice > 0
+          ? expectedYield * expectedPrice
+          : 0
     }
     return sum + cycleRevenue
   }, 0)
@@ -261,7 +264,7 @@ export default function CyclesPage() {
               className="border-0 bg-white"
             />
             <StatsCard
-              title="Expected Revenue"
+              title="Estimated Revenue"
               value={formatLargeNumber(expectedRevenue)}
               suffix={!isNaN(expectedRevenue) && expectedRevenue >= 1000000 ? "M" : (!isNaN(expectedRevenue) && expectedRevenue >= 1000 ? "K" : "")}
               prefix="KSh "

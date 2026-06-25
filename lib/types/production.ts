@@ -56,16 +56,20 @@ export interface ProductionCycle {
   cropVariety?: CropVariety
   landSizeAcres: number
   farmLocation: string
+  farmCounty?: string
+  farmSubcounty?: string
+  farmLocationName?: string
   farmLocationLat?: number
   farmLocationLng?: number
+  farmBoundaryCoordinates?: Array<{ lat: number; lng: number }>
   plantingDate: Date
   estimatedHarvestDate: Date
   actualHarvestDate?: Date
   status: "active" | "harvested" | "archived"
   cropStage?: "pre_planting" | "planting" | "vegetative" | "flowering" | "fruiting" | "harvesting" | "post_harvest"
-  expectedYield: number
+  expectedYield?: number | null
   actualYield?: number
-  expectedPricePerKg: number
+  expectedPricePerKg?: number | null
   actualPricePerKg?: number
   totalCost?: number
   activities?: Activity[]
@@ -75,31 +79,39 @@ export interface ProductionCycle {
 
 export interface CreateProductionCycleRequest {
   cropVarietyId: string
-  farmId: string  // Add required farmId
+  farmId?: string
   landSizeAcres: number
   farmLocation: string
+  farmCounty?: string
+  farmSubcounty?: string
+  farmLocationName?: string
   farmLocationLat?: number
   farmLocationLng?: number
+  farmBoundaryCoordinates?: Array<{ lat: number; lng: number }>
   plantingDate: string // ISO date string
   estimatedHarvestDate?: string // ISO date string
-  expectedYield: number | null
-  expectedPricePerKg: number | null
+  expectedYield?: number | null
+  expectedPricePerKg?: number | null
 }
 
 export interface UpdateProductionCycleRequest {
   cropVarietyId?: string
   landSizeAcres?: number
   farmLocation?: string
+  farmCounty?: string
+  farmSubcounty?: string
+  farmLocationName?: string
   farmLocationLat?: number
   farmLocationLng?: number
+  farmBoundaryCoordinates?: Array<{ lat: number; lng: number }>
   plantingDate?: string
   estimatedHarvestDate?: string
   actualHarvestDate?: string
   status?: ProductionCycle["status"]
   cropStage?: "pre_planting" | "planting" | "vegetative" | "flowering" | "fruiting" | "harvesting" | "post_harvest"
-  expectedYield?: number
+  expectedYield?: number | null
   actualYield?: number
-  expectedPricePerKg?: number
+  expectedPricePerKg?: number | null
   actualPricePerKg?: number
 }
 

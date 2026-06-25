@@ -17,6 +17,9 @@ import {
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { apiClient } from "@/lib/api/client"
+import type { ProductionCycle } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { getWeatherRecommendation } from "@/lib/weather/recommendation"
 
@@ -72,22 +75,68 @@ export function OverviewPage() {
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [weatherError, setWeatherError] = useState<string | null>(null)
+  const [cycles, setCycles] = useState<ProductionCycle[]>([])
+  const [cyclesLoading, setCyclesLoading] = useState(true)
+  const [selectedCycleId, setSelectedCycleId] = useState<string>("")
 
   const farmLocation = farm?.location?.trim()
-  const hasCoordinates = typeof farm?.locationLat === "number" && typeof farm?.locationLng === "number"
-  const hasLocation = hasCoordinates || !!farmLocation
+  const locatedCycles = useMemo(
+    () =>
+      cycles.filter((cycle) => {
+        const lat = Number(cycle.farmLocationLat)
+        const lng = Number(cycle.farmLocationLng)
+        return !!cycle.farmLocation?.trim() || (Number.isFinite(lat) && Number.isFinite(lng))
+      }),
+    [cycles]
+  )
+  const selectedCycle = locatedCycles.find((cycle) => cycle.id === selectedCycleId) || locatedCycles[0]
+  const weatherUsesCycle = !!selectedCycle
+  const weatherLocation = weatherUsesCycle ? selectedCycle.farmLocation?.trim() : farmLocation
+  const weatherLat = weatherUsesCycle ? Number(selectedCycle.farmLocationLat) : farm?.locationLat
+  const weatherLng = weatherUsesCycle ? Number(selectedCycle.farmLocationLng) : farm?.locationLng
+  const hasCoordinates = Number.isFinite(weatherLat) && Number.isFinite(weatherLng)
+  const hasLocation = hasCoordinates || !!weatherLocation
 
   useEffect(() => {
-    if (loading || !hasLocation) return
+    if (loading) return
+
+    let cancelled = false
+    setCyclesLoading(true)
+
+    apiClient
+      .getCycles()
+      .then((data) => {
+        if (!cancelled) setCycles(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (!cancelled) setCycles([])
+      })
+      .finally(() => {
+        if (!cancelled) setCyclesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loading])
+
+  useEffect(() => {
+    if (!selectedCycleId && locatedCycles[0]?.id) {
+      setSelectedCycleId(locatedCycles[0].id)
+    }
+  }, [locatedCycles, selectedCycleId])
+
+  useEffect(() => {
+    if (loading || cyclesLoading || !hasLocation) return
 
     const controller = new AbortController()
     const params = new URLSearchParams()
 
     if (hasCoordinates) {
-      params.set("lat", String(farm?.locationLat))
-      params.set("lon", String(farm?.locationLng))
-    } else if (farmLocation) {
-      params.set("q", farmLocation)
+      params.set("lat", String(weatherLat))
+      params.set("lon", String(weatherLng))
+    } else if (weatherLocation) {
+      params.set("q", weatherLocation)
     }
 
     setWeatherLoading(true)
@@ -111,7 +160,7 @@ export function OverviewPage() {
       .finally(() => setWeatherLoading(false))
 
     return () => controller.abort()
-  }, [farm?.locationLat, farm?.locationLng, farmLocation, hasCoordinates, hasLocation, loading])
+  }, [cyclesLoading, hasCoordinates, hasLocation, loading, weatherLat, weatherLng, weatherLocation])
 
   const recommendation = useMemo(() => {
     if (!weather) return null
@@ -152,8 +201,17 @@ export function OverviewPage() {
                 </p>
                 <h2 className="mt-4 flex items-center gap-2 text-lg font-bold text-white sm:text-2xl">
                   <CloudSun className="h-6 w-6 shrink-0 text-primary-100" />
-                  <span className="truncate">{weather?.locationName || farmLocation || "Your farm"}</span>
+                  <span className="truncate">{weather?.locationName || weatherLocation || "Your farm"}</span>
                 </h2>
+                {weatherUsesCycle ? (
+                  <p className="mt-2 text-sm text-white/75">
+                    Weather for{" "}
+                    <Link href={`/dashboard/cycles/${selectedCycle.id}`} className="font-bold text-white underline underline-offset-4">
+                      {selectedCycle.cropVariety?.name || `Cycle ${selectedCycle.id.slice(0, 8)}`}
+                    </Link>
+                    {weatherLocation ? ` · ${weatherLocation}` : ""}
+                  </p>
+                ) : null}
               </div>
               {weather?.icon ? (
                 <img
@@ -164,7 +222,24 @@ export function OverviewPage() {
               ) : null}
             </div>
 
-            {loading || weatherLoading ? (
+            {locatedCycles.length > 1 ? (
+              <div className="relative z-10 mt-5 max-w-xl">
+                <Select value={selectedCycle?.id || ""} onValueChange={setSelectedCycleId}>
+                  <SelectTrigger className="border-white/20 bg-white/10 text-white">
+                    <SelectValue placeholder="Choose farm weather" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locatedCycles.map((cycle) => (
+                      <SelectItem key={cycle.id} value={cycle.id}>
+                        {[cycle.cropVariety?.name || "Production cycle", cycle.farmLocation].filter(Boolean).join(" · ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            {loading || cyclesLoading || weatherLoading ? (
               <div className="mt-6 flex min-h-32 items-center justify-center text-white/75">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Loading local weather...
@@ -210,7 +285,7 @@ export function OverviewPage() {
                   <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
                     <ThermometerSun className="mb-2 h-4 w-4 text-primary-100" />
                     <div className="truncate text-sm font-extrabold">{farm?.name || "Farm"}</div>
-                    <div className="truncate text-xs text-white/65">{farmLocation || weather.locationName}</div>
+                    <div className="truncate text-xs text-white/65">{weatherLocation || weather.locationName}</div>
                   </div>
                 </div>
               </>

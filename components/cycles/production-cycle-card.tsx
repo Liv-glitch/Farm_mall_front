@@ -82,7 +82,12 @@ export function ProductionCycleCard({
   const progress = calculateProgress()
   const daysRemaining = getDaysRemaining()
   const nextActivity = getNextActivity()
-  const expectedRevenue = (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0)
+  const expectedYield = Number(cycle.expectedYield)
+  const expectedPricePerKg = Number(cycle.expectedPricePerKg)
+  const expectedRevenue =
+    Number.isFinite(expectedYield) && expectedYield > 0 && Number.isFinite(expectedPricePerKg) && expectedPricePerKg > 0
+      ? expectedYield * expectedPricePerKg
+      : null
   const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
   
   // Calculate total cost from all activities
@@ -251,10 +256,10 @@ export function ProductionCycleCard({
             </div>
             <div className="rounded-2xl bg-primary-50 p-3">
               <div className="text-sm font-extrabold text-primary-800">
-                KSh {(() => {
+                {(() => {
                   const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
-                  return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
-                })()}k
+                  return revenue == null || isNaN(revenue) ? "Not set" : `KSh ${(revenue / 1000).toFixed(0)}k`
+                })()}
               </div>
               <div className="text-xs text-muted-foreground">
                 {cycle.status === "harvested" && actualRevenue > 0 ? "Revenue" : "Est. Revenue"}

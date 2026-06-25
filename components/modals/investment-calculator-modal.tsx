@@ -294,7 +294,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                       <div className="text-2xl font-bold text-green-700">
                         {result.roi.toFixed(0)}%
                       </div>
-                      <div className="text-xs text-gray-600">Expected ROI</div>
+                      <div className="text-xs text-gray-600">Estimated ROI</div>
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
                       <div className="text-2xl font-bold text-purple-700">
@@ -327,7 +327,7 @@ export function InvestmentCalculatorModal({ open, onOpenChange }: InvestmentCalc
                     </div>
 
                     <div className="flex justify-between p-3 bg-emerald-50 rounded-lg">
-                      <span className="font-medium">Expected Profit</span>
+                      <span className="font-medium">Estimated Profit</span>
                       <div className={`font-semibold ${result.profitMargin > 0 ? 'text-green-700' : 'text-red-700'}`}>
                         KSh {result.profitMargin.toLocaleString()}
                       </div>

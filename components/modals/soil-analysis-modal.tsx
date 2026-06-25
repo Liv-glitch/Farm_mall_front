@@ -250,7 +250,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
             economicFactors: [
               "Fertilizer subsidy programs available through government",
               "Group buying can reduce input costs by 15-20%",
-              "Expected ROI of 250-300% with proper management"
+              "Estimated ROI of 250-300% with proper management"
             ]
           }
         }
@@ -612,7 +612,7 @@ export function SoilAnalysisModal({ open, onOpenChange }: SoilAnalysisModalProps
                       </div>
                       <p className="text-sm text-gray-600 mb-1">
                         <TrendingUp className="h-4 w-4 inline mr-1" />
-                        Expected Yield: {crop.expectedYield}
+                        Estimated Yield: {crop.expectedYield}
                       </p>
                       <p className="text-sm">{crop.specificAdvice}</p>
                     </div>

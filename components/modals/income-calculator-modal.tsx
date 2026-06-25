@@ -20,7 +20,7 @@ interface IncomeCalculatorModalProps {
 
 interface IncomeResult {
   acres: number
-  expectedYield: number
+  estimatedYield: number
   pricePerKg: number
   totalIncome: number
   incomePerAcre: number
@@ -41,13 +41,6 @@ interface IncomeResult {
     landPreparation: number
     other: number
   }
-  // Investment-based recommendations
-  investmentAnalysis?: {
-    maxAcreageForBudget: number
-    requiredInvestment: number
-    suggestedAcreage: number
-    efficiencyScore: number
-  }
 }
 
 export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorModalProps) {
@@ -57,7 +50,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     cropVarietyId: "",
     acres: 0,
     pricePerKg: 0,
-    investmentAmount: 0, // Optional: for investment-based recommendations
+    estimatedYieldPerAcre: 0,
   })
   const [result, setResult] = useState<IncomeResult | null>(null)
 
@@ -113,7 +106,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
   }
 
   const calculateIncome = () => {
-    if (!formData.acres || !formData.pricePerKg || !formData.cropVarietyId) {
+    if (!formData.acres || !formData.pricePerKg || !formData.cropVarietyId || !formData.estimatedYieldPerAcre) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -136,10 +129,10 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     const totalCost = Object.values(costBreakdown).reduce((sum, cost) => sum + cost, 0)
     const costPerAcre = totalCost / formData.acres
 
-    const expectedYieldPerAcre = selectedCrop.averageYieldPerAcre
-    const totalYield = formData.acres * expectedYieldPerAcre
+    const estimatedYieldPerAcre = formData.estimatedYieldPerAcre || selectedCrop.averageYieldPerAcre
+    const totalYield = formData.acres * estimatedYieldPerAcre
     const totalIncome = totalYield * formData.pricePerKg
-    const incomePerAcre = expectedYieldPerAcre * formData.pricePerKg
+    const incomePerAcre = estimatedYieldPerAcre * formData.pricePerKg
     
     const totalProfit = totalIncome - totalCost
     const profitPerAcre = totalProfit / formData.acres
@@ -164,34 +157,13 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
     if (formData.pricePerKg < 30) {
       recommendations.push("Look for better market channels or value addition opportunities")
     }
-    if (expectedYieldPerAcre < 1000) {
+    if (estimatedYieldPerAcre < 1000) {
       recommendations.push("Focus on increasing yield through proper fertilization and pest management")
-    }
-
-    // Investment-based analysis (optional)
-    let investmentAnalysis = undefined
-    if (formData.investmentAmount > 0) {
-      const maxAcreageForBudget = formData.investmentAmount / costPerAcre
-      const requiredInvestment = formData.acres * costPerAcre
-      const suggestedAcreage = Math.min(maxAcreageForBudget, formData.acres)
-      const efficiencyScore = formData.investmentAmount > 0 ? (totalProfit / formData.investmentAmount) * 100 : 0
-
-      investmentAnalysis = {
-        maxAcreageForBudget,
-        requiredInvestment,
-        suggestedAcreage,
-        efficiencyScore,
-      }
-
-      // Add investment-specific recommendations - keep only the budget recommendation
-      if (formData.investmentAmount < requiredInvestment) {
-        recommendations.push(`Consider reducing acreage to ${maxAcreageForBudget.toFixed(1)} acres to match your budget of KSh ${formData.investmentAmount.toLocaleString()}`)
-      }
     }
 
     setResult({
       acres: formData.acres,
-      expectedYield: expectedYieldPerAcre,
+      estimatedYield: estimatedYieldPerAcre,
       pricePerKg: formData.pricePerKg,
       totalIncome,
       incomePerAcre,
@@ -203,7 +175,6 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
       roi,
       costBreakdown,
       recommendations,
-      investmentAnalysis,
     })
 
     toast({
@@ -217,7 +188,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
       cropVarietyId: "",
       acres: 0,
       pricePerKg: 0,
-      investmentAmount: 0,
+      estimatedYieldPerAcre: 0,
     })
     setResult(null)
   }
@@ -244,7 +215,14 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                 <Select
                   value={formData.cropVarietyId}
                   onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, cropVarietyId: value }))
+                    setFormData((prev) => {
+                      const selectedCrop = cropVarieties.find((crop) => crop.id === value)
+                      return {
+                        ...prev,
+                        cropVarietyId: value,
+                        estimatedYieldPerAcre: selectedCrop?.averageYieldPerAcre || 0,
+                      }
+                    })
                   }
                 >
                   <SelectTrigger className="h-12">
@@ -288,7 +266,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                 const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
                 return selectedCrop ? (
                   <div className="p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">Expected Yield (from crop data)</h4>
+                    <h4 className="font-medium text-blue-900 mb-2">Estimated Yield (from crop data)</h4>
                     <div className="text-lg font-bold text-blue-800">
                       {selectedCrop.averageYieldPerAcre.toLocaleString()} kg/acre
                     </div>
@@ -300,7 +278,28 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
               })()}
 
               <div>
-                <Label htmlFor="price">Expected Price per Kg (KSh) *</Label>
+                <Label htmlFor="estimatedYieldPerAcre">Estimated yield per acre (kg) *</Label>
+                <Input
+                  id="estimatedYieldPerAcre"
+                  type="number"
+                  step="100"
+                  placeholder="Estimated yield per acre"
+                  value={formData.estimatedYieldPerAcre || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      estimatedYieldPerAcre: Number.parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  className="h-12"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Prefilled from crop variety data, but you can adjust it.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="price">Estimated Price per Kg (KSh) *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -316,35 +315,14 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                   className="h-12"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Current market price or expected selling price
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="investment">Available Investment (KSh) - Optional</Label>
-                <Input
-                  id="investment"
-                  type="number"
-                  step="1000"
-                  placeholder="Your available budget (optional)"
-                  value={formData.investmentAmount || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      investmentAmount: Number.parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  className="h-12"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter your budget to get investment-based acreage recommendations
+                  Current market price or estimated selling price
                 </p>
               </div>
 
               <Button
                 onClick={calculateIncome}
                 className="w-full h-12 bg-green-600 hover:bg-green-700"
-                disabled={!formData.acres || !formData.pricePerKg || !formData.cropVarietyId || loadingVarieties}
+                disabled={!formData.acres || !formData.pricePerKg || !formData.cropVarietyId || !formData.estimatedYieldPerAcre || loadingVarieties}
               >
                 <Calculator className="mr-2 h-4 w-4" />
                 Calculate Profit & Income
@@ -373,7 +351,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                   <div className="grid grid-cols-1 gap-4">
                     {/* Total Profit */}
                     <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                      <div className="text-sm text-gray-600 mb-1">Total Expected Profit</div>
+                      <div className="text-sm text-gray-600 mb-1">Total Estimated Profit</div>
                       <div className={`text-3xl font-bold ${result.totalProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                         KSh {result.totalProfit.toLocaleString()}
                       </div>
@@ -471,42 +449,8 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                       <h3 className="text-lg font-bold mb-4 text-gray-900">Recommendations</h3>
                       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <p className="text-base text-blue-800 font-medium leading-relaxed">
-                          {/* Show the budget/acreage recommendation first if it exists, otherwise show first recommendation */}
-                          {result.recommendations.find(rec => rec.includes('reducing acreage')) || result.recommendations[0]}
+                          {result.recommendations[0]}
                         </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Investment Analysis */}
-                  {result.investmentAnalysis && (
-                    <div className="space-y-3 mt-6">
-                      <h4 className="font-medium text-gray-900">Investment Analysis</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-blue-50 rounded-lg">
-                          <div className="text-sm text-gray-600 mb-1">Max Acreage for Budget</div>
-                          <div className="font-semibold text-blue-700">
-                            {result.investmentAnalysis.maxAcreageForBudget.toFixed(1)} acres
-                          </div>
-                        </div>
-                        <div className="p-3 bg-orange-50 rounded-lg">
-                          <div className="text-sm text-gray-600 mb-1">Required Investment</div>
-                          <div className="font-semibold text-orange-700">
-                            KSh {result.investmentAnalysis.requiredInvestment.toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="p-3 bg-purple-50 rounded-lg">
-                          <div className="text-sm text-gray-600 mb-1">Investment Efficiency</div>
-                          <div className={`font-semibold ${result.investmentAnalysis.efficiencyScore >= 30 ? 'text-purple-700' : 'text-red-600'}`}>
-                            {result.investmentAnalysis.efficiencyScore.toFixed(1)}%
-                          </div>
-                        </div>
-                        <div className="p-3 bg-green-50 rounded-lg">
-                          <div className="text-sm text-gray-600 mb-1">Suggested Acreage</div>
-                          <div className="font-semibold text-green-700">
-                            {result.investmentAnalysis.suggestedAcreage.toFixed(1)} acres
-                          </div>
-                        </div>
                       </div>
                     </div>
                   )}
@@ -515,7 +459,7 @@ export function IncomeCalculatorModal({ open, onOpenChange }: IncomeCalculatorMo
                   <div className="grid grid-cols-2 gap-4 mt-6">
                     <div className="text-center p-4 bg-gray-50 rounded-lg">
                       <div className="text-lg font-bold text-gray-900">
-                        {((result.acres * result.expectedYield) / 1000).toFixed(1)}T
+                        {((result.acres * result.estimatedYield) / 1000).toFixed(1)}T
                       </div>
                       <div className="text-xs text-gray-600">Total yield in tonnes</div>
                     </div>

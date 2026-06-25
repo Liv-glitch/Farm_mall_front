@@ -16,11 +16,16 @@ Then edit `.env.production.local` and set the real values, especially:
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.com
 OPENWEATHER_API_KEY=your_openweathermap_api_key_here
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_browser_key_here
 ```
 
 `NEXT_PUBLIC_API_BASE_URL` is baked into the browser bundle at build time, so a
 change to that value requires rebuilding. `OPENWEATHER_API_KEY` should also be
 set in the cPanel Node app environment because it is used at runtime.
+`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is also baked into the browser bundle and is
+used for advanced production-cycle location search and farm boundary drawing.
+Enable Maps JavaScript API and Places API for this key. Boundary drawing uses
+Terra Draw with Google Maps, not the deprecated Google Maps Drawing Library.
 
 ## Package for upload
 
@@ -42,4 +47,3 @@ dependencies if cPanel has not already done so, and restart the Node app.
 ```bash
 ENV_FILE=/path/to/env.production npm run deploy:package
 ```
-

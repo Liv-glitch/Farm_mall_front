@@ -8,9 +8,28 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { Loader2, ChevronLeft, MapPin, CalendarDays } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
-import type { PreproductionPlan, PreproductionStepStatus } from "@/lib/types/preproduction"
+import type { PreproductionPlan } from "@/lib/types/preproduction"
 import { StepTaskCard } from "./step-task-card"
 import { CompletionCta } from "./completion-cta"
+
+const TIMING_GUIDANCE: Record<string, { ideal: string; recommendation: string }> = {
+  "Land Selection": {
+    ideal: "6–8 weeks before planting.",
+    recommendation: "Review the field and rotation history early so there is enough time to choose a better field if needed.",
+  },
+  "Soil Testing": {
+    ideal: "3–6 weeks before planting.",
+    recommendation: "Complete soil testing as soon as possible to improve fertilizer recommendations.",
+  },
+  "Land Preparation": {
+    ideal: "1–4 weeks before planting, with first plowing ideally 3–4 weeks before planting.",
+    recommendation: "Work through the field operations in sequence so the seedbed is loose, level, and ready before planting.",
+  },
+  "Soil Fertility Management": {
+    ideal: "After receiving soil test results and before planting.",
+    recommendation: "Use your soil test results to buy and apply the right nutrients and amendments.",
+  },
+}
 
 function formatShortDate(value: string | null): string {
   if (!value) return "—"
@@ -19,11 +38,57 @@ function formatShortDate(value: string | null): string {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 }
 
-const STATUS_PILL: Record<PreproductionStepStatus, { label: string; className: string }> = {
-  done: { label: "Done", className: "bg-primary-100 text-primary-800" },
-  current: { label: "Current", className: "bg-amber-100 text-amber-800" },
-  upcoming: { label: "Upcoming", className: "bg-muted text-muted-foreground" },
-  past: { label: "Past", className: "bg-amber-100 text-amber-700" },
+function formatCurrentSituation(plantingDate: string | null): string {
+  if (!plantingDate) return "Add your planting date to receive timing guidance."
+  const target = new Date(plantingDate)
+  if (Number.isNaN(target.getTime())) return "Add your planting date to receive timing guidance."
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  target.setHours(0, 0, 0, 0)
+
+  const daysUntilPlanting = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const absDays = Math.abs(daysUntilPlanting)
+  const weeks = Math.round(absDays / 7)
+
+  if (daysUntilPlanting === 0) return "You are planning to plant today."
+  if (absDays >= 14) {
+    const label = weeks === 1 ? "week" : "weeks"
+    return daysUntilPlanting > 0
+      ? `You are planning to plant in ${weeks} ${label}.`
+      : `Your planting date was about ${weeks} ${label} ago.`
+  }
+
+  const label = absDays === 1 ? "day" : "days"
+  return daysUntilPlanting > 0
+    ? `You are planning to plant in ${absDays} ${label}.`
+    : `Your planting date was ${absDays} ${label} ago.`
+}
+
+function TimingGuidance({ title, plantingDate }: { title: string; plantingDate: string | null }) {
+  const guidance = TIMING_GUIDANCE[title] ?? {
+    ideal: "Before planting.",
+    recommendation: "Review this preparation area and complete any tasks that apply to your field.",
+  }
+
+  return (
+    <div className="rounded-2xl bg-primary-50 p-4 text-sm shadow-soft">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <div className="font-semibold text-primary-900">Current Situation</div>
+          <p className="mt-1 text-muted-foreground">{formatCurrentSituation(plantingDate)}</p>
+        </div>
+        <div>
+          <div className="font-semibold text-primary-900">Ideal Timing for {title}</div>
+          <p className="mt-1 text-muted-foreground">{guidance.ideal}</p>
+        </div>
+        <div>
+          <div className="font-semibold text-primary-900">Recommendation</div>
+          <p className="mt-1 text-muted-foreground">{guidance.recommendation}</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const PREPARATION_IMAGE_URL =
@@ -67,9 +132,13 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
   // Expand the current (or first incomplete) step by default.
   const defaultOpen = useMemo(() => {
     if (!plan) return [] as string[]
-    const current = plan.steps.find((s) => s.status === "current")
+    const current = plan.steps.find(
+      (s) => s.status === "current" && (s.tasks ?? []).some((task) => task.activityType === "task" && !task.completed)
+    )
     if (current) return [current.id]
-    const firstOpen = plan.steps.find((s) => s.status !== "done")
+    const firstOpen = plan.steps.find((s) =>
+      (s.tasks ?? []).some((task) => task.activityType === "task" && !task.completed)
+    )
     return firstOpen ? [firstOpen.id] : []
   }, [plan])
 
@@ -95,7 +164,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
     )
   }
 
-  const progressPct = plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0
+  const progressPct = plan.totalTasks ? (plan.completedTasks / plan.totalTasks) * 100 : 0
 
   return (
     <div className="page-shell lg:max-w-5xl lg:mx-auto">
@@ -131,7 +200,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
             <span>{Math.round(progressPct)}%</span>
           </div>
           <div className="text-xs font-medium text-muted-foreground">
-            {plan.completedSteps} of {plan.totalSteps} completed
+            {plan.completedTasks} of {plan.totalTasks} tasks completed
           </div>
           <Progress value={progressPct} className="h-2" />
         </div>
@@ -142,7 +211,6 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
       {/* Steps */}
       <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-3">
         {plan.steps.map((step) => {
-          const pill = STATUS_PILL[step.status]
           return (
             <AccordionItem
               key={step.id}
@@ -151,15 +219,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
             >
               <AccordionTrigger className="hover:no-underline py-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                  <div
-                    className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      step.status === "done"
-                        ? "bg-primary text-white"
-                        : step.status === "current"
-                          ? "bg-amber-500 text-white"
-                          : "bg-muted text-muted-foreground"
-                    }`}
-                  >
+                  <div className="h-8 w-8 shrink-0 rounded-full bg-primary-100 flex items-center justify-center text-sm font-semibold text-primary-900">
                     {step.order}
                   </div>
                   <div className="min-w-0">
@@ -169,12 +229,10 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
                     </div>
                   </div>
                 </div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full mr-2 shrink-0 ${pill.className}`}>
-                  {pill.label}
-                </span>
               </AccordionTrigger>
               <AccordionContent className="pb-4">
                 <div className="space-y-3">
+                  <TimingGuidance title={step.title} plantingDate={plan.plantingDate} />
                   {(step.tasks ?? []).map((task) => (
                     <StepTaskCard key={task.id} task={task} onUpdated={setPlan} />
                   ))}

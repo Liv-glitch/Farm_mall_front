@@ -1305,7 +1305,7 @@ export function YieldCalculatorModal({ open, onOpenChange }: YieldCalculatorModa
 
                       {/* Harvest Window */}
                       <div>
-                        <h4 className="font-medium mb-3">Expected Harvest</h4>
+                        <h4 className="font-medium mb-3">Estimated Harvest</h4>
                         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="font-medium text-blue-800 mb-2">{result.seasonalCalendar.harvestWindow.estimated}</p>
                           <div className="space-y-1">

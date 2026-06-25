@@ -1,16 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart3, CalendarDays, Calculator, DollarSign, Target, type LucideIcon } from "lucide-react"
+import { CalendarDays, Calculator, DollarSign, Target, type LucideIcon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CostCalculatorModal } from "@/components/modals/cost-calculator-modal"
 import { HarvestForecastModal } from "@/components/modals/harvest-forecast-modal"
 import { IncomeCalculatorModal } from "@/components/modals/income-calculator-modal"
 import { InvestmentCalculatorModal } from "@/components/modals/investment-calculator-modal"
-import { YieldCalculatorModal } from "@/components/modals/yield-calculator-modal"
 
-type ToolId = "cost" | "harvest" | "income" | "investment" | "yield"
+type ToolId = "cost" | "harvest" | "income" | "investment"
 
 const farmTools = [
   {
@@ -30,7 +29,7 @@ const farmTools = [
   {
     id: "income",
     title: "Profit & Income Calculator",
-    description: "Model expected income, profit, and margins from your projected yield and market price.",
+    description: "Model estimated income, profit, and margins from your projected yield and market price.",
     action: "Launch Income Calculator",
     icon: DollarSign,
   },
@@ -40,13 +39,6 @@ const farmTools = [
     description: "Compare input budgets, likely returns, and investment needs for a production cycle.",
     action: "Launch Investment Calculator",
     icon: Target,
-  },
-  {
-    id: "yield",
-    title: "Yield Calculator",
-    description: "Estimate likely yield using crop, field, season, and management details.",
-    action: "Launch Yield Calculator",
-    icon: BarChart3,
   },
 ] satisfies Array<{
   id: ToolId
@@ -90,7 +82,7 @@ export function FarmToolsPage() {
                   setActiveTool(tool.id)
                 }
               }}
-              className="group flex cursor-pointer border-agri-100 bg-white transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500 md:[&:nth-child(5)]:col-span-2 lg:col-span-2 lg:[&:nth-child(4)]:col-start-2 lg:[&:nth-child(5)]:col-span-2"
+              className="group flex cursor-pointer border-agri-100 bg-white transition-all hover:-translate-y-0.5 hover:border-agri-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agri-500 lg:col-span-3 xl:col-span-3"
             >
               <CardContent className="flex h-full w-full flex-col items-center gap-5 px-5 pb-5 pt-10 text-center">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-agri-50 text-agri-700 ring-1 ring-agri-100 transition-colors group-hover:bg-agri-600 group-hover:text-white group-hover:ring-agri-600">
@@ -120,7 +112,6 @@ export function FarmToolsPage() {
       <HarvestForecastModal open={activeTool === "harvest"} onOpenChange={handleModalOpenChange} />
       <IncomeCalculatorModal open={activeTool === "income"} onOpenChange={handleModalOpenChange} />
       <InvestmentCalculatorModal open={activeTool === "investment"} onOpenChange={handleModalOpenChange} />
-      <YieldCalculatorModal open={activeTool === "yield"} onOpenChange={handleModalOpenChange} />
     </>
   )
 }

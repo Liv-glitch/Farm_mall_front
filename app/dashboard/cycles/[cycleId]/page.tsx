@@ -6,20 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   ArrowLeft,
   MapPin,
   Calendar,
   Sprout,
-  TrendingUp,
   Edit,
-  DollarSign,
   ActivityIcon,
-  Target,
   Clock,
-  ExternalLink,
   ShoppingBag,
+  Target,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
@@ -30,11 +31,6 @@ import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 
-const FIELD_IMAGE_URL =
-  "https://images.unsplash.com/photo-1625324455604-d75faf4b119b?w=1200&auto=format&fit=crop&q=80&ixlib=rb-4.1.0"
-const HARVEST_IMAGE_URL =
-  "https://images.unsplash.com/photo-1741003132104-cae831b691e8?fm=jpg&q=80&w=1200&auto=format&fit=crop"
-
 export default function CycleDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -43,6 +39,10 @@ export default function CycleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [expectedYieldInput, setExpectedYieldInput] = useState("")
+  const [expectedPriceInput, setExpectedPriceInput] = useState("")
+  const [savingProjection, setSavingProjection] = useState(false)
+  const [projectionError, setProjectionError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -52,7 +52,6 @@ export default function CycleDetailPage() {
         const cycleId = Array.isArray(params.cycleId) ? params.cycleId[0] : params.cycleId
         const cycleRes = await apiClient.getCycle(cycleId)
 
-        // Parse cycle dates
         const parsedCycle = {
           ...cycleRes,
           plantingDate: cycleRes.plantingDate ? new Date(cycleRes.plantingDate).toISOString() : null,
@@ -62,8 +61,9 @@ export default function CycleDetailPage() {
           updatedAt: cycleRes.updatedAt ? new Date(cycleRes.updatedAt).toISOString() : null,
         }
         setCycle(parsedCycle)
+        setExpectedYieldInput(parsedCycle.expectedYield ? String(parsedCycle.expectedYield) : "")
+        setExpectedPriceInput(parsedCycle.expectedPricePerKg ? String(parsedCycle.expectedPricePerKg) : "")
 
-        // Fetch and parse activities
         const activitiesRes = await apiClient.getCycleActivities(cycleId)
         const parsedActivities = (Array.isArray(activitiesRes) ? activitiesRes : activitiesRes.data || [])
           .map((activity: Activity) => ({
@@ -75,7 +75,7 @@ export default function CycleDetailPage() {
           }))
         setActivities(parsedActivities)
       } catch (err: any) {
-        console.error('Error fetching cycle data:', err)
+        console.error("Error fetching cycle data:", err)
         setError(err.message || "Failed to load cycle or activities")
       } finally {
         setLoading(false)
@@ -87,8 +87,8 @@ export default function CycleDetailPage() {
   if (loading) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
-        <div className="flex items-center justify-center h-64">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       </DashboardLayout>
     )
@@ -97,9 +97,11 @@ export default function CycleDetailPage() {
   if (!cycle) {
     return (
       <DashboardLayout sidebar={<UserSidebar />}>
-        <div className="text-center py-12">
+        <div className="py-12 text-center">
           <h2 className="text-xl font-extrabold text-primary-900 sm:text-2xl">Production cycle not found</h2>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">The production cycle you're looking for doesn't exist.</p>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            {error || "The production cycle you're looking for doesn't exist."}
+          </p>
           <Button onClick={() => router.push("/dashboard/cycles")} className="mt-4">
             Back to Production Cycles
           </Button>
@@ -122,55 +124,59 @@ export default function CycleDetailPage() {
   }
 
   const calculateProgress = () => {
-    if (!cycle.plantingDate || !cycle.estimatedHarvestDate) return 0;
-    const plantingDate = new Date(cycle.plantingDate);
-    const estimatedHarvestDate = new Date(cycle.estimatedHarvestDate);
-    const totalDays = differenceInDays(estimatedHarvestDate, plantingDate);
-    if (totalDays <= 0) return 0;
-    const daysPassed = differenceInDays(new Date(), plantingDate);
-    const progress = (daysPassed / totalDays) * 100;
-    return Math.min(Math.max(progress, 0), 100);
+    if (!cycle.plantingDate || !cycle.estimatedHarvestDate) return 0
+    const plantingDate = new Date(cycle.plantingDate)
+    const estimatedHarvestDate = new Date(cycle.estimatedHarvestDate)
+    const totalDays = differenceInDays(estimatedHarvestDate, plantingDate)
+    if (totalDays <= 0) return 0
+    const daysPassed = differenceInDays(new Date(), plantingDate)
+    return Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100)
   }
 
   const getDaysRemaining = () => {
-    if (!cycle.estimatedHarvestDate) return 0;
-    const today = new Date();
-    const harvestDate = cycle.actualHarvestDate ?
-      new Date(cycle.actualHarvestDate) :
-      new Date(cycle.estimatedHarvestDate);
-    return differenceInDays(harvestDate, today);
+    if (!cycle.estimatedHarvestDate) return null
+    const harvestDate = cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate) : new Date(cycle.estimatedHarvestDate)
+    return differenceInDays(harvestDate, new Date())
   }
 
   const getNextActivity = () => {
     if (!activities.length) return null
     return activities
-      .filter(activity => activity.status === "in_progress")
+      .filter((activity) => activity.status === "in_progress")
       .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0]
+  }
+
+  const toNumber = (value: number | string | null | undefined) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
   }
 
   const progress = calculateProgress()
   const daysRemaining = getDaysRemaining()
   const nextActivity = getNextActivity()
-  const expectedRevenue = (cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0)
-  const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
+  const expectedYield = toNumber(cycle.expectedYield)
+  const expectedPricePerKg = toNumber(cycle.expectedPricePerKg)
+  const hasProjection = expectedYield != null && expectedYield > 0 && expectedPricePerKg != null && expectedPricePerKg > 0
+  const expectedRevenue = hasProjection ? expectedYield * expectedPricePerKg : null
+  const actualRevenue = cycle.actualYield && cycle.actualPricePerKg ? cycle.actualYield * cycle.actualPricePerKg : null
+  const displayedRevenue = cycle.status === "harvested" && actualRevenue ? actualRevenue : expectedRevenue
+  const completedActivities = activities.filter((activity) => activity.status === "completed").length
+  const totalActivities = activities.length
 
-  // Calculate total cost from all activities
   const totalCost = activities.reduce((sum, activity) => {
-    let cost = 0
-    if (typeof activity.cost === 'string') {
-      const parsed = parseFloat(activity.cost)
-      cost = isNaN(parsed) ? 0 : parsed
-    } else if (typeof activity.cost === 'number') {
-      cost = isNaN(activity.cost) ? 0 : activity.cost
-    }
-    return sum + cost
+    const parsed = Number(activity.cost)
+    return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
-  const heroImageUrl = cycle.status === "harvested" ? HARVEST_IMAGE_URL : FIELD_IMAGE_URL
-  const completedActivities = cycle.activities?.filter((a) => a.status === "completed").length || 0
-  const totalActivities = cycle.activities?.length || 0
+
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return null
+    return `KSh ${Number(value).toLocaleString()}`
+  }
 
   const handleCycleUpdate = (updatedCycle: ProductionCycle) => {
     setCycle(updatedCycle)
+    setExpectedYieldInput(updatedCycle.expectedYield ? String(updatedCycle.expectedYield) : "")
+    setExpectedPriceInput(updatedCycle.expectedPricePerKg ? String(updatedCycle.expectedPricePerKg) : "")
     toast({
       title: "Success",
       description: "Production cycle updated successfully",
@@ -178,316 +184,262 @@ export default function CycleDetailPage() {
   }
 
   const handleActivityUpdate = (cycleId: string, updatedActivity: Activity) => {
-    if (!cycle) return
-
-    const updatedActivities =
-      cycle.activities?.map((activity) => (activity.id === updatedActivity.id ? updatedActivity : activity)) || []
-
-    setCycle({
-      ...cycle,
-      activities: updatedActivities,
-    })
-    setActivities((prev) =>
-      prev.map((a) => (a.id === updatedActivity.id ? updatedActivity : a))
-    )
+    const updatedActivities = activities.map((activity) => (activity.id === updatedActivity.id ? updatedActivity : activity))
+    setActivities(updatedActivities)
+    setCycle((prev) => (prev ? { ...prev, activities: updatedActivities } : prev))
   }
 
   const handleActivityAdd = (cycleId: string, newActivity: Activity) => {
-    if (!cycle) return
-
-    setCycle({
-      ...cycle,
-      activities: [...(cycle.activities || []), newActivity],
-    })
-    setActivities((prev) => [...prev, newActivity])
+    const updatedActivities = [...activities, newActivity]
+    setActivities(updatedActivities)
+    setCycle((prev) => (prev ? { ...prev, activities: updatedActivities } : prev))
   }
 
-  // Helper function to safely format numbers
-  const formatNumber = (value: number | null | undefined, decimals: number = 2) => {
-    if (value === null || value === undefined || isNaN(Number(value))) return "N/A";
-    return Number(value).toFixed(decimals);
-  };
+  const handleProjectionSave = async () => {
+    setProjectionError(null)
+    const nextYield = Number(expectedYieldInput)
+    const nextPrice = Number(expectedPriceInput)
 
-  // Helper function to format currency
-  const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined || isNaN(Number(value))) return "N/A";
-    return `KSh ${Number(value).toLocaleString()}`;
-  };
+    if (!Number.isFinite(nextYield) || nextYield <= 0 || !Number.isFinite(nextPrice) || nextPrice <= 0) {
+      setProjectionError("Enter expected yield and expected price using numbers greater than zero.")
+      return
+    }
+
+    try {
+      setSavingProjection(true)
+      const updatedCycle = await apiClient.updateCycle({
+        id: cycle.id,
+        expectedYield: nextYield,
+        expectedPricePerKg: nextPrice,
+      }) as ProductionCycle
+      setCycle((prev) => prev ? { ...prev, ...updatedCycle, expectedYield: nextYield, expectedPricePerKg: nextPrice } : updatedCycle)
+      toast({
+        title: "Projection saved",
+        description: "Expected yield and price have been added to this cycle.",
+      })
+    } catch (err: any) {
+      const message = err.message || "Could not save the expected yield and price."
+      setProjectionError(message)
+      toast({
+        title: "Projection not saved",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      setSavingProjection(false)
+    }
+  }
 
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
       <div className="page-shell">
-        {/* Header */}
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
-          <div className="space-y-3 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/dashboard/cycles")}
-              className="w-fit text-agri-700 hover:bg-agri-50"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Production Cycles
-            </Button>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/dashboard/cycles")}
+            className="w-fit text-agri-700 hover:bg-agri-50"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Production Cycles
+          </Button>
 
-            <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-              <div className="relative min-h-48">
-                <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-950/85 via-primary-900/45 to-primary-700/20" />
-                <div className="relative flex min-h-48 flex-col justify-end p-5 text-white sm:p-7">
-                  <Badge className={`${getStatusColor(cycle.status)} mb-4 w-fit text-xs`}>
-                    {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-                  </Badge>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Sprout className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
-                    <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">{cycle.cropVariety?.name || "Unknown Variety"}</h1>
-                  </div>
-                  <div className="mt-3 flex flex-col space-y-1 text-xs text-white/80 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0 sm:text-sm">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span className="truncate">{cycle.farmLocation}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span>{cycle.landSizeAcres} acres</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
-              onClick={() => window.open('https://findfarmers.onrender.com/#/register-farmer', '_blank')}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+              onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
+              className="w-full bg-blue-600 text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg sm:w-auto"
             >
-              <ShoppingBag className="h-4 w-4 mr-2" />
+              <ShoppingBag className="mr-2 h-4 w-4" />
               Find Market
             </Button>
-            <Button
-              onClick={() => setShowEditModal(true)}
-              className="w-full sm:w-auto"
-            >
-              <Edit className="h-4 w-4 mr-2" />
+            <Button onClick={() => setShowEditModal(true)} className="w-full sm:w-auto">
+              <Edit className="mr-2 h-4 w-4" />
               Edit Cycle
             </Button>
           </div>
         </div>
 
-        {/* Progress Overview + Calendar */}
-        <Card className="border-0 bg-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
-              Progress Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span>Cycle Progress</span>
-                <span className="font-medium">{Math.round(progress)}%</span>
+        <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
+          <CardContent className="p-5 sm:p-7">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 space-y-4">
+                <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
+                  {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
+                </Badge>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Sprout className="h-6 w-6 flex-shrink-0 text-primary-100" />
+                  <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
+                    {cycle.cropVariety?.name || "Unknown Variety"}
+                  </h1>
+                </div>
+                <div className="flex flex-col gap-2 text-sm text-primary-50 sm:flex-row sm:flex-wrap sm:gap-4">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{cycle.farmCounty || cycle.farmLocation || "Location not set"}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                    {cycle.landSizeAcres} acres
+                  </span>
+                </div>
               </div>
-              <Progress value={progress} className="h-2 sm:h-3" />
-              <div className="flex flex-col space-y-1 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:space-y-0">
-                <span>Planted: {cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd, yyyy") : "N/A"}</span>
-                <span>
-                  {daysRemaining > 0
-                    ? `${daysRemaining} days remaining`
-                    : cycle.status === "harvested"
-                      ? "Harvested"
-                      : "Ready to harvest"}
-                </span>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">Crop Variety</div>
+                  <div className="mt-1 truncate text-sm font-bold">{cycle.cropVariety?.name || "Not set"}</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">County</div>
+                  <div className="mt-1 truncate text-sm font-bold">{cycle.farmCounty || "Not set"}</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">Land Size</div>
+                  <div className="mt-1 text-sm font-bold">{cycle.landSizeAcres} acres</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">Total Investment</div>
+                  <div className="mt-1 text-sm font-bold">{formatCurrency(totalCost) || "Not added"}</div>
+                </div>
+                {hasProjection && (
+                  <div className="rounded-lg bg-white/10 p-3">
+                    <div className="text-xs text-primary-100">Expected Yield</div>
+                    <div className="mt-1 text-sm font-bold">{expectedYield.toLocaleString()} kg</div>
+                  </div>
+                )}
+                {displayedRevenue != null && (
+                  <div className="rounded-lg bg-white/10 p-3">
+                    <div className="text-xs text-primary-100">Expected Revenue</div>
+                    <div className="mt-1 text-sm font-bold">{formatCurrency(displayedRevenue)}</div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {!hasProjection && (
+              <div className="mt-5 rounded-lg border border-white/15 bg-white/10 p-4">
+                <div className="flex items-start gap-2 text-sm text-primary-50">
+                  <Target className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <p>Add expected yield and price to calculate projected revenue.</p>
+                </div>
+                {projectionError && (
+                  <Alert variant="destructive" className="mt-3 bg-white">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{projectionError}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                  <div>
+                    <Label htmlFor="expectedYield" className="text-primary-50">Enter expected yield(kg)</Label>
+                    <Input
+                      id="expectedYield"
+                      type="number"
+                      min="1"
+                      value={expectedYieldInput}
+                      onChange={(event) => setExpectedYieldInput(event.target.value)}
+                      className="mt-2 bg-white text-primary-950"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expectedPricePerKg" className="text-primary-50">Enter expected price per kg (ksh)</Label>
+                    <Input
+                      id="expectedPricePerKg"
+                      type="number"
+                      min="1"
+                      value={expectedPriceInput}
+                      onChange={(event) => setExpectedPriceInput(event.target.value)}
+                      className="mt-2 bg-white text-primary-950"
+                    />
+                  </div>
+                  <Button type="button" onClick={handleProjectionSave} disabled={savingProjection} className="bg-white text-primary-900 hover:bg-primary-50">
+                    {savingProjection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Activities & Progress Card */}
-          <Card>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="border-0 bg-white shadow-card">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <ActivityIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
-                Activities & Progress
+                <ActivityIcon className="h-5 w-5 text-primary-700" />
+                Activities
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-extrabold text-primary-900 sm:text-3xl">
-                    {completedActivities}/{totalActivities}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Activities Completed</p>
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 rounded-lg bg-primary-50 p-4 md:grid-cols-[1fr_auto_auto] md:items-center">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-primary-950">Cycle progress</span>
+                    <span className="font-bold text-primary-900">{Math.round(progress)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-extrabold text-primary-800 sm:text-xl">{Math.round(progress)}%</p>
-                  <p className="text-xs text-muted-foreground">Cycle Progress</p>
+                <div className="text-sm">
+                  <div className="font-bold text-primary-950">{completedActivities}/{totalActivities}</div>
+                  <div className="text-xs text-muted-foreground">Activities completed</div>
+                </div>
+                <div className="text-sm">
+                  <div className="font-bold text-primary-950">{nextActivity?.description || "No activity in progress"}</div>
+                  <div className="text-xs text-muted-foreground">Next activity</div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Progress value={progress} className="h-2" />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Started: {cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd") : "N/A"}</span>
-                  <span>Target: {cycle.estimatedHarvestDate ? format(new Date(cycle.estimatedHarvestDate), "MMM dd") : "N/A"}</span>
-                </div>
-              </div>
+              <ActivityList
+                activities={activities}
+                cycleId={cycle.id}
+                onActivityUpdate={handleActivityUpdate}
+                onActivityAdd={handleActivityAdd}
+              />
             </CardContent>
           </Card>
 
-          {/* Financial Overview Card */}
-          <Card>
+          <Card className="border-0 bg-white shadow-card">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
-                Financial Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-lg sm:text-xl font-bold text-red-600">
-                    KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
-                  </p>
-                  <p className="text-xs text-muted-foreground">Total Investment</p>
-                </div>
-                <div>
-                  <p className="text-lg sm:text-xl font-bold text-blue-600">
-                    KSh {(() => {
-                      const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
-                      return isNaN(revenue) ? '0' : (revenue / 1000).toFixed(0)
-                    })()}k
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {cycle.status === "harvested" && actualRevenue > 0 ? "Actual" : "Expected"} Revenue
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Net Profit:</span>
-                  <span className={`text-lg sm:text-xl font-bold ${(cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost > 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                    }`}>
-                    KSh {(((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) - totalCost) / 1000).toFixed(0)}k
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  ROI: {totalCost > 0 ? (((cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue) / totalCost - 1) * 100).toFixed(1) : 0}%
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Cycle Timeline Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Calendar className="h-5 w-5 text-primary-700" />
                 Cycle Timeline
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center">
+            <CardContent className="space-y-4">
+              <div className="space-y-3 text-sm">
                 <div>
-                  <p className="text-sm font-bold text-muted-foreground">Planting Date</p>
-                  <p className="text-sm">{format(cycle.plantingDate, "MMM dd, yyyy")}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-muted-foreground">Expected Harvest</p>
-                  <p className="text-sm">
-                    {cycle.estimatedHarvestDate ?
-                      format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") :
-                      "Not set"}
-                  </p>
-                </div>
-              </div>
-
-              {cycle.actualHarvestDate && (
-                <div className="rounded-2xl bg-primary-50 p-3">
-                  <p className="text-sm font-medium text-green-800">Harvested</p>
-                  <p className="text-sm text-green-700">{format(cycle.actualHarvestDate, "MMM dd, yyyy")}</p>
-                </div>
-              )}
-
-              <div className="text-center pt-2 border-t">
-                <p className="text-lg font-extrabold text-primary-900 sm:text-xl">
-                  {daysRemaining > 0 ? `${daysRemaining} days` : "Ready"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {daysRemaining > 0 ? "remaining" : "to harvest"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Farm Details Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Sprout className="h-4 w-4 sm:h-5 sm:w-5 text-primary-700" />
-                Farm Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-sm font-bold text-muted-foreground">Crop Variety</p>
-                  <p className="text-sm">{cycle.cropVariety?.name}</p>
-                  <p className="text-xs text-muted-foreground">({cycle.cropVariety?.cropType})</p>
+                  <div className="font-bold text-muted-foreground">Planting Date</div>
+                  <div>{cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd, yyyy") : "Not set"}</div>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-muted-foreground">Land Size</p>
-                  <p className="text-sm font-extrabold">{cycle.landSizeAcres} acres</p>
+                  <div className="font-bold text-muted-foreground">Estimated Harvest</div>
+                  <div>{cycle.estimatedHarvestDate ? format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") : "Not set"}</div>
                 </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-muted-foreground">Location</p>
-                <p className="text-sm truncate">{cycle.farmLocation}</p>
-                {cycle.farmLocationLat && cycle.farmLocationLng && (
-                  <p className="text-xs text-muted-foreground">
-                    {formatNumber(cycle.farmLocationLat, 4)}, {formatNumber(cycle.farmLocationLng, 4)}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                <div>
-                  <p className="text-sm font-bold text-muted-foreground">Expected Yield</p>
-                  <p className="text-sm font-extrabold">{cycle.expectedYield?.toLocaleString() || 0} kg</p>
-                </div>
-                {cycle.actualYield && (
-                  <div>
-                    <p className="text-sm font-bold text-muted-foreground">Actual Yield</p>
-                    <p className="text-sm font-extrabold text-primary-700">{cycle.actualYield.toLocaleString()} kg</p>
+                {cycle.actualHarvestDate && (
+                  <div className="rounded-lg bg-primary-50 p-3">
+                    <div className="font-medium text-green-800">Harvested</div>
+                    <div className="text-green-700">{format(new Date(cycle.actualHarvestDate), "MMM dd, yyyy")}</div>
                   </div>
                 )}
+              </div>
+
+              <div className="border-t pt-4 text-center">
+                <Clock className="mx-auto mb-2 h-5 w-5 text-primary-700" />
+                <div className="text-xl font-extrabold text-primary-900">
+                  {daysRemaining == null
+                    ? "Not set"
+                    : daysRemaining > 0
+                      ? `${daysRemaining} days`
+                      : cycle.status === "harvested"
+                        ? "Harvested"
+                        : "Ready"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {daysRemaining != null && daysRemaining > 0 ? "remaining" : "timeline status"}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-
-        {/* Activities Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg">Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActivityList
-              activities={cycle.activities || []}
-              cycleId={cycle.id}
-              onActivityUpdate={handleActivityUpdate}
-              onActivityAdd={handleActivityAdd}
-            />
-          </CardContent>
-        </Card>
       </div>
 
       <EditCycleModal

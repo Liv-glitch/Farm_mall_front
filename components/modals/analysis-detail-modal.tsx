@@ -1169,7 +1169,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                       <p className="text-sm text-gray-600 mt-2 line-clamp-2">{crop.notes}</p>
                     )}
                     {crop.expectedYield && (
-                      <p className="text-xs text-green-600 mt-1">Expected: {crop.expectedYield}</p>
+                      <p className="text-xs text-green-600 mt-1">Estimated: {crop.expectedYield}</p>
                     )}
                   </div>
                 ))}
@@ -1396,7 +1396,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                   <div className="text-2xl font-bold text-blue-600">
                     {data.estimatedYield.quantity} {data.estimatedYield.unit || 'kg'}
                   </div>
-                  <p className="text-sm text-gray-600">Expected Yield</p>
+                  <p className="text-sm text-gray-600">Estimated Yield</p>
                 </div>
                 {data.economicProjection?.roi && (
                   <div className="text-center p-4 bg-green-50 rounded-lg">

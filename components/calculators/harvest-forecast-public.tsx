@@ -123,7 +123,7 @@ export function HarvestForecastPublic() {
             {showForecast && selectedVariety ? (
               <div className="space-y-6">
                 <div className="text-center p-6 bg-gradient-to-br from-secondary-50 to-accent-50 rounded-xl border border-secondary-100">
-                  <div className="text-sm text-gray-600 mb-1">Expected Harvest Date</div>
+                  <div className="text-sm text-gray-600 mb-1">Estimated Harvest Date</div>
                   <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-secondary-600 bg-clip-text text-transparent mb-1">
                     {harvestDate.split(",")[1]} {harvestDate.split(",")[2]}
                   </div>
@@ -158,7 +158,7 @@ export function HarvestForecastPublic() {
                   <div className="flex items-center space-x-3 p-3 bg-accent-50 rounded-lg">
                     <div className="w-3 h-3 bg-accent-500 rounded-full"></div>
                     <div>
-                      <div className="font-medium">Expected Yield</div>
+                      <div className="font-medium">Estimated Yield</div>
                       <div className="text-sm text-gray-600">
                         {(selectedVariety.averageYieldPerAcre / 1000).toFixed(1)} tons/acre
                       </div>
@@ -167,7 +167,7 @@ export function HarvestForecastPublic() {
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-3">Expected Weather Pattern</h4>
+                  <h4 className="font-medium mb-3">Estimated Weather Pattern</h4>
                   <div className="grid grid-cols-4 gap-3">
                     <div className="text-center p-3 bg-yellow-50 rounded-lg">
                       <Sun className="w-6 h-6 mx-auto mb-2 text-yellow-500" />

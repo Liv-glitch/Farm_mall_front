@@ -65,9 +65,22 @@ const extractData = (res: any) => (res?.data ? res.data : res) || {}
 
 const extractMatches = (res: any): DiseaseMatch[] => {
   const data = extractData(res)
-  const raw = Array.isArray(data?.diseases) ? data.diseases : []
+  const raw = Array.isArray(data?.diseases)
+    ? data.diseases
+    : Array.isArray(data?.healthAssessmentResult?.diseases)
+      ? data.healthAssessmentResult.diseases
+      : Array.isArray(res?.diseases)
+        ? res.diseases
+        : []
 
-  return raw.slice(0, 3).map((d: any, idx: number): DiseaseMatch => {
+  const fallbackTreatment =
+    data?.treatment ||
+    data?.treatmentSuggestions ||
+    data?.treatmentPriority ||
+    res?.treatmentSuggestions ||
+    {}
+
+  const matches = raw.slice(0, 3).map((d: any, idx: number): DiseaseMatch => {
     const confidence =
       typeof d?.confidence === "number"
         ? d.confidence > 1
@@ -77,11 +90,11 @@ const extractMatches = (res: any): DiseaseMatch[] => {
           ? d.probability
           : undefined
 
-    const treatment = data?.treatment || d?.treatment || {}
+    const treatment = d?.treatment || fallbackTreatment
 
     return {
       id: d?.id || `${idx}`,
-      name: d?.commonName || d?.name || "Unknown disease",
+      name: d?.commonName || d?.common_name || d?.diseaseName || d?.disease_name || d?.name || "Plant health assessment",
       scientificName: d?.scientificName || d?.scientific_name,
       description: d?.description,
       severity: d?.severity,
@@ -97,8 +110,8 @@ const extractMatches = (res: any): DiseaseMatch[] => {
         d?.imageUrl ||
         d?.referenceImage ||
         d?.image,
-      symptoms: Array.isArray(d?.symptoms) ? d.symptoms : undefined,
-      causes: Array.isArray(d?.causes) ? d.causes : undefined,
+      symptoms: Array.isArray(d?.symptoms) ? d.symptoms : Array.isArray(data?.symptoms) ? data.symptoms : undefined,
+      causes: Array.isArray(d?.causes) ? d.causes : Array.isArray(data?.causes) ? data.causes : undefined,
       provider: data?.provider || res?.provider || data?.metadata?.provider,
       model: data?.model || res?.model || data?.metadata?.model,
       treatment: {
@@ -109,6 +122,39 @@ const extractMatches = (res: any): DiseaseMatch[] => {
       },
     }
   })
+
+  if (matches.length > 0) return matches
+
+  if (data && Object.keys(data).length > 0) {
+    return [
+      {
+        id: data?.analysisId || res?.id || "assessment",
+        name:
+          data?.diseaseName ||
+          data?.primaryDisease ||
+          data?.healthStatus?.status ||
+          "Plant health assessment",
+        description: data?.summary || data?.description,
+        confidence: data?.confidence || data?.healthStatus?.confidence,
+        symptoms: Array.isArray(data?.symptoms) ? data.symptoms : undefined,
+        causes: Array.isArray(data?.causes)
+          ? data.causes
+          : Array.isArray(data?.healthStatus?.reasons)
+            ? data.healthStatus.reasons
+            : undefined,
+        provider: data?.provider || res?.provider || data?.metadata?.provider,
+        model: data?.model || res?.model || data?.metadata?.model,
+        treatment: {
+          organic: fallbackTreatment?.organic || fallbackTreatment?.organicSolutions,
+          chemical: fallbackTreatment?.chemical || fallbackTreatment?.chemicalSolutions,
+          prevention: fallbackTreatment?.prevention || fallbackTreatment?.preventiveMeasures,
+          immediate: fallbackTreatment?.immediate || fallbackTreatment?.immediateActions,
+        },
+      },
+    ]
+  }
+
+  return []
 }
 
 const formatConfidence = (c?: number) =>
@@ -884,19 +930,7 @@ function TreatView({
               </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
-              {match.symptoms && match.symptoms.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 mb-2">
-                    <Leaf className="h-4 w-4 text-emerald-700" /> Symptoms
-                  </div>
-                  <ul className="space-y-1.5 text-sm text-slate-700 list-disc pl-4">
-                    {match.symptoms.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            <div className="mt-5 space-y-4">
               {match.causes && match.causes.length > 0 && (
                 <div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-950 mb-2">
@@ -909,21 +943,48 @@ function TreatView({
                   </ul>
                 </div>
               )}
+              {(!match.causes || match.causes.length === 0) && (
+                <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+                  Causes are not available for this result yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* What to do next */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <ClipboardCheck className="h-4 w-4 text-teal-700" />
-          <h3 className="text-base font-semibold text-slate-950">
-            What to do next
-          </h3>
-        </div>
+      <Button
+        asChild
+        className="w-full rounded-full bg-amber-500 py-6 text-base font-bold text-slate-950 hover:bg-amber-400"
+      >
+        <a href="https://farmflow-platform.onrender.com/marketplace?category=herbicides">
+          Find agrochemicals to treat this disease
+        </a>
+      </Button>
 
-        <div className="border-b border-slate-200 flex items-center gap-6 mb-4">
+      {match.symptoms && match.symptoms.length > 0 && (
+        <details className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <summary className="cursor-pointer text-base font-semibold text-slate-950">
+            Symptoms
+          </summary>
+          <ul className="mt-3 space-y-1.5 text-sm text-slate-700 list-disc pl-4">
+            {match.symptoms.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {/* What to do next */}
+      <details className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <summary className="cursor-pointer">
+          <span className="inline-flex items-center gap-2 text-base font-semibold text-slate-950">
+            <ClipboardCheck className="h-4 w-4 text-teal-700" />
+            What to do next
+          </span>
+        </summary>
+
+        <div className="mt-4 border-b border-slate-200 flex items-center gap-6 mb-4">
           {(["organic", "chemical", "prevention"] as TreatmentTab[]).map((tab) => (
             <button
               key={tab}
@@ -958,7 +1019,7 @@ function TreatView({
             available for this match yet.
           </p>
         )}
-      </div>
+      </details>
 
       {/* Save record */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">

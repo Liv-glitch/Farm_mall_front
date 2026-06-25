@@ -172,13 +172,13 @@ export function PreproductionPlanningPage() {
 
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs font-medium">
-                            <span className="text-primary-700">{plan.completedSteps} of {plan.totalSteps} completed</span>
+                            <span className="text-primary-700">{plan.completedTasks} of {plan.totalTasks} tasks completed</span>
                             {plan.status === "completed" && (
                               <span className="text-primary-700">Done</span>
                             )}
                           </div>
                           <Progress
-                            value={plan.totalSteps ? (plan.completedSteps / plan.totalSteps) * 100 : 0}
+                            value={plan.totalTasks ? (plan.completedTasks / plan.totalTasks) * 100 : 0}
                             className="h-2"
                           />
                         </div>

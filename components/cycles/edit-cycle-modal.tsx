@@ -36,9 +36,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
     status: cycle.status || "active",
     cropStage: cycle.cropStage,
-    expectedYield: cycle.expectedYield || 0,
     actualYield: cycle.actualYield || 0,
-    expectedPricePerKg: cycle.expectedPricePerKg || 0,
     actualPricePerKg: cycle.actualPricePerKg || 0,
   })
 
@@ -56,9 +54,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
       status: cycle.status || "active",
       cropStage: cycle.cropStage,
-      expectedYield: cycle.expectedYield || 0,
       actualYield: cycle.actualYield || 0,
-      expectedPricePerKg: cycle.expectedPricePerKg || 0,
       actualPricePerKg: cycle.actualPricePerKg || 0,
     })
   }, [cycle])
@@ -111,9 +107,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
         if (formData.actualHarvestDate) payload.append("actualHarvestDate", new Date(formData.actualHarvestDate).toISOString())
         payload.append("status", formData.status || "planning")
         if (formData.cropStage) payload.append("cropStage", formData.cropStage)
-        payload.append("expectedYield", formData.expectedYield.toString())
         payload.append("actualYield", formData.actualYield.toString())
-        payload.append("expectedPricePerKg", formData.expectedPricePerKg.toString())
         payload.append("actualPricePerKg", formData.actualPricePerKg.toString())
         payload.append("image", imageFile)
       } else {
@@ -129,9 +123,7 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
           actualHarvestDate: formData.actualHarvestDate ? new Date(formData.actualHarvestDate).toISOString() : undefined,
           status: formData.status || "planning",
           cropStage: formData.cropStage,
-          expectedYield: formData.expectedYield,
           actualYield: formData.actualYield,
-          expectedPricePerKg: formData.expectedPricePerKg,
           actualPricePerKg: formData.actualPricePerKg
         }
       }
@@ -329,29 +321,6 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="expectedYield">Expected Yield (kg)</Label>
-              <Input
-                id="expectedYield"
-                type="number"
-                value={formData.expectedYield}
-                onChange={(e) => setFormData((prev) => ({ ...prev, expectedYield: Number(e.target.value) }))}
-                placeholder="8000"
-              />
-            </div>
-            <div>
-              <Label htmlFor="expectedPricePerKg">Expected Price per Kg (KSh)</Label>
-              <Input
-                id="expectedPricePerKg"
-                type="number"
-                value={formData.expectedPricePerKg}
-                onChange={(e) => setFormData((prev) => ({ ...prev, expectedPricePerKg: Number(e.target.value) }))}
-                placeholder="45"
-              />
-            </div>
-          </div>
-
           {formData.status === "harvested" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -377,26 +346,17 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
             </div>
           )}
 
-          {/* Summary */}
-          <div className="space-y-2 rounded-2xl bg-primary-50 p-4">
-            <h4 className="font-extrabold text-primary-900">Financial Summary</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Expected Revenue:</span>
+          {formData.status === "harvested" && formData.actualYield > 0 && formData.actualPricePerKg > 0 && (
+            <div className="space-y-2 rounded-2xl bg-primary-50 p-4">
+              <h4 className="font-extrabold text-primary-900">Harvest Summary</h4>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Actual Revenue:</span>
                 <div className="font-extrabold text-primary-900">
-                  KSh {(formData.expectedYield * formData.expectedPricePerKg).toLocaleString()}
+                  KSh {(formData.actualYield * formData.actualPricePerKg).toLocaleString()}
                 </div>
               </div>
-              {formData.status === "harvested" && formData.actualYield > 0 && formData.actualPricePerKg > 0 && (
-                <div>
-                  <span className="text-muted-foreground">Actual Revenue:</span>
-                  <div className="font-extrabold text-primary-900">
-                    KSh {(formData.actualYield * formData.actualPricePerKg).toLocaleString()}
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Show image preview if available and type allows */}
           {('imageUrl' in cycle) && (cycle as any).imageUrl && (

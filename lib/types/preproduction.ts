@@ -6,11 +6,22 @@ export type PreproductionPlanStatus = "not_started" | "in_progress" | "completed
 
 export type PreproductionStepStatus = "done" | "current" | "upcoming" | "past"
 
+export type PreproductionActivityType = "informational" | "task"
+
+export interface PreproductionServiceLink {
+  label: string
+  href: string
+}
+
 export interface PreproductionTask {
   id: string
   stepId: string
   order: number
   title: string
+  activityType: PreproductionActivityType
+  importance: string
+  recommendations: string[]
+  serviceLinks: PreproductionServiceLink[]
   whatYouNeed: string | null
   whatYouNeedLink: string | null
   expertTip: string | null

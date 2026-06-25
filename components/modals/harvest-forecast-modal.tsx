@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Cloud, Sun, CloudRain, Loader2 } from "lucide-react"
+import { Calendar, CloudSun, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { HarvestPredictionRequest, HarvestPredictionResponse } from "@/lib/types/calculator"
 import type { CropVariety } from "@/lib/types/production"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
+import { useAuth } from "@/lib/hooks/use-auth"
 
 interface HarvestForecastModalProps {
   open: boolean
@@ -20,6 +21,7 @@ interface HarvestForecastModalProps {
 }
 
 export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModalProps) {
+  const { farm } = useAuth()
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
   const [formData, setFormData] = useState<HarvestPredictionRequest>({
     cropVarietyId: "",
@@ -30,6 +32,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       longitude: 0,
     },
   })
+  const [locationName, setLocationName] = useState("")
   const [result, setResult] = useState<HarvestPredictionResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
@@ -37,8 +40,18 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
   useEffect(() => {
     if (open) {
       loadCropVarieties()
+      setLocationName(farm?.location || "")
+      if (typeof farm?.locationLat === "number" && typeof farm?.locationLng === "number") {
+        setFormData((prev) => ({
+          ...prev,
+          location: {
+            latitude: farm.locationLat!,
+            longitude: farm.locationLng!,
+          },
+        }))
+      }
     }
-  }, [open])
+  }, [farm?.location, farm?.locationLat, farm?.locationLng, open])
 
   const loadCropVarieties = async () => {
     try {
@@ -130,10 +143,22 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       cropVarietyId: "",
       plantingDate: new Date().toISOString().split("T")[0],
       landSizeAcres: 0,
-      location: { latitude: 0, longitude: 0 },
+      location: {
+        latitude: farm?.locationLat || 0,
+        longitude: farm?.locationLng || 0,
+      },
     })
+    setLocationName(farm?.location || "")
     setResult(null)
   }
+
+  const planningConditions = result
+    ? getMonthlyPlanningConditions(
+        result.plantingDate,
+        result.estimatedHarvestDate,
+        locationName
+      )
+    : []
 
 
   return (
@@ -218,11 +243,25 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="forecastLocation">Farm Location</Label>
+                    <Input
+                      id="forecastLocation"
+                      placeholder="e.g., Meru, Imenti North"
+                      value={locationName}
+                      onChange={(e) => setLocationName(e.target.value)}
+                      className="h-12"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Used for location-specific planning conditions.
+                    </p>
+                  </div>
+
                   {formData.cropVarietyId && (() => {
                     const selectedCrop = cropVarieties.find(c => c.id === formData.cropVarietyId)
                     return selectedCrop ? (
                       <div className="p-3 bg-sage-50 rounded-lg">
-                        <h4 className="font-medium text-sage-900 mb-2">Expected Yield (from crop data)</h4>
+                        <h4 className="font-medium text-sage-900 mb-2">Estimated Yield (from crop data)</h4>
                         <div className="text-lg font-bold text-sage-800">
                           {selectedCrop.averageYieldPerAcre.toLocaleString()} kg/acre
                         </div>
@@ -267,7 +306,7 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
               {result ? (
                 <div className="space-y-6">
                   <div className="text-center p-6 bg-gradient-to-br from-sage-50 to-warm-50 rounded-xl">
-                    <div className="text-sm text-gray-600 mb-1">Expected Harvest Date</div>
+                    <div className="text-sm text-gray-600 mb-1">Estimated Harvest Date</div>
                     <div className="text-2xl font-bold text-sage-700 mb-1">
                       {new Date(result.estimatedHarvestDate).toLocaleDateString("en-US", {
                         weekday: "long",
@@ -276,23 +315,9 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                         day: "numeric",
                       })}
                     </div>
-                    <div className="text-sm text-warm-600">
-                      Harvest Window: {new Date(result.harvestWindow.startDate).toLocaleDateString()} -{" "}
-                      {new Date(result.harvestWindow.endDate).toLocaleDateString()}
-                    </div>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex justify-between p-3 bg-sage-50 rounded-lg">
-                      <span className="font-medium">Expected Yield</span>
-                      <div className="text-right">
-                        <div className="font-semibold">{(result.estimatedYield.totalKg / 1000).toFixed(1)} tons</div>
-                        <div className="text-xs text-gray-500">
-                          {(result.estimatedYield.yieldPerAcre / 1000).toFixed(1)} tons/acre
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="flex justify-between p-3 bg-warm-50 rounded-lg">
                       <span className="font-medium">Growing Period</span>
                       <div className="font-semibold">
@@ -303,58 +328,22 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                         days
                       </div>
                     </div>
-
-                    <div className="flex justify-between p-3 bg-blue-50 rounded-lg">
-                      <span className="font-medium">Avg Temperature</span>
-                      <div className="font-semibold">{result.climateConditions.averageTemperature}°C</div>
-                    </div>
-
-                    <div className="flex justify-between p-3 bg-green-50 rounded-lg">
-                      <span className="font-medium">Expected Rainfall</span>
-                      <div className="font-semibold">{result.climateConditions.expectedRainfall}mm</div>
-                    </div>
-
-                    <div className="flex justify-between p-3 bg-cyan-50 rounded-lg">
-                      <span className="font-medium">Humidity</span>
-                      <div className="font-semibold">{result.climateConditions.humidity}%</div>
-                    </div>
                   </div>
 
                   <div>
-                    <h4 className="font-medium mb-3">Weather Pattern</h4>
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                        <Sun className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
-                        <div className="text-xs font-medium">Sunny</div>
-                      </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <Cloud className="w-6 h-6 mx-auto mb-2 text-gray-500" />
-                        <div className="text-xs font-medium">Cloudy</div>
-                      </div>
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <CloudRain className="w-6 h-6 mx-auto mb-2 text-blue-500" />
-                        <div className="text-xs font-medium">Rainy</div>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                        <Sun className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
-                        <div className="text-xs font-medium">Clear</div>
-                      </div>
+                    <h4 className="font-medium mb-3">Planning weather conditions</h4>
+                    <div className="space-y-2">
+                      {planningConditions.map((item) => (
+                        <div key={item.month} className="flex items-start gap-3 rounded-lg bg-blue-50 p-3">
+                          <CloudSun className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                          <div>
+                            <div className="font-semibold text-blue-950">{item.month}</div>
+                            <div className="text-sm text-blue-800">{item.condition}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-
-                  {result.recommendations.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-3">Recommendations</h4>
-                      <ul className="space-y-2 text-sm text-gray-600">
-                        {result.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-sage-600">•</span>
-                            <span>{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
@@ -368,4 +357,42 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
       </DialogContent>
     </Dialog>
   )
+}
+
+function getMonthlyPlanningConditions(startDate: string, endDate: string, locationName: string) {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return []
+
+  const highlandLocation = /(meru|nyandarua|nakuru|kiambu|nyeri|embu|elgeyo|uasin|kericho|bomet|nandi)/i.test(locationName)
+  const conditions: Array<{ month: string; condition: string }> = []
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1)
+  const last = new Date(end.getFullYear(), end.getMonth(), 1)
+
+  while (cursor <= last && conditions.length < 12) {
+    const month = cursor.toLocaleDateString("en-GB", { month: "long" })
+    const monthIndex = cursor.getMonth()
+    let condition = "Mild conditions likely; monitor local rainfall and soil moisture."
+
+    if ([2, 3, 4].includes(monthIndex)) {
+      condition = highlandLocation
+        ? "Long rains likely; plan drainage and watch for fungal disease pressure."
+        : "Rainy conditions likely; protect young crops from waterlogging."
+    } else if ([5, 6, 7].includes(monthIndex)) {
+      condition = highlandLocation
+        ? "Cool conditions; monitor late blight risk during misty or wet spells."
+        : "Cool to dry conditions; check soil moisture before fertilizer applications."
+    } else if (monthIndex === 8) {
+      condition = "Mostly dry transition period; plan irrigation if rains delay."
+    } else if ([9, 10, 11].includes(monthIndex)) {
+      condition = "Short rains possible; plan spray timing around wet days."
+    } else {
+      condition = "Warmer and drier conditions; conserve moisture and schedule irrigation early."
+    }
+
+    conditions.push({ month, condition })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return conditions
 }

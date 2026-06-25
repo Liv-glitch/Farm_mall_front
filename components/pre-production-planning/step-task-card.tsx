@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CheckCircle2, Circle, ExternalLink, Lightbulb, Loader2, CalendarCheck, Coins, Truck } from "lucide-react"
+import { CheckCircle2, Circle, ExternalLink, Info, Loader2, CalendarCheck, Coins, Truck, ListChecks } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { PreproductionPlan, PreproductionTask } from "@/lib/types/preproduction"
@@ -20,6 +20,17 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ date_completed: "", cost: "", supplier: "" })
+  const isTask = task.activityType === "task"
+  const recommendations = task.recommendations?.length
+    ? task.recommendations
+    : task.expertTip
+      ? [task.expertTip]
+      : []
+  const serviceLinks = task.serviceLinks?.length
+    ? task.serviceLinks
+    : task.whatYouNeed && task.whatYouNeedLink
+      ? [{ label: task.whatYouNeed, href: task.whatYouNeedLink }]
+      : []
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,21 +82,26 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
   }
 
   return (
-    <div
-      className={`rounded-2xl p-4 shadow-soft transition-all ${
-        task.completed ? "bg-primary-50" : "bg-white"
-      }`}
-    >
+    <div className={`rounded-2xl p-4 shadow-soft transition-all ${task.completed ? "bg-primary-50" : "bg-white"}`}>
       <div className="flex items-start gap-3">
-        {task.completed ? (
+        {isTask && task.completed ? (
           <CheckCircle2 className="h-5 w-5 text-agri-600 shrink-0 mt-0.5" />
-        ) : (
+        ) : isTask ? (
           <Circle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+        ) : (
+          <Info className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
         )}
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-start justify-between gap-3">
-            <h4 className="font-extrabold text-primary-900">{task.title}</h4>
-            {task.completed && (
+            <div className="min-w-0">
+              <h4 className="font-extrabold text-primary-900">{task.title}</h4>
+              {!isTask && (
+                <span className="mt-1 inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800">
+                  Informational
+                </span>
+              )}
+            </div>
+            {isTask && task.completed && (
               <div className="flex items-center gap-2 shrink-0">
                 <span className="status-pill bg-primary-100 text-primary-800">
                   Completed
@@ -102,35 +118,52 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
             )}
           </div>
 
-          {task.whatYouNeed && (
-            <div className="text-sm">
-              <div className="font-medium text-foreground/80 mb-0.5">What you need</div>
-              {task.whatYouNeedLink ? (
-                <a
-                  href={task.whatYouNeedLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-agri-700 hover:text-agri-900 underline underline-offset-2"
-                >
-                  {task.whatYouNeed} <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              ) : (
-                <p className="text-muted-foreground">{task.whatYouNeed}</p>
-              )}
+          <div className="text-sm">
+            <div className="font-medium text-foreground/80 mb-0.5">Importance</div>
+            <p className="text-muted-foreground">{task.importance || task.expertTip || task.whatYouNeed}</p>
+          </div>
+
+          {recommendations.length > 0 && (
+            <div className="rounded-2xl bg-amber-50 p-3 text-sm shadow-soft">
+              <div className="mb-1.5 flex items-center gap-1.5 font-medium text-foreground/80">
+                <ListChecks className="h-4 w-4 text-maize-600" /> Recommendations
+              </div>
+              <ul className="space-y-1 text-muted-foreground">
+                {recommendations.map((recommendation, index) => (
+                  <li key={`${task.id}-recommendation-${index}`} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-maize-500" />
+                    <span>{recommendation}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
-          {task.expertTip && (
-            <div className="flex gap-2 rounded-2xl bg-amber-50 p-3 text-sm shadow-soft">
-              <Lightbulb className="h-4 w-4 text-maize-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-medium text-foreground/80">Expert tip: </span>
-                <span className="text-muted-foreground">{task.expertTip}</span>
+          {serviceLinks.length > 0 ? (
+            <div className="text-sm">
+              <div className="font-medium text-foreground/80 mb-1.5">Farm Mall Services</div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {serviceLinks.map((link) => (
+                  <a
+                    key={`${task.id}-${link.href}-${link.label}`}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-fit items-center gap-1 rounded-full bg-primary-50 px-3 py-1.5 text-agri-700 hover:bg-primary-100 hover:text-agri-900"
+                  >
+                    {link.label} <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ))}
               </div>
             </div>
-          )}
+          ) : task.whatYouNeed ? (
+            <div className="text-sm">
+              <div className="font-medium text-foreground/80 mb-0.5">Farm Mall Services</div>
+              <p className="text-muted-foreground">{task.whatYouNeed}</p>
+            </div>
+          ) : null}
 
-          {task.completed ? (
+          {isTask && task.completed ? (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
               {task.dateCompleted && (
                 <span className="inline-flex items-center gap-1">
@@ -148,14 +181,14 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
                 </span>
               )}
             </div>
-          ) : (
+          ) : isTask ? (
             <Button
               size="sm"
               onClick={() => setModalOpen(true)}
             >
               <CheckCircle2 className="mr-1.5 h-4 w-4" /> Mark as done
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 
