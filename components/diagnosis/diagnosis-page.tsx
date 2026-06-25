@@ -182,6 +182,16 @@ const formatHistoryDate = (iso?: string) => {
   })
 }
 
+const getFirstTreatmentSuggestion = (match?: DiseaseMatch | null) =>
+  match
+    ? [
+        ...(match.treatment?.immediate || []),
+        ...(match.treatment?.organic || []),
+        ...(match.treatment?.chemical || []),
+        ...(match.treatment?.prevention || []),
+      ].find(Boolean)
+    : undefined
+
 // ---------- Component ----------
 
 export function DiagnosisPage() {
@@ -479,7 +489,7 @@ export function DiagnosisPage() {
         </p>
 
         {view === "new" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+          <div className={`grid grid-cols-1 gap-6 ${step === "treat" ? "" : "lg:grid-cols-[1fr_300px]"}`}>
             <div className="space-y-6">
               {step !== "treat" && <Stepper step={step} />}
 
@@ -543,7 +553,7 @@ export function DiagnosisPage() {
               />
             </div>
 
-            <SideTips />
+            {step !== "treat" ? <SideTips /> : null}
           </div>
         ) : (
           <HistoryList
@@ -1194,9 +1204,19 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
             <div className="font-semibold text-slate-950 mt-0.5">
               {item.match?.name || "Plant Health"}
             </div>
+            {item.match?.description ? (
+              <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                {item.match.description}
+              </p>
+            ) : null}
+            {getFirstTreatmentSuggestion(item.match) ? (
+              <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-900 line-clamp-2">
+                Recommendation: {getFirstTreatmentSuggestion(item.match)}
+              </p>
+            ) : null}
             {item.note ? (
               <p className="text-xs text-slate-600 mt-2 line-clamp-2">
-                {item.note}
+                Note: {item.note}
               </p>
             ) : null}
             <div className="flex items-center justify-between mt-3">

@@ -57,6 +57,53 @@ interface AnalysisDetailModalProps {
   record: AnalysisRecord | null
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item
+      if (Array.isArray(item)) return item.filter(Boolean).join(", ")
+      return item?.description || item?.treatment || item?.name || item?.issue || ""
+    })
+    .filter(Boolean)
+}
+
+function normalizeTreatmentList(value: unknown): string[] {
+  if (Array.isArray(value)) return asStringArray(value)
+  if (!value || typeof value !== "object") return []
+
+  const treatment = value as any
+  return [
+    ...asStringArray(treatment.immediate),
+    ...asStringArray(treatment.organic),
+    ...asStringArray(treatment.chemical),
+    ...asStringArray(treatment.prevention),
+    ...asStringArray(treatment.preventive),
+    ...asStringArray(treatment.culturalPractices),
+  ]
+}
+
+function normalizePlantHealthResult(raw: any) {
+  const data = raw?.healthAssessmentResult || raw?.analysis || raw?.result || raw || {}
+  const diseases = Array.isArray(data.diseases)
+    ? data.diseases.map((disease: any) => ({
+        ...disease,
+        name: disease?.name || disease?.commonName || disease?.diseaseName || "Detected disease",
+        symptoms: asStringArray(disease?.symptoms),
+        treatment: normalizeTreatmentList(disease?.treatment),
+      }))
+    : []
+
+  return {
+    ...data,
+    diseases,
+    recommendations: asStringArray(data.recommendations),
+    preventiveMeasures: asStringArray(data.preventiveMeasures),
+    followUpRecommendations: asStringArray(data.followUpRecommendations),
+    treatmentPriority: asStringArray(data.treatmentPriority),
+  }
+}
+
 export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDetailModalProps) {
   if (!record) return null
 
@@ -192,7 +239,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
   }
 
   const renderPlantHealthResults = () => {
-    const data = record.result
+    const data = normalizePlantHealthResult(record.result)
 
     return (
       <div className="space-y-6">
@@ -318,6 +365,30 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                         </div>
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* General Recommendations */}
+        {data.recommendations && data.recommendations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckCircle2 className="h-5 w-5 mr-2 text-green-600" />
+                Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {data.recommendations.map((recommendation: string, idx: number) => (
+                  <div key={idx} className="flex items-start p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold mr-3 mt-0">
+                      {idx + 1}
+                    </div>
+                    <span className="text-sm text-green-800">{recommendation}</span>
                   </div>
                 ))}
               </div>
@@ -949,7 +1020,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                             <span className="text-lg font-bold text-blue-600">{details.available}</span>
                           )}
                         </div>
-                        <Badge className={getNutrientColor(details.category)} size="sm">
+                        <Badge className={getNutrientColor(details.category)}>
                           {details.category?.replace('_', ' ') || 'Not measured'}
                         </Badge>
                         {details.recommendations && details.recommendations.length > 0 && (
@@ -976,7 +1047,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                         {details.value && (
                           <div className="text-lg font-bold text-amber-600 mt-1">{details.value}</div>
                         )}
-                        <Badge className={getNutrientColor(details.category)} size="sm">
+                        <Badge className={getNutrientColor(details.category)}>
                           {details.category?.replace('_', ' ') || 'Not measured'}
                         </Badge>
                       </div>
@@ -1161,7 +1232,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                   <div key={idx} className="p-4 border rounded-lg hover:bg-green-50 transition-colors">
                     <h5 className="font-medium text-green-800 mb-2">{crop.cropType}</h5>
                     {crop.suitability && (
-                      <Badge className={getNutrientColor(crop.suitability)} size="sm">
+                      <Badge className={getNutrientColor(crop.suitability)}>
                         {crop.suitability} suitability
                       </Badge>
                     )}
@@ -1582,7 +1653,7 @@ export function AnalysisDetailModal({ open, onOpenChange, record }: AnalysisDeta
                                 />
                               </div>
                               <div className="absolute top-1 left-1">
-                                <Badge size="sm" className={`text-xs ${img.type === 'uploaded' ? 'bg-blue-600' : 'bg-green-600'}`}>
+                                <Badge className={`text-xs ${img.type === 'uploaded' ? 'bg-blue-600' : 'bg-green-600'}`}>
                                   {img.type === 'uploaded' ? 'Upload' : 'Similar'}
                                 </Badge>
                               </div>

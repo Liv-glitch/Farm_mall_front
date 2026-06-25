@@ -43,7 +43,6 @@ export function ProductionCycleCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [showDeleteWithActivitiesDialog, setShowDeleteWithActivitiesDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -107,12 +106,9 @@ export function ProductionCycleCard({
     router.push(`/dashboard/cycles/${cycle.id}`)
   }
 
-  const handleDeleteCycle = async (deleteActivities: boolean = false) => {
+  const handleDeleteCycle = async () => {
     try {
       setLoading(true)
-      if (deleteActivities) {
-        await apiClient.deleteAllActivities(cycle.id)
-      }
       await apiClient.deleteCycle(cycle.id)
       onDelete?.(cycle.id)
       toast({
@@ -128,7 +124,6 @@ export function ProductionCycleCard({
     } finally {
       setLoading(false)
       setShowDeleteDialog(false)
-      setShowDeleteWithActivitiesDialog(false)
     }
   }
 
@@ -194,7 +189,7 @@ export function ProductionCycleCard({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 ml-2" data-prevent-navigation>
+              <div className="flex items-center gap-1 ml-2" data-prevent-navigation onClick={(event) => event.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8">
@@ -202,17 +197,17 @@ export function ProductionCycleCard({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                    <DropdownMenuItem onClick={(event) => {
+                      event.stopPropagation()
+                      setShowEditModal(true)
+                    }}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit record
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => {
-                        if ((cycle.activities?.length ?? 0) > 0) {
-                          setShowDeleteWithActivitiesDialog(true)
-                        } else {
-                          setShowDeleteDialog(true)
-                        }
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setShowDeleteDialog(true)
                       }}
                       className="text-red-600 focus:text-red-600"
                     >
@@ -330,57 +325,25 @@ export function ProductionCycleCard({
 
       {/* Delete Production Cycle Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent data-prevent-navigation onClick={(event) => event.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this production cycle? This action cannot be undone.
+              Are you sure you want to delete this production cycle? This will also remove its activities and cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleDeleteCycle(false)}
+              onClick={(event) => {
+                event.stopPropagation()
+                void handleDeleteCycle()
+              }}
               className="bg-red-600 hover:bg-red-700"
               disabled={loading}
             >
               {loading ? "Deleting..." : "Delete record"}
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Production Cycle with Activities Dialog */}
-      <AlertDialog open={showDeleteWithActivitiesDialog} onOpenChange={setShowDeleteWithActivitiesDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Production Cycle</AlertDialogTitle>
-            <AlertDialogDescription>
-              This record has {cycle.activities?.length} activities. Would you like to:
-              <ul className="mt-2 space-y-1">
-                <li>• Delete all activities first, then delete the record</li>
-                <li>• Or keep the activities and only delete the record</li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel disabled={loading} className="sm:w-full">Cancel</AlertDialogCancel>
-            <div className="flex gap-2 w-full">
-              <AlertDialogAction
-                onClick={() => handleDeleteCycle(false)}
-                className="bg-red-600 hover:bg-red-700 flex-1"
-                disabled={loading}
-              >
-                {loading ? "Deleting..." : "Keep activities"}
-              </AlertDialogAction>
-              <AlertDialogAction
-                onClick={() => handleDeleteCycle(true)}
-                className="bg-red-700 hover:bg-red-800 flex-1"
-                disabled={loading}
-              >
-                {loading ? "Deleting..." : "Delete all"}
-              </AlertDialogAction>
-            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

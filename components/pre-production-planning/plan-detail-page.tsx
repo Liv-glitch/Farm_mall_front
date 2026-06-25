@@ -65,6 +65,58 @@ function formatCurrentSituation(plantingDate: string | null): string {
     : `Your planting date was ${absDays} ${label} ago.`
 }
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : []
+}
+
+function normalizePreproductionPlan(raw: any): PreproductionPlan {
+  if (!raw || typeof raw !== "object" || !raw.id) {
+    console.error("Invalid preproduction plan response", raw)
+    throw new Error("Invalid preproduction plan response")
+  }
+
+  if (!Array.isArray(raw.steps)) {
+    console.warn("Preproduction plan steps were not an array", {
+      planId: raw.id,
+      steps: raw.steps,
+    })
+  }
+
+  const steps = asArray<any>(raw.steps).map((step) => ({
+    ...step,
+    tasks: asArray<any>(step?.tasks).map((task) => ({
+      ...task,
+      recommendations: asArray(task?.recommendations),
+      serviceLinks: asArray(task?.serviceLinks),
+    })),
+  }))
+
+  const totalTasks =
+    typeof raw.totalTasks === "number"
+      ? raw.totalTasks
+      : steps.reduce(
+          (count, step) => count + step.tasks.filter((task: any) => task.activityType === "task").length,
+          0
+        )
+  const completedTasks =
+    typeof raw.completedTasks === "number"
+      ? raw.completedTasks
+      : steps.reduce(
+          (count, step) =>
+            count + step.tasks.filter((task: any) => task.activityType === "task" && task.completed).length,
+          0
+        )
+
+  return {
+    ...raw,
+    steps,
+    totalSteps: typeof raw.totalSteps === "number" ? raw.totalSteps : steps.length,
+    completedSteps: typeof raw.completedSteps === "number" ? raw.completedSteps : 0,
+    totalTasks,
+    completedTasks,
+  } as PreproductionPlan
+}
+
 function TimingGuidance({ title, plantingDate }: { title: string; plantingDate: string | null }) {
   const guidance = TIMING_GUIDANCE[title] ?? {
     ideal: "Before planting.",
@@ -103,20 +155,29 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
   const [plan, setPlan] = useState<PreproductionPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     let active = true
     ;(async () => {
       setLoading(true)
+      setNotFound(false)
+      setLoadError(false)
       try {
-        const data = (await apiClient.getPreproductionPlan(planId)) as PreproductionPlan
-        if (active) setPlan(data)
+        const data = await apiClient.getPreproductionPlan(planId)
+        if (active) setPlan(normalizePreproductionPlan(data))
       } catch (error: any) {
         if (active) {
-          setNotFound(true)
+          const isNotFound = error?.status === 404
+          setNotFound(isNotFound)
+          setLoadError(!isNotFound)
+          console.error("Could not load preproduction plan", {
+            planId,
+            error,
+          })
           toast({
             title: "Could not load plan",
-            description: error?.message || "This plan may not exist.",
+            description: isNotFound ? "This plan may not exist." : "Please try again in a moment.",
             variant: "destructive",
           })
         }
@@ -150,7 +211,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
     )
   }
 
-  if (notFound || !plan) {
+  if (notFound || loadError || !plan) {
     return (
       <div className="space-y-4">
         <Link
@@ -159,7 +220,11 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
         >
           <ChevronLeft className="h-4 w-4" /> All plans
         </Link>
-        <p className="text-muted-foreground">This farm preparation plan could not be found.</p>
+        <p className="text-muted-foreground">
+          {notFound
+            ? "This farm preparation plan could not be found."
+            : "We could not load this farm preparation plan right now. Please try again."}
+        </p>
       </div>
     )
   }
@@ -234,7 +299,7 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
                 <div className="space-y-3">
                   <TimingGuidance title={step.title} plantingDate={plan.plantingDate} />
                   {(step.tasks ?? []).map((task) => (
-                    <StepTaskCard key={task.id} task={task} onUpdated={setPlan} />
+                    <StepTaskCard key={task.id} task={task} onUpdated={(nextPlan) => setPlan(normalizePreproductionPlan(nextPlan))} />
                   ))}
                 </div>
               </AccordionContent>

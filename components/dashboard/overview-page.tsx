@@ -70,6 +70,19 @@ function formatNumber(value: number | undefined, suffix: string) {
   return `${Math.round(value)}${suffix}`
 }
 
+function getCycleLocationName(cycle?: ProductionCycle | null) {
+  if (!cycle) return ""
+  const composedLocation = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ")
+  return (
+    cycle.farmLocation?.trim() ||
+    composedLocation ||
+    "Production cycle location"
+  )
+}
+
 export function OverviewPage() {
   const { farm, loading } = useAuth()
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
@@ -91,7 +104,8 @@ export function OverviewPage() {
   )
   const selectedCycle = locatedCycles.find((cycle) => cycle.id === selectedCycleId) || locatedCycles[0]
   const weatherUsesCycle = !!selectedCycle
-  const weatherLocation = weatherUsesCycle ? selectedCycle.farmLocation?.trim() : farmLocation
+  const selectedCycleLocationName = getCycleLocationName(selectedCycle)
+  const weatherLocation = weatherUsesCycle ? selectedCycleLocationName : farmLocation
   const weatherLat = weatherUsesCycle ? Number(selectedCycle.farmLocationLat) : farm?.locationLat
   const weatherLng = weatherUsesCycle ? Number(selectedCycle.farmLocationLng) : farm?.locationLng
   const hasCoordinates = Number.isFinite(weatherLat) && Number.isFinite(weatherLng)
@@ -201,15 +215,16 @@ export function OverviewPage() {
                 </p>
                 <h2 className="mt-4 flex items-center gap-2 text-lg font-bold text-white sm:text-2xl">
                   <CloudSun className="h-6 w-6 shrink-0 text-primary-100" />
-                  <span className="truncate">{weather?.locationName || weatherLocation || "Your farm"}</span>
+                  <span className="truncate">
+                    {weatherUsesCycle ? selectedCycleLocationName : weather?.locationName || weatherLocation || "Your farm"}
+                  </span>
                 </h2>
                 {weatherUsesCycle ? (
                   <p className="mt-2 text-sm text-white/75">
                     Weather for{" "}
                     <Link href={`/dashboard/cycles/${selectedCycle.id}`} className="font-bold text-white underline underline-offset-4">
-                      {selectedCycle.cropVariety?.name || `Cycle ${selectedCycle.id.slice(0, 8)}`}
+                      {selectedCycleLocationName}
                     </Link>
-                    {weatherLocation ? ` · ${weatherLocation}` : ""}
                   </p>
                 ) : null}
               </div>
@@ -231,7 +246,7 @@ export function OverviewPage() {
                   <SelectContent>
                     {locatedCycles.map((cycle) => (
                       <SelectItem key={cycle.id} value={cycle.id}>
-                        {[cycle.cropVariety?.name || "Production cycle", cycle.farmLocation].filter(Boolean).join(" · ")}
+                        {getCycleLocationName(cycle)}
                       </SelectItem>
                     ))}
                   </SelectContent>

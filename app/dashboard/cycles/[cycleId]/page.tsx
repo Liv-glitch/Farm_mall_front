@@ -162,6 +162,17 @@ export default function CycleDetailPage() {
   const displayedRevenue = cycle.status === "harvested" && actualRevenue ? actualRevenue : expectedRevenue
   const completedActivities = activities.filter((activity) => activity.status === "completed").length
   const totalActivities = activities.length
+  const locationParts = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+  const displayLocation = locationParts.length > 0 ? locationParts.join(", ") : cycle.farmLocation || "Location not set"
+  const displayCounty =
+    cycle.farmCounty?.trim() ||
+    cycle.farmLocation
+      ?.split(",")
+      .map((part) => part.trim())
+      .find((part) => /county/i.test(part)) ||
+    displayLocation
 
   const totalCost = activities.reduce((sum, activity) => {
     const parsed = Number(activity.cost)
@@ -252,15 +263,23 @@ export default function CycleDetailPage() {
               <ShoppingBag className="mr-2 h-4 w-4" />
               Find Market
             </Button>
-            <Button onClick={() => setShowEditModal(true)} className="w-full sm:w-auto">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Cycle
-            </Button>
           </div>
         </div>
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
           <CardContent className="p-5 sm:p-7">
+            <div className="mb-4 flex justify-end">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Edit cycle"
+                onClick={() => setShowEditModal(true)}
+                className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 space-y-4">
                 <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
@@ -275,7 +294,7 @@ export default function CycleDetailPage() {
                 <div className="flex flex-col gap-2 text-sm text-primary-50 sm:flex-row sm:flex-wrap sm:gap-4">
                   <span className="flex min-w-0 items-center gap-1">
                     <MapPin className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{cycle.farmCounty || cycle.farmLocation || "Location not set"}</span>
+                    <span className="truncate">{displayLocation}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4 flex-shrink-0" />
@@ -291,7 +310,7 @@ export default function CycleDetailPage() {
                 </div>
                 <div className="rounded-lg bg-white/10 p-3">
                   <div className="text-xs text-primary-100">County</div>
-                  <div className="mt-1 truncate text-sm font-bold">{cycle.farmCounty || "Not set"}</div>
+                  <div className="mt-1 truncate text-sm font-bold">{displayCounty}</div>
                 </div>
                 <div className="rounded-lg bg-white/10 p-3">
                   <div className="text-xs text-primary-100">Land Size</div>

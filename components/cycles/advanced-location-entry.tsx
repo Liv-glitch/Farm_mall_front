@@ -123,6 +123,14 @@ export function AdvancedLocationEntry({
   }, [boundary, latitude, longitude, open])
 
   useEffect(() => {
+    if (open && !apiKey) {
+      console.info(
+        "Google Maps is not configured. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable map search and drawing."
+      )
+    }
+  }, [apiKey, open])
+
+  useEffect(() => {
     if (!open || !apiKey || !mapContainerRef.current) return
 
     let cancelled = false
@@ -392,8 +400,7 @@ export function AdvancedLocationEntry({
               </>
             ) : (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Google Maps is not configured. Add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
-                to enable map search and drawing. Manual coordinate entry is available below.
+                Location service is not available. Manual coordinate entry is available below.
               </div>
             )}
           </div>

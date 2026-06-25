@@ -142,13 +142,131 @@ const mockAnalysisData: AnalysisRecord[] = [
   // }
 ]
 
+function normalizeConfidence(value: unknown) {
+  if (typeof value !== "number" || Number.isNaN(value)) return undefined
+  return value > 1 ? value / 100 : value
+}
+
+function getPlantHealthResult(record: any) {
+  return (
+    record?.result?.healthAssessmentResult ||
+    record?.result?.analysis ||
+    record?.result ||
+    record?.healthAssessmentResult ||
+    record?.analysis ||
+    record ||
+    {}
+  )
+}
+
+function getPrimaryDisease(analysis: any) {
+  return Array.isArray(analysis?.diseases) && analysis.diseases.length > 0
+    ? analysis.diseases[0]
+    : null
+}
+
+function collectPlantHealthRecommendations(analysis: any) {
+  const disease = getPrimaryDisease(analysis)
+  const treatment = disease?.treatment || {}
+  return [
+    ...(Array.isArray(analysis?.recommendations) ? analysis.recommendations : []),
+    ...(Array.isArray(analysis?.followUpRecommendations) ? analysis.followUpRecommendations : []),
+    ...(Array.isArray(analysis?.preventiveMeasures) ? analysis.preventiveMeasures : []),
+    ...(Array.isArray(treatment?.immediate) ? treatment.immediate : []),
+    ...(Array.isArray(treatment?.organic) ? treatment.organic : []),
+    ...(Array.isArray(treatment?.chemical) ? treatment.chemical : []),
+    ...(Array.isArray(treatment?.prevention) ? treatment.prevention : []),
+    ...(Array.isArray(analysis?.treatmentPriority)
+      ? analysis.treatmentPriority.map((item: any) =>
+          typeof item === "string" ? item : item?.treatment || item?.description || item?.name
+        )
+      : []),
+  ].filter(Boolean)
+}
+
+function generatePlantHealthTitle(record: any) {
+  const analysis = getPlantHealthResult(record)
+  const disease = getPrimaryDisease(analysis)
+  const diseaseName =
+    disease?.name ||
+    disease?.commonName ||
+    disease?.diseaseName ||
+    analysis?.primaryDisease ||
+    analysis?.diseaseName
+
+  if (diseaseName) return `Plant Health - ${diseaseName}`
+  if (analysis?.healthStatus?.overall) return `Plant Health - ${analysis.healthStatus.overall}`
+  return "Plant Health Assessment"
+}
+
+function generatePlantHealthDescription(record: any) {
+  const analysis = getPlantHealthResult(record)
+  const disease = getPrimaryDisease(analysis)
+  const diseaseName =
+    disease?.name ||
+    disease?.commonName ||
+    disease?.diseaseName ||
+    analysis?.primaryDisease ||
+    analysis?.diseaseName
+  const status = analysis?.healthStatus?.overall || (record?.isHealthy ? "healthy" : null)
+  const healthScore = analysis?.healthStatus?.healthScore
+  const assessment = analysis?.healthStatus?.assessment || analysis?.analysisNotes
+  const recommendations = collectPlantHealthRecommendations(analysis)
+
+  const parts = [
+    diseaseName ? `${diseaseName}${disease?.severity ? ` (${disease.severity})` : ""}` : null,
+    status ? `Status: ${status}` : null,
+    typeof healthScore === "number" ? `Health score: ${healthScore}%` : null,
+    recommendations[0] ? `Recommendation: ${recommendations[0]}` : null,
+  ].filter(Boolean)
+
+  if (parts.length > 0) return parts.join(" · ")
+  if (assessment) return String(assessment).slice(0, 140)
+  return record?.isHealthy ? "Plant appears healthy" : "Plant health assessment completed"
+}
+
+function normalizeAnalysisRecord(record: any): AnalysisRecord {
+  const analysis = getPlantHealthResult(record)
+  const disease = getPrimaryDisease(analysis)
+
+  if (record?.type === "plant_health" || analysis?.healthStatus || disease) {
+    return {
+      ...record,
+      type: "plant_health",
+      title: record?.title || generatePlantHealthTitle(record),
+      description: record?.description || generatePlantHealthDescription(record),
+      status: record?.status || "completed",
+      confidence: normalizeConfidence(
+        record?.confidence ??
+          disease?.confidence ??
+          disease?.probability ??
+          analysis?.confidence ??
+          analysis?.healthStatus?.confidence
+      ),
+      isHealthy: record?.isHealthy ?? analysis?.healthStatus?.isHealthy,
+      result: analysis,
+      media: Array.isArray(record?.mediaUrls)
+        ? { id: record.id, originalUrl: record.mediaUrls[0], variants: { thumbnail: record.mediaUrls[0] } }
+        : record?.media,
+    } as AnalysisRecord
+  }
+
+  return {
+    ...record,
+    title: record?.title || "Analysis",
+    description: record?.description || "Analysis completed successfully",
+    status: record?.status || "completed",
+    result: record?.result || record,
+  } as AnalysisRecord
+}
+
 export function AnalysisHistoryView({ 
   preloadedData, 
   onLoadMore, 
   onRefresh 
 }: AnalysisHistoryViewProps) {
   // Use preloaded data if available, otherwise initialize empty state
-  const [records, setRecords] = useState<AnalysisRecord[]>(preloadedData?.records || [])
+  const [records, setRecords] = useState<AnalysisRecord[]>((preloadedData?.records || []).map(normalizeAnalysisRecord))
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(preloadedData ? preloadedData.loading : true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -161,7 +279,7 @@ export function AnalysisHistoryView({
   // Update state when preloaded data changes
   useEffect(() => {
     if (preloadedData) {
-      setRecords(preloadedData.records)
+      setRecords(preloadedData.records.map(normalizeAnalysisRecord))
       setLoading(preloadedData.loading)
       setTotal(preloadedData.total)
       setHasMore(preloadedData.hasMore)
@@ -387,13 +505,15 @@ export function AnalysisHistoryView({
       const detailResponse = await apiClient.getAnalysisById(record.id, record.type)
       console.log('🔍 Detailed analysis response:', detailResponse)
       
-      if (detailResponse.success && detailResponse.data) {
+      const detailData = detailResponse?.data || detailResponse
+      if (detailData) {
         // Update the record with the full analysis data
-        const enhancedRecord = {
+        const enhancedRecord = normalizeAnalysisRecord({
           ...record,
-          result: detailResponse.data.analysis || detailResponse.data,
-          media: detailResponse.data.mediaUrls || detailResponse.data.media || record.media
-        }
+          ...detailData,
+          result: detailData.analysis || detailData.result || detailData,
+          media: detailData.mediaUrls || detailData.media || record.media
+        })
         console.log('🔍 Enhanced record with full data:', enhancedRecord)
         setSelectedRecord(enhancedRecord)
       } else {
