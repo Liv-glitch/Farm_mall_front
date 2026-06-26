@@ -426,6 +426,13 @@ class ApiClient {
     })
   }
 
+  async deletePreproductionPlan(id: string) {
+    return this.request({
+      method: "DELETE",
+      url: `/preproduction/plans/${id}`,
+    })
+  }
+
   async updatePreproductionTask(id: string, data: any) {
     return this.request({
       method: "PATCH",

@@ -65,6 +65,8 @@ const extractData = (res: any) => (res?.data ? res.data : res) || {}
 
 const extractMatches = (res: any): DiseaseMatch[] => {
   const data = extractData(res)
+  const healthAssessment = data?.healthAssessmentResult || data
+  const healthStatus = healthAssessment?.healthStatus || data?.healthStatus || {}
   const raw = Array.isArray(data?.diseases)
     ? data.diseases
     : Array.isArray(data?.healthAssessmentResult?.diseases)
@@ -77,6 +79,9 @@ const extractMatches = (res: any): DiseaseMatch[] => {
     data?.treatment ||
     data?.treatmentSuggestions ||
     data?.treatmentPriority ||
+    healthAssessment?.treatment ||
+    healthAssessment?.treatmentSuggestions ||
+    healthAssessment?.treatmentPriority ||
     res?.treatmentSuggestions ||
     {}
 
@@ -91,12 +96,26 @@ const extractMatches = (res: any): DiseaseMatch[] => {
           : undefined
 
     const treatment = d?.treatment || fallbackTreatment
+    const treatmentFromPriority = Array.isArray(fallbackTreatment)
+      ? fallbackTreatment
+          .flatMap((priority: any) => priority?.treatment || [])
+          .filter(Boolean)
+      : undefined
 
     return {
       id: d?.id || `${idx}`,
-      name: d?.commonName || d?.common_name || d?.diseaseName || d?.disease_name || d?.name || "Plant health assessment",
+      name:
+        d?.commonName ||
+        d?.common_name ||
+        d?.diseaseName ||
+        d?.disease_name ||
+        d?.name ||
+        data?.primaryConcerns?.[0] ||
+        healthAssessment?.primaryConcerns?.[0] ||
+        healthStatus?.assessment ||
+        "Plant health assessment",
       scientificName: d?.scientificName || d?.scientific_name,
-      description: d?.description,
+      description: d?.description || healthStatus?.assessment || healthAssessment?.analysisNotes,
       severity: d?.severity,
       confidence,
       cropType:
@@ -117,8 +136,8 @@ const extractMatches = (res: any): DiseaseMatch[] => {
       treatment: {
         organic: treatment?.organic,
         chemical: treatment?.chemical,
-        prevention: treatment?.prevention,
-        immediate: treatment?.immediate,
+        prevention: treatment?.prevention || treatment?.preventive || treatment?.culturalPractices,
+        immediate: treatment?.immediate || treatmentFromPriority,
       },
     }
   })
@@ -132,9 +151,12 @@ const extractMatches = (res: any): DiseaseMatch[] => {
         name:
           data?.diseaseName ||
           data?.primaryDisease ||
+          data?.primaryConcerns?.[0] ||
+          healthAssessment?.primaryConcerns?.[0] ||
           data?.healthStatus?.status ||
+          healthStatus?.assessment ||
           "Plant health assessment",
-        description: data?.summary || data?.description,
+        description: data?.summary || data?.description || healthStatus?.assessment || healthAssessment?.analysisNotes,
         confidence: data?.confidence || data?.healthStatus?.confidence,
         symptoms: Array.isArray(data?.symptoms) ? data.symptoms : undefined,
         causes: Array.isArray(data?.causes)
@@ -147,8 +169,13 @@ const extractMatches = (res: any): DiseaseMatch[] => {
         treatment: {
           organic: fallbackTreatment?.organic || fallbackTreatment?.organicSolutions,
           chemical: fallbackTreatment?.chemical || fallbackTreatment?.chemicalSolutions,
-          prevention: fallbackTreatment?.prevention || fallbackTreatment?.preventiveMeasures,
-          immediate: fallbackTreatment?.immediate || fallbackTreatment?.immediateActions,
+          prevention: fallbackTreatment?.prevention || fallbackTreatment?.preventive || fallbackTreatment?.preventiveMeasures,
+          immediate:
+            fallbackTreatment?.immediate ||
+            fallbackTreatment?.immediateActions ||
+            (Array.isArray(fallbackTreatment)
+              ? fallbackTreatment.flatMap((priority: any) => priority?.treatment || []).filter(Boolean)
+              : undefined),
         },
       },
     ]
@@ -211,6 +238,7 @@ export function DiagnosisPage() {
   const [saving, setSaving] = useState(false)
 
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [activeHistoryItem, setActiveHistoryItem] = useState<HistoryItem | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
@@ -284,6 +312,7 @@ export function DiagnosisPage() {
     setNote("")
     setStep("upload")
     setTreatmentTab("organic")
+    setActiveHistoryItem(null)
     if (fileInputRef.current) fileInputRef.current.value = ""
     if (cameraInputRef.current) cameraInputRef.current.value = ""
   }
@@ -440,8 +469,8 @@ export function DiagnosisPage() {
   // ---------- Render ----------
 
   return (
-    <div className="-m-3 sm:-m-4 md:-m-6 lg:-m-8 -mt-4 sm:-mt-6 -mb-20 sm:-mb-8 bg-white min-h-[calc(100dvh-4rem)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+    <div className="-m-3 sm:-m-4 md:-m-6 lg:-m-8 -mt-4 sm:-mt-6 bg-white min-h-[calc(100dvh-4rem)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24 sm:pb-12">
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
           <div className="flex items-center gap-3">
@@ -460,7 +489,10 @@ export function DiagnosisPage() {
           <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 shadow-sm border border-slate-200">
             <button
               type="button"
-              onClick={() => setView("new")}
+              onClick={() => {
+                setActiveHistoryItem(null)
+                setView("new")
+              }}
               className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
                 view === "new"
                   ? "bg-emerald-700 text-white"
@@ -471,7 +503,10 @@ export function DiagnosisPage() {
             </button>
             <button
               type="button"
-              onClick={() => setView("history")}
+              onClick={() => {
+                setActiveHistoryItem(null)
+                setView("history")
+              }}
               className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
                 view === "history"
                   ? "bg-emerald-700 text-white"
@@ -556,15 +591,38 @@ export function DiagnosisPage() {
             {step !== "treat" ? <SideTips /> : null}
           </div>
         ) : (
-          <HistoryList
-            items={history}
-            loading={historyLoading}
-            onRemove={handleDeleteHistory}
-            onStartNew={() => {
-              setView("new")
-              resetWizard()
-            }}
-          />
+          activeHistoryItem?.match ? (
+            <TreatView
+              match={activeHistoryItem.match}
+              uploadedImage={activeHistoryItem.uploadedImageUrl || null}
+              treatmentTab={treatmentTab}
+              onTreatmentTabChange={setTreatmentTab}
+              treatmentList={treatmentList}
+              note={activeHistoryItem.note || ""}
+              onNoteChange={() => undefined}
+              onBack={() => setActiveHistoryItem(null)}
+              onSave={() => undefined}
+              onChooseDifferent={() => setActiveHistoryItem(null)}
+              saving={false}
+              canSave={false}
+              savedRecord
+            />
+          ) : (
+            <HistoryList
+              items={history}
+              loading={historyLoading}
+              onOpen={(item) => {
+                setActiveHistoryItem(item)
+                setSelectedMatch(item.match)
+                setTreatmentTab("organic")
+              }}
+              onRemove={handleDeleteHistory}
+              onStartNew={() => {
+                setView("new")
+                resetWizard()
+              }}
+            />
+          )
         )}
       </div>
     </div>
@@ -837,6 +895,7 @@ interface TreatViewProps {
   onChooseDifferent: () => void
   saving: boolean
   canSave: boolean
+  savedRecord?: boolean
 }
 
 function TreatView({
@@ -852,6 +911,7 @@ function TreatView({
   onChooseDifferent,
   saving,
   canSave,
+  savedRecord = false,
 }: TreatViewProps) {
   return (
     <div className="space-y-5">
@@ -861,7 +921,7 @@ function TreatView({
         className="inline-flex items-center text-sm font-medium text-emerald-700 hover:underline"
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to choices
+        {savedRecord ? "Back to history" : "Back to choices"}
       </button>
 
       {/* Disease detail card */}
@@ -1035,42 +1095,50 @@ function TreatView({
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <h3 className="flex items-center gap-2 text-base font-semibold text-slate-950">
           <Save className="h-4 w-4 text-emerald-700" />
-          Save this record
+          {savedRecord ? "Saved note" : "Save this record"}
         </h3>
-        <p className="text-sm text-slate-600 mt-1">
-          Add a note about where you found it and what you have tried. It will
-          help you keep track.
-        </p>
-        <Textarea
-          value={note}
-          onChange={(e) => onNoteChange(e.target.value)}
-          placeholder="For example: North side of the farm, row 4. Sprayed Mancozeb on Tuesday."
-          className="mt-3 bg-slate-50 border-slate-200 focus-visible:ring-emerald-700"
-          rows={4}
-        />
-        <div className="flex flex-wrap items-center gap-3 mt-4">
-          <Button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !canSave}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-6"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-            )}
-            Save for later
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onChooseDifferent}
-            className="rounded-full px-6 border-teal-200 text-teal-800 hover:bg-teal-50"
-          >
-            Choose a different match
-          </Button>
-        </div>
+        {savedRecord ? (
+          <p className="text-sm text-slate-700 mt-2">
+            {note || "No note was added for this diagnosis."}
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600 mt-1">
+              Add a note about where you found it and what you have tried. It will
+              help you keep track.
+            </p>
+            <Textarea
+              value={note}
+              onChange={(e) => onNoteChange(e.target.value)}
+              placeholder="For example: North side of the farm, row 4. Sprayed Mancozeb on Tuesday."
+              className="mt-3 bg-slate-50 border-slate-200 focus-visible:ring-emerald-700"
+              rows={4}
+            />
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <Button
+                type="button"
+                onClick={onSave}
+                disabled={saving || !canSave}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-6"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                Save for later
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onChooseDifferent}
+                className="rounded-full px-6 border-teal-200 text-teal-800 hover:bg-teal-50"
+              >
+                Choose a different match
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -1122,11 +1190,12 @@ function SideTips() {
 interface HistoryListProps {
   items: HistoryItem[]
   loading: boolean
+  onOpen: (item: HistoryItem) => void
   onRemove: (id: string) => void
   onStartNew: () => void
 }
 
-function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps) {
+function HistoryList({ items, loading, onOpen, onRemove, onStartNew }: HistoryListProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
@@ -1168,7 +1237,16 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
       {items.map((item) => (
         <div
           key={item.id}
-          className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col shadow-sm"
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpen(item)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              onOpen(item)
+            }
+          }}
+          className="group bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
         >
           <div className="grid grid-cols-2 h-40 bg-slate-100">
             {item.uploadedImageUrl ? (
@@ -1237,7 +1315,10 @@ function HistoryList({ items, loading, onRemove, onStartNew }: HistoryListProps)
             </div>
             <button
               type="button"
-              onClick={() => onRemove(item.id)}
+              onClick={(event) => {
+                event.stopPropagation()
+                onRemove(item.id)
+              }}
               className="mt-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-700 self-start"
             >
               <Trash2 className="h-4 w-4" />

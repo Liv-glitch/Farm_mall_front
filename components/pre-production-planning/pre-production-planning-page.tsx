@@ -1,13 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Loader2, Plus, MapPin, CalendarDays, ListChecks, Calculator, Sprout } from "lucide-react"
+import { Loader2, Plus, MapPin, CalendarDays, ListChecks, Calculator, Sprout, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { PreproductionPlan } from "@/lib/types/preproduction"
@@ -50,9 +50,11 @@ function formatShortDate(value: string | null): string {
 
 export function PreproductionPlanningPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [plans, setPlans] = useState<PreproductionPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
 
   const loadPlans = async () => {
     setLoading(true)
@@ -79,6 +81,32 @@ export function PreproductionPlanningPage() {
   const handleModalClose = () => {
     setModalOpen(false)
     loadPlans()
+  }
+
+  const handleDeletePlan = async (plan: PreproductionPlan) => {
+    const confirmed = window.confirm(`Delete "${plan.name}"? This will remove its preparation checklist.`)
+    if (!confirmed) return
+
+    const previousPlans = plans
+    setDeletingPlanId(plan.id)
+    setPlans((current) => current.filter((item) => item.id !== plan.id))
+
+    try {
+      await apiClient.deletePreproductionPlan(plan.id)
+      toast({
+        title: "Plan deleted",
+        description: `${plan.name} was removed.`,
+      })
+    } catch (error: any) {
+      setPlans(previousPlans)
+      toast({
+        title: "Could not delete plan",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingPlanId(null)
+    }
   }
 
   return (
@@ -139,8 +167,40 @@ export function PreproductionPlanningPage() {
                 const palette = planCardPalette[index % planCardPalette.length]
 
                 return (
-                  <Link key={plan.id} href={`/dashboard/pre-production-planning/${plan.id}`} className="group">
-                    <Card className={`h-full overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card ${palette.card}`}>
+                  <Card
+                    key={plan.id}
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(`/dashboard/pre-production-planning/${plan.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault()
+                        router.push(`/dashboard/pre-production-planning/${plan.id}`)
+                      }
+                    }}
+                    className={`group relative h-full cursor-pointer overflow-hidden border-0 transition-all hover:-translate-y-1 hover:shadow-card focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${palette.card}`}
+                  >
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      disabled={deletingPlanId === plan.id}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void handleDeletePlan(plan)
+                      }}
+                      onKeyDown={(event) => {
+                        event.stopPropagation()
+                      }}
+                      className="absolute right-5 top-5 z-10 h-9 w-9 rounded-full bg-white/90 text-muted-foreground shadow-sm hover:bg-red-50 hover:text-red-700"
+                      aria-label={`Delete ${plan.name}`}
+                    >
+                      {deletingPlanId === plan.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
                       <div className={`m-3 mb-0 flex min-h-28 items-end justify-between rounded-2xl p-4 ${palette.panel}`}>
                         <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${palette.icon}`}>
                           <Sprout className="h-6 w-6" />
@@ -184,7 +244,6 @@ export function PreproductionPlanningPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
                 )
               })}
             </div>
