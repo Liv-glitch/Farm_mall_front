@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { MapPin, RotateCcw, Save, Search, Trash2, Undo2 } from "lucide-react"
+import { AlertCircle, Loader2, MapPin, Plus, RotateCcw, Save, Search, Trash2, Undo2 } from "lucide-react"
 
 export type BoundaryPoint = { lat: number; lng: number }
+type BoundaryRow = { lat: string; lng: string }
 
 interface AdvancedLocationEntryProps {
   open: boolean
@@ -36,24 +36,73 @@ interface AdvancedLocationEntryProps {
 
 const DEFAULT_CENTER = { lat: -0.3031, lng: 36.08 }
 const SQM_PER_ACRE = 4046.8564224
+const EMPTY_BOUNDARY_ROW_COUNT = 4
 
-function parseBoundaryJson(value: string): BoundaryPoint[] {
-  const parsed = JSON.parse(value)
-  if (!Array.isArray(parsed)) return []
-  return parsed
-    .map((point) => ({
-      lat: Number(point?.lat),
-      lng: Number(point?.lng),
-    }))
-    .filter(
-      (point) =>
-        Number.isFinite(point.lat) &&
-        Number.isFinite(point.lng) &&
-        point.lat >= -90 &&
-        point.lat <= 90 &&
-        point.lng >= -180 &&
-        point.lng <= 180
-    )
+function createEmptyBoundaryRows(count = EMPTY_BOUNDARY_ROW_COUNT): BoundaryRow[] {
+  return Array.from({ length: count }, () => ({ lat: "", lng: "" }))
+}
+
+function formatCoordinate(value: number) {
+  return Number.isFinite(value) ? value.toFixed(6) : ""
+}
+
+function boundaryPointsToRows(points: BoundaryPoint[]): BoundaryRow[] {
+  if (points.length === 0) return createEmptyBoundaryRows()
+  return points.map((point) => ({
+    lat: formatCoordinate(point.lat),
+    lng: formatCoordinate(point.lng),
+  }))
+}
+
+function parseBoundaryRows(rows: BoundaryRow[]): { points: BoundaryPoint[]; error: string | null } {
+  const filledRows = rows.filter((row) => row.lat.trim() || row.lng.trim())
+
+  for (const row of filledRows) {
+    if (!row.lat.trim() || !row.lng.trim()) {
+      return { points: [], error: "Each boundary row needs both latitude and longitude." }
+    }
+  }
+
+  const points = filledRows.map((row) => ({
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+  }))
+
+  const invalidPoint = points.find(
+    (point) =>
+      !Number.isFinite(point.lat) ||
+      !Number.isFinite(point.lng) ||
+      point.lat < -90 ||
+      point.lat > 90 ||
+      point.lng < -180 ||
+      point.lng > 180
+  )
+
+  if (invalidPoint) {
+    return { points: [], error: "Boundary coordinates must use valid latitude and longitude values." }
+  }
+
+  if (points.length > 0 && points.length < 3) {
+    return { points, error: "A farm boundary needs at least 3 points." }
+  }
+
+  return { points, error: null }
+}
+
+function getBoundaryCentroid(points: BoundaryPoint[]): BoundaryPoint | null {
+  if (points.length === 0) return null
+  const total = points.reduce(
+    (sum, point) => ({
+      lat: sum.lat + point.lat,
+      lng: sum.lng + point.lng,
+    }),
+    { lat: 0, lng: 0 }
+  )
+
+  return {
+    lat: total.lat / points.length,
+    lng: total.lng / points.length,
+  }
 }
 
 function getPolygonPoints(draw: TerraDraw): BoundaryPoint[] {
@@ -98,14 +147,14 @@ export function AdvancedLocationEntry({
   const previewPolygonRef = useRef<google.maps.Polygon | null>(null)
 
   const [mapsReady, setMapsReady] = useState(false)
+  const [mapsLoading, setMapsLoading] = useState(false)
   const [mapsError, setMapsError] = useState<string | null>(null)
   const [drawing, setDrawing] = useState(false)
   const [manualLat, setManualLat] = useState(latitude?.toString() || "")
   const [manualLng, setManualLng] = useState(longitude?.toString() || "")
   const [points, setPoints] = useState<BoundaryPoint[]>(boundary)
-  const [manualBoundaryText, setManualBoundaryText] = useState(
-    boundary.length > 0 ? JSON.stringify(boundary, null, 2) : ""
-  )
+  const [manualBoundaryRows, setManualBoundaryRows] = useState<BoundaryRow[]>(boundaryPointsToRows(boundary))
+  const [manualBoundaryError, setManualBoundaryError] = useState<string | null>(null)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
@@ -119,7 +168,8 @@ export function AdvancedLocationEntry({
     setManualLat(latitude?.toString() || "")
     setManualLng(longitude?.toString() || "")
     setPoints(boundary)
-    setManualBoundaryText(boundary.length > 0 ? JSON.stringify(boundary, null, 2) : "")
+    setManualBoundaryRows(boundaryPointsToRows(boundary))
+    setManualBoundaryError(null)
   }, [boundary, latitude, longitude, open])
 
   useEffect(() => {
@@ -136,11 +186,25 @@ export function AdvancedLocationEntry({
     let cancelled = false
     let draw: TerraDraw | null = null
     let autocomplete: google.maps.places.Autocomplete | null = null
-    let placeListener: google.maps.MapsEventListener | null = null
+    let mapListeners: google.maps.MapsEventListener[] = []
+    const previousAuthFailure = typeof window !== "undefined" ? (window as any).gm_authFailure : undefined
+
+    if (typeof window !== "undefined") {
+      ;(window as any).gm_authFailure = () => {
+        setMapsLoading(false)
+        setMapsReady(false)
+        setMapsError(
+          "Google Maps could not authenticate this browser key. Check API key restrictions, billing, and enabled Maps JavaScript/Places APIs."
+        )
+        if (typeof previousAuthFailure === "function") previousAuthFailure()
+      }
+    }
 
     async function loadMap() {
       try {
         setMapsError(null)
+        setMapsLoading(true)
+        setMapsReady(false)
         setOptions({
           key: apiKey,
           v: "weekly",
@@ -178,7 +242,7 @@ export function AdvancedLocationEntry({
           })
           autocomplete = nextAutocomplete
           autocomplete.bindTo("bounds", map)
-          placeListener = nextAutocomplete.addListener("place_changed", () => {
+          mapListeners.push(nextAutocomplete.addListener("place_changed", () => {
             const place = nextAutocomplete.getPlace()
             const location = place?.geometry?.location
             if (!location) return
@@ -186,8 +250,27 @@ export function AdvancedLocationEntry({
             map.setZoom(18)
             setManualLat(location.lat().toFixed(6))
             setManualLng(location.lng().toFixed(6))
-          })
+          }))
         }
+
+        let tilesLoaded = false
+        mapListeners.push(maps.event.addListenerOnce(map, "tilesloaded", () => {
+          tilesLoaded = true
+          setMapsLoading(false)
+        }))
+        window.setTimeout(() => {
+          if (!cancelled && mapRef.current === map && !tilesLoaded) {
+            setMapsLoading(false)
+          }
+        }, 6000)
+
+        const refreshMapLayout = () => {
+          if (cancelled || mapRef.current !== map) return
+          maps.event.trigger(map, "resize")
+          map.setCenter(center)
+        }
+        window.requestAnimationFrame(refreshMapLayout)
+        window.setTimeout(refreshMapLayout, 250)
 
         draw = new TerraDraw({
           adapter: new TerraDrawGoogleMapsAdapter({
@@ -224,8 +307,14 @@ export function AdvancedLocationEntry({
         draw.setMode("static")
         draw.on("finish", () => {
           const nextPoints = draw ? getPolygonPoints(draw) : []
+          const centroid = getBoundaryCentroid(nextPoints)
           setPoints(nextPoints)
-          setManualBoundaryText(JSON.stringify(nextPoints, null, 2))
+          setManualBoundaryRows(boundaryPointsToRows(nextPoints))
+          setManualBoundaryError(null)
+          if (centroid) {
+            setManualLat(formatCoordinate(centroid.lat))
+            setManualLng(formatCoordinate(centroid.lng))
+          }
           setDrawing(false)
           draw?.setMode("static")
         })
@@ -243,7 +332,10 @@ export function AdvancedLocationEntry({
         }
 
         setMapsReady(true)
+        setMapsLoading(false)
       } catch (error: any) {
+        setMapsLoading(false)
+        setMapsReady(false)
         setMapsError(error?.message || "Could not load Google Maps.")
       }
     }
@@ -252,7 +344,10 @@ export function AdvancedLocationEntry({
 
     return () => {
       cancelled = true
-      placeListener?.remove()
+      if (typeof window !== "undefined") {
+        ;(window as any).gm_authFailure = previousAuthFailure
+      }
+      mapListeners.forEach((listener) => listener.remove())
       previewPolygonRef.current?.setMap(null)
       previewPolygonRef.current = null
       draw?.stop()
@@ -260,6 +355,7 @@ export function AdvancedLocationEntry({
       mapRef.current = null
       mapsRef.current = null
       setMapsReady(false)
+      setMapsLoading(false)
       setDrawing(false)
     }
   }, [apiKey, approximateQuery, latitude, longitude, open])
@@ -280,6 +376,21 @@ export function AdvancedLocationEntry({
     }
   }, [drawing, points])
 
+  useEffect(() => {
+    if (!open || !mapsReady || !mapsRef.current || !mapRef.current) return
+    const lat = Number(manualLat)
+    const lng = Number(manualLng)
+    const center = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : DEFAULT_CENTER
+    const refresh = () => {
+      if (!mapsRef.current || !mapRef.current) return
+      mapsRef.current.event.trigger(mapRef.current, "resize")
+      mapRef.current.setCenter(center)
+    }
+    window.requestAnimationFrame(refresh)
+    const timeout = window.setTimeout(refresh, 300)
+    return () => window.clearTimeout(timeout)
+  }, [manualLat, manualLng, mapsReady, open])
+
   const areaAcres = useMemo(() => {
     if (!mapsRef.current || points.length < 3) return null
     const path = points.map((point) => new mapsRef.current!.LatLng(point.lat, point.lng))
@@ -291,7 +402,8 @@ export function AdvancedLocationEntry({
     drawRef.current?.clear()
     drawRef.current?.setMode("farm-boundary")
     setPoints([])
-    setManualBoundaryText("")
+    setManualBoundaryRows(createEmptyBoundaryRows())
+    setManualBoundaryError(null)
     setDrawing(true)
   }
 
@@ -299,7 +411,8 @@ export function AdvancedLocationEntry({
     drawRef.current?.undo()
     const nextPoints = drawRef.current ? getPolygonPoints(drawRef.current) : []
     setPoints(nextPoints)
-    setManualBoundaryText(nextPoints.length > 0 ? JSON.stringify(nextPoints, null, 2) : "")
+    setManualBoundaryRows(boundaryPointsToRows(nextPoints))
+    setManualBoundaryError(null)
   }
 
   const handleClear = () => {
@@ -307,30 +420,49 @@ export function AdvancedLocationEntry({
     drawRef.current?.setMode("static")
     setDrawing(false)
     setPoints([])
-    setManualBoundaryText("")
+    setManualBoundaryRows(createEmptyBoundaryRows())
+    setManualBoundaryError(null)
   }
 
-  const handleManualBoundaryBlur = () => {
-    if (!manualBoundaryText.trim()) {
-      setPoints([])
-      return
+  const applyBoundaryRows = (rows: BoundaryRow[]) => {
+    const result = parseBoundaryRows(rows)
+    setManualBoundaryError(result.error)
+    if (!result.error) {
+      setPoints(result.points)
+      const centroid = getBoundaryCentroid(result.points)
+      if (centroid) {
+        setManualLat(formatCoordinate(centroid.lat))
+        setManualLng(formatCoordinate(centroid.lng))
+      }
     }
-    try {
-      setPoints(parseBoundaryJson(manualBoundaryText))
-    } catch {
-      // Keep the user's text intact; validation happens on save.
-    }
+    return result
+  }
+
+  const handleBoundaryRowChange = (index: number, field: keyof BoundaryRow, value: string) => {
+    const nextRows = manualBoundaryRows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, [field]: value } : row
+    )
+    setManualBoundaryRows(nextRows)
+    applyBoundaryRows(nextRows)
+  }
+
+  const handleAddBoundaryRow = () => {
+    setManualBoundaryRows((rows) => [...rows, { lat: "", lng: "" }])
+  }
+
+  const handleRemoveBoundaryRow = (index: number) => {
+    const nextRows = manualBoundaryRows.filter((_, rowIndex) => rowIndex !== index)
+    const paddedRows = nextRows.length > 0 ? nextRows : createEmptyBoundaryRows()
+    setManualBoundaryRows(paddedRows)
+    applyBoundaryRows(paddedRows)
   }
 
   const handleSave = () => {
-    let nextPoints = points
-    if (manualBoundaryText.trim()) {
-      try {
-        nextPoints = parseBoundaryJson(manualBoundaryText)
-      } catch {
-        nextPoints = points
-      }
+    const boundaryResult = applyBoundaryRows(manualBoundaryRows)
+    if (boundaryResult.error) {
+      return
     }
+    const nextPoints = boundaryResult.points.length >= 3 ? boundaryResult.points : []
 
     onSave({
       latitude: manualLat.trim() ? Number.parseFloat(manualLat) : null,
@@ -367,12 +499,23 @@ export function AdvancedLocationEntry({
                     className="h-11 pl-9"
                   />
                 </div>
-                <div className="h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                <div className="relative h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                   <div ref={mapContainerRef} className="h-full w-full" />
+                  {mapsLoading ? (
+                    <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-agri-800 shadow">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading map...
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 {mapsError ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    {mapsError}. You can still enter coordinates manually.
+                    <div className="flex gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{mapsError}. You can still enter the farm boundary manually.</span>
+                    </div>
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-2">
@@ -451,20 +594,56 @@ export function AdvancedLocationEntry({
               ) : null}
             </div>
 
-            <div>
-              <Label htmlFor="manual-boundary">Manual boundary points (optional)</Label>
-              <Textarea
-                id="manual-boundary"
-                value={manualBoundaryText}
-                onChange={(event) => setManualBoundaryText(event.target.value)}
-                onBlur={handleManualBoundaryBlur}
-                rows={8}
-                className="mt-1 font-mono text-xs"
-                placeholder={'[\n  { "lat": -0.3031, "lng": 36.08 }\n]'}
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Use this only if map drawing is unavailable.
-              </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Manual farm boundary points</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddBoundaryRow}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add point
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {manualBoundaryRows.map((row, index) => (
+                  <div key={`boundary-row-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      min="-90"
+                      max="90"
+                      value={row.lat}
+                      onChange={(event) => handleBoundaryRowChange(index, "lat", event.target.value)}
+                      placeholder={index === 0 ? "-0.303100" : "Latitude"}
+                      aria-label={`Boundary point ${index + 1} latitude`}
+                    />
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      min="-180"
+                      max="180"
+                      value={row.lng}
+                      onChange={(event) => handleBoundaryRowChange(index, "lng", event.target.value)}
+                      placeholder={index === 0 ? "36.080000" : "Longitude"}
+                      aria-label={`Boundary point ${index + 1} longitude`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveBoundaryRow(index)}
+                      aria-label={`Remove boundary point ${index + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              {manualBoundaryError ? (
+                <p className="text-xs font-medium text-red-700">{manualBoundaryError}</p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Enter the corner points around your farm boundary in order. Four rows are provided for a typical rectangular plot; add or remove points as needed.
+                </p>
+              )}
             </div>
 
             <Button type="button" onClick={handleSave} className="w-full bg-agri-700 hover:bg-agri-800">

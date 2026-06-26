@@ -147,12 +147,28 @@ function normalizeConfidence(value: unknown) {
   return value > 1 ? value / 100 : value
 }
 
+function parseJsonValue(value: unknown): any {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+function asArray(value: unknown): any[] {
+  const parsed = parseJsonValue(value)
+  return Array.isArray(parsed) ? parsed : []
+}
+
 function getPlantHealthResult(record: any) {
   return (
-    record?.result?.healthAssessmentResult ||
+    parseJsonValue(record?.result?.healthAssessmentResult) ||
+    parseJsonValue(record?.result?.health_assessment_result) ||
     record?.result?.analysis ||
     record?.result ||
-    record?.healthAssessmentResult ||
+    parseJsonValue(record?.healthAssessmentResult) ||
+    parseJsonValue(record?.health_assessment_result) ||
     record?.analysis ||
     record ||
     {}
@@ -160,24 +176,38 @@ function getPlantHealthResult(record: any) {
 }
 
 function getPrimaryDisease(analysis: any) {
-  return Array.isArray(analysis?.diseases) && analysis.diseases.length > 0
-    ? analysis.diseases[0]
+  const diseases = asArray(analysis?.diseases)
+  return diseases.length > 0
+    ? diseases[0]
     : null
 }
 
 function collectPlantHealthRecommendations(analysis: any) {
   const disease = getPrimaryDisease(analysis)
-  const treatment = disease?.treatment || {}
+  const treatment = parseJsonValue(disease?.treatment) || {}
+  const treatmentSuggestions = parseJsonValue(analysis?.treatmentSuggestions || analysis?.treatment_suggestions)
   return [
-    ...(Array.isArray(analysis?.recommendations) ? analysis.recommendations : []),
-    ...(Array.isArray(analysis?.followUpRecommendations) ? analysis.followUpRecommendations : []),
-    ...(Array.isArray(analysis?.preventiveMeasures) ? analysis.preventiveMeasures : []),
-    ...(Array.isArray(treatment?.immediate) ? treatment.immediate : []),
-    ...(Array.isArray(treatment?.organic) ? treatment.organic : []),
-    ...(Array.isArray(treatment?.chemical) ? treatment.chemical : []),
-    ...(Array.isArray(treatment?.prevention) ? treatment.prevention : []),
-    ...(Array.isArray(analysis?.treatmentPriority)
-      ? analysis.treatmentPriority.map((item: any) =>
+    ...asArray(analysis?.recommendations),
+    ...asArray(analysis?.followUpRecommendations),
+    ...asArray(analysis?.follow_up_recommendations),
+    ...asArray(analysis?.preventiveMeasures),
+    ...asArray(analysis?.preventive_measures),
+    ...asArray(treatment?.immediate),
+    ...asArray(treatment?.organic),
+    ...asArray(treatment?.chemical),
+    ...asArray(treatment?.prevention),
+    ...(asArray(treatmentSuggestions).length > 0
+      ? treatmentSuggestions.map((item: any) =>
+          typeof item === "string" ? item : item?.treatment || item?.description || item?.name
+        )
+      : []),
+    ...(asArray(analysis?.treatmentPriority).length > 0
+      ? asArray(analysis?.treatmentPriority).map((item: any) =>
+          typeof item === "string" ? item : item?.treatment || item?.description || item?.name
+        )
+      : []),
+    ...(asArray(analysis?.treatment_priority).length > 0
+      ? asArray(analysis?.treatment_priority).map((item: any) =>
           typeof item === "string" ? item : item?.treatment || item?.description || item?.name
         )
       : []),

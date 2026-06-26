@@ -58,8 +58,9 @@ interface AnalysisDetailModalProps {
 }
 
 function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value
+  const parsed = parseJsonValue(value)
+  if (!Array.isArray(parsed)) return []
+  return parsed
     .map((item) => {
       if (typeof item === "string") return item
       if (Array.isArray(item)) return item.filter(Boolean).join(", ")
@@ -69,10 +70,11 @@ function asStringArray(value: unknown): string[] {
 }
 
 function normalizeTreatmentList(value: unknown): string[] {
-  if (Array.isArray(value)) return asStringArray(value)
-  if (!value || typeof value !== "object") return []
+  const parsed = parseJsonValue(value)
+  if (Array.isArray(parsed)) return asStringArray(parsed)
+  if (!parsed || typeof parsed !== "object") return []
 
-  const treatment = value as any
+  const treatment = parsed as any
   return [
     ...asStringArray(treatment.immediate),
     ...asStringArray(treatment.organic),
@@ -83,10 +85,28 @@ function normalizeTreatmentList(value: unknown): string[] {
   ]
 }
 
+function parseJsonValue(value: unknown): any {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
 function normalizePlantHealthResult(raw: any) {
-  const data = raw?.healthAssessmentResult || raw?.analysis || raw?.result || raw || {}
-  const diseases = Array.isArray(data.diseases)
-    ? data.diseases.map((disease: any) => ({
+  const data =
+    parseJsonValue(raw?.healthAssessmentResult) ||
+    parseJsonValue(raw?.health_assessment_result) ||
+    raw?.analysis ||
+    parseJsonValue(raw?.result?.healthAssessmentResult) ||
+    parseJsonValue(raw?.result?.health_assessment_result) ||
+    raw?.result ||
+    raw ||
+    {}
+  const rawDiseases = parseJsonValue(data.diseases)
+  const diseases = Array.isArray(rawDiseases)
+    ? rawDiseases.map((disease: any) => ({
         ...disease,
         name: disease?.name || disease?.commonName || disease?.diseaseName || "Detected disease",
         symptoms: asStringArray(disease?.symptoms),
@@ -98,9 +118,11 @@ function normalizePlantHealthResult(raw: any) {
     ...data,
     diseases,
     recommendations: asStringArray(data.recommendations),
-    preventiveMeasures: asStringArray(data.preventiveMeasures),
-    followUpRecommendations: asStringArray(data.followUpRecommendations),
-    treatmentPriority: asStringArray(data.treatmentPriority),
+    preventiveMeasures: asStringArray(data.preventiveMeasures || data.preventive_measures),
+    followUpRecommendations: asStringArray(data.followUpRecommendations || data.follow_up_recommendations),
+    treatmentPriority: asStringArray(
+      data.treatmentPriority || data.treatment_priority || data.treatmentSuggestions || data.treatment_suggestions
+    ),
   }
 }
 

@@ -65,8 +65,32 @@ function formatCurrentSituation(plantingDate: string | null): string {
     : `Your planting date was ${absDays} ${label} ago.`
 }
 
+function parseJsonValue(value: unknown): unknown {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
 function asArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value : []
+  const parsed = parseJsonValue(value)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+function normalizeServiceLinks(task: any) {
+  const serviceLinks = asArray(task?.serviceLinks)
+  if (serviceLinks.length > 0) return serviceLinks
+
+  const snakeCaseServiceLinks = asArray(task?.service_links)
+  if (snakeCaseServiceLinks.length > 0) return snakeCaseServiceLinks
+
+  if (task?.what_you_need && task?.what_you_need_link) {
+    return [{ label: task.what_you_need, href: task.what_you_need_link }]
+  }
+
+  return []
 }
 
 function normalizePreproductionPlan(raw: any): PreproductionPlan {
@@ -86,8 +110,13 @@ function normalizePreproductionPlan(raw: any): PreproductionPlan {
     ...step,
     tasks: asArray<any>(step?.tasks).map((task) => ({
       ...task,
+      activityType: task?.activityType ?? task?.activity_type,
       recommendations: asArray(task?.recommendations),
-      serviceLinks: asArray(task?.serviceLinks),
+      serviceLinks: normalizeServiceLinks(task),
+      whatYouNeed: task?.whatYouNeed ?? task?.what_you_need ?? null,
+      whatYouNeedLink: task?.whatYouNeedLink ?? task?.what_you_need_link ?? null,
+      expertTip: task?.expertTip ?? task?.expert_tip ?? null,
+      dateCompleted: task?.dateCompleted ?? task?.date_completed ?? null,
     })),
   }))
 

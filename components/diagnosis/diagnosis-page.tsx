@@ -63,26 +63,67 @@ type TreatmentTab = "organic" | "chemical" | "prevention"
 
 const extractData = (res: any) => (res?.data ? res.data : res) || {}
 
+const parseJsonValue = (value: unknown): any => {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+const asArray = (value: unknown): any[] => {
+  const parsed = parseJsonValue(value)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+const getHealthAssessment = (data: any) =>
+  parseJsonValue(data?.healthAssessmentResult) ||
+  parseJsonValue(data?.health_assessment_result) ||
+  parseJsonValue(data?.result?.healthAssessmentResult) ||
+  parseJsonValue(data?.result?.health_assessment_result) ||
+  data
+
+const asTreatmentList = (value: unknown): string[] | undefined => {
+  const parsed = parseJsonValue(value)
+  if (!Array.isArray(parsed)) return undefined
+  const items = parsed
+    .flatMap((item: any) => {
+      if (typeof item === "string") return item
+      if (Array.isArray(item)) return item
+      return item?.treatment || item?.description || item?.name || item?.action || []
+    })
+    .filter(Boolean)
+  return items.length > 0 ? items : undefined
+}
+
 const extractMatches = (res: any): DiseaseMatch[] => {
-  const data = extractData(res)
-  const healthAssessment = data?.healthAssessmentResult || data
+  const data = parseJsonValue(extractData(res))
+  const healthAssessment = getHealthAssessment(data)
   const healthStatus = healthAssessment?.healthStatus || data?.healthStatus || {}
-  const raw = Array.isArray(data?.diseases)
-    ? data.diseases
-    : Array.isArray(data?.healthAssessmentResult?.diseases)
-      ? data.healthAssessmentResult.diseases
-      : Array.isArray(res?.diseases)
-        ? res.diseases
-        : []
+  const raw = asArray(data?.diseases).length > 0
+    ? asArray(data?.diseases)
+    : asArray(data?.healthAssessmentResult?.diseases).length > 0
+      ? asArray(data?.healthAssessmentResult?.diseases)
+      : asArray(data?.health_assessment_result?.diseases).length > 0
+        ? asArray(data?.health_assessment_result?.diseases)
+        : asArray(healthAssessment?.diseases).length > 0
+          ? asArray(healthAssessment?.diseases)
+          : asArray(res?.diseases)
 
   const fallbackTreatment =
-    data?.treatment ||
-    data?.treatmentSuggestions ||
-    data?.treatmentPriority ||
-    healthAssessment?.treatment ||
-    healthAssessment?.treatmentSuggestions ||
-    healthAssessment?.treatmentPriority ||
-    res?.treatmentSuggestions ||
+    parseJsonValue(data?.treatment) ||
+    parseJsonValue(data?.treatmentSuggestions) ||
+    parseJsonValue(data?.treatment_suggestions) ||
+    parseJsonValue(data?.treatmentPriority) ||
+    parseJsonValue(data?.treatment_priority) ||
+    parseJsonValue(healthAssessment?.treatment) ||
+    parseJsonValue(healthAssessment?.treatmentSuggestions) ||
+    parseJsonValue(healthAssessment?.treatment_suggestions) ||
+    parseJsonValue(healthAssessment?.treatmentPriority) ||
+    parseJsonValue(healthAssessment?.treatment_priority) ||
+    parseJsonValue(res?.treatmentSuggestions) ||
+    parseJsonValue(res?.treatment_suggestions) ||
     {}
 
   const matches = raw.slice(0, 3).map((d: any, idx: number): DiseaseMatch => {
@@ -95,12 +136,8 @@ const extractMatches = (res: any): DiseaseMatch[] => {
           ? d.probability
           : undefined
 
-    const treatment = d?.treatment || fallbackTreatment
-    const treatmentFromPriority = Array.isArray(fallbackTreatment)
-      ? fallbackTreatment
-          .flatMap((priority: any) => priority?.treatment || [])
-          .filter(Boolean)
-      : undefined
+    const treatment = parseJsonValue(d?.treatment) || fallbackTreatment
+    const treatmentFromPriority = asTreatmentList(fallbackTreatment)
 
     return {
       id: d?.id || `${idx}`,
@@ -129,15 +166,15 @@ const extractMatches = (res: any): DiseaseMatch[] => {
         d?.imageUrl ||
         d?.referenceImage ||
         d?.image,
-      symptoms: Array.isArray(d?.symptoms) ? d.symptoms : Array.isArray(data?.symptoms) ? data.symptoms : undefined,
-      causes: Array.isArray(d?.causes) ? d.causes : Array.isArray(data?.causes) ? data.causes : undefined,
+      symptoms: asArray(d?.symptoms).length > 0 ? asArray(d?.symptoms) : asArray(data?.symptoms).length > 0 ? asArray(data?.symptoms) : undefined,
+      causes: asArray(d?.causes).length > 0 ? asArray(d?.causes) : asArray(data?.causes).length > 0 ? asArray(data?.causes) : undefined,
       provider: data?.provider || res?.provider || data?.metadata?.provider,
       model: data?.model || res?.model || data?.metadata?.model,
       treatment: {
-        organic: treatment?.organic,
-        chemical: treatment?.chemical,
-        prevention: treatment?.prevention || treatment?.preventive || treatment?.culturalPractices,
-        immediate: treatment?.immediate || treatmentFromPriority,
+        organic: treatment?.organic || treatment?.organicSolutions,
+        chemical: treatment?.chemical || treatment?.chemicalSolutions,
+        prevention: treatment?.prevention || treatment?.preventive || treatment?.preventiveMeasures || treatment?.culturalPractices,
+        immediate: treatment?.immediate || treatment?.immediateActions || treatmentFromPriority,
       },
     }
   })
@@ -158,11 +195,11 @@ const extractMatches = (res: any): DiseaseMatch[] => {
           "Plant health assessment",
         description: data?.summary || data?.description || healthStatus?.assessment || healthAssessment?.analysisNotes,
         confidence: data?.confidence || data?.healthStatus?.confidence,
-        symptoms: Array.isArray(data?.symptoms) ? data.symptoms : undefined,
-        causes: Array.isArray(data?.causes)
-          ? data.causes
-          : Array.isArray(data?.healthStatus?.reasons)
-            ? data.healthStatus.reasons
+        symptoms: asArray(data?.symptoms).length > 0 ? asArray(data?.symptoms) : undefined,
+        causes: asArray(data?.causes).length > 0
+          ? asArray(data?.causes)
+          : asArray(data?.healthStatus?.reasons).length > 0
+            ? asArray(data?.healthStatus?.reasons)
             : undefined,
         provider: data?.provider || res?.provider || data?.metadata?.provider,
         model: data?.model || res?.model || data?.metadata?.model,
@@ -173,9 +210,7 @@ const extractMatches = (res: any): DiseaseMatch[] => {
           immediate:
             fallbackTreatment?.immediate ||
             fallbackTreatment?.immediateActions ||
-            (Array.isArray(fallbackTreatment)
-              ? fallbackTreatment.flatMap((priority: any) => priority?.treatment || []).filter(Boolean)
-              : undefined),
+            asTreatmentList(fallbackTreatment),
         },
       },
     ]
@@ -459,12 +494,13 @@ export function DiagnosisPage() {
   }
 
   const treatmentList = useMemo<string[]>(() => {
-    if (!selectedMatch?.treatment) return []
-    const t = selectedMatch.treatment
+    const match = activeHistoryItem?.match || selectedMatch
+    if (!match?.treatment) return []
+    const t = match.treatment
     if (treatmentTab === "organic") return t.organic || t.immediate || []
     if (treatmentTab === "chemical") return t.chemical || []
     return t.prevention || []
-  }, [selectedMatch, treatmentTab])
+  }, [activeHistoryItem, selectedMatch, treatmentTab])
 
   // ---------- Render ----------
 
@@ -1027,7 +1063,11 @@ function TreatView({
         asChild
         className="w-full rounded-full bg-amber-500 py-6 text-base font-bold text-slate-950 hover:bg-amber-400"
       >
-        <a href="https://farmflow-platform.onrender.com/marketplace?category=herbicides">
+        <a
+          href="https://farmflow-platform.onrender.com/marketplace?category=herbicides"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Find agrochemicals to treat this disease
         </a>
       </Button>
