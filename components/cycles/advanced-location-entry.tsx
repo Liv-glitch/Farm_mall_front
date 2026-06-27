@@ -17,6 +17,8 @@ import { AlertCircle, Loader2, MapPin, Plus, RotateCcw, Save, Search, Trash2, Un
 
 export type BoundaryPoint = { lat: number; lng: number }
 type BoundaryRow = { lat: string; lng: string }
+type MapStatus = "idle" | "loading" | "ready" | "failed"
+type MapLogLevel = "info" | "warn" | "error"
 
 interface AdvancedLocationEntryProps {
   open: boolean
@@ -37,6 +39,10 @@ interface AdvancedLocationEntryProps {
 const DEFAULT_CENTER = { lat: -0.3031, lng: 36.08 }
 const SQM_PER_ACRE = 4046.8564224
 const EMPTY_BOUNDARY_ROW_COUNT = 4
+const MAP_LOAD_TIMEOUT_MS = 12000
+const MAP_FAILURE_MESSAGE =
+  "Google Maps did not render. Check that the browser key allows this domain, billing is active, and Maps JavaScript plus Places APIs are enabled"
+const MAP_LOG_PREFIX = "[AdvancedLocationEntry:GoogleMaps]"
 
 function createEmptyBoundaryRows(count = EMPTY_BOUNDARY_ROW_COUNT): BoundaryRow[] {
   return Array.from({ length: count }, () => ({ lat: "", lng: "" }))
@@ -128,6 +134,67 @@ function formatArea(areaAcres: number | null) {
   return `${areaAcres.toFixed(1)} acres`
 }
 
+function isValidCoordinatePair(latValue: string, lngValue: string) {
+  const lat = Number(latValue)
+  const lng = Number(lngValue)
+
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  )
+}
+
+function serializeError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    }
+  }
+
+  return error
+}
+
+function isGoogleMapsRuntimeMessage(value: unknown) {
+  if (typeof value !== "string") return false
+  return /google maps|google\.maps|maps\.googleapis\.com|maps javascript api/i.test(value)
+}
+
+function logMapDiagnostic(level: MapLogLevel, message: string, context: Record<string, unknown> = {}) {
+  const payload = {
+    component: "AdvancedLocationEntry",
+    feature: "google-maps-location-entry",
+    message,
+    context,
+    href: typeof window !== "undefined" ? window.location.href : undefined,
+    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+    timestamp: new Date().toISOString(),
+  }
+
+  const logger = level === "error" ? console.error : level === "warn" ? console.warn : console.info
+  logger(MAP_LOG_PREFIX, payload)
+
+  if (typeof navigator !== "undefined" && typeof Blob !== "undefined") {
+    const body = JSON.stringify({ level, ...payload })
+    const blob = new Blob([body], { type: "application/json" })
+    if (navigator.sendBeacon("/api/client-diagnostics", blob)) return
+  }
+
+  void fetch("/api/client-diagnostics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level, ...payload }),
+    keepalive: true,
+  }).catch((error) => {
+    console.warn(MAP_LOG_PREFIX, "Could not mirror map diagnostic to server stderr", serializeError(error))
+  })
+}
+
 export function AdvancedLocationEntry({
   open,
   onOpenChange,
@@ -145,16 +212,21 @@ export function AdvancedLocationEntry({
   const mapRef = useRef<google.maps.Map | null>(null)
   const mapsRef = useRef<typeof google.maps | null>(null)
   const previewPolygonRef = useRef<google.maps.Polygon | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
 
-  const [mapsReady, setMapsReady] = useState(false)
-  const [mapsLoading, setMapsLoading] = useState(false)
+  const [mapStatus, setMapStatus] = useState<MapStatus>("idle")
   const [mapsError, setMapsError] = useState<string | null>(null)
+  const [tileWarning, setTileWarning] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [drawing, setDrawing] = useState(false)
   const [manualLat, setManualLat] = useState(latitude?.toString() || "")
   const [manualLng, setManualLng] = useState(longitude?.toString() || "")
   const [points, setPoints] = useState<BoundaryPoint[]>(boundary)
   const [manualBoundaryRows, setManualBoundaryRows] = useState<BoundaryRow[]>(boundaryPointsToRows(boundary))
   const [manualBoundaryError, setManualBoundaryError] = useState<string | null>(null)
+  const mapStatusRef = useRef<MapStatus>("idle")
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
@@ -163,6 +235,13 @@ export function AdvancedLocationEntry({
     [county, locationName, subcounty]
   )
 
+  const hasValidCoordinates = isValidCoordinatePair(manualLat, manualLng)
+  const mapsReady = mapStatus === "ready"
+
+  useEffect(() => {
+    mapStatusRef.current = mapStatus
+  }, [mapStatus])
+
   useEffect(() => {
     if (!open) return
     setManualLat(latitude?.toString() || "")
@@ -170,13 +249,15 @@ export function AdvancedLocationEntry({
     setPoints(boundary)
     setManualBoundaryRows(boundaryPointsToRows(boundary))
     setManualBoundaryError(null)
-  }, [boundary, latitude, longitude, open])
+    setSearchQuery(approximateQuery)
+    setSearchError(null)
+  }, [approximateQuery, boundary, latitude, longitude, open])
 
   useEffect(() => {
     if (open && !apiKey) {
-      console.info(
-        "Google Maps is not configured. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable map search and drawing."
-      )
+      logMapDiagnostic("warn", "Google Maps browser key is missing", {
+        expectedEnv: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
+      })
     }
   }, [apiKey, open])
 
@@ -190,21 +271,68 @@ export function AdvancedLocationEntry({
     const previousAuthFailure = typeof window !== "undefined" ? (window as any).gm_authFailure : undefined
 
     if (typeof window !== "undefined") {
+      const handleWindowError = (event: ErrorEvent) => {
+        const message = event.message || event.error?.message
+        if (!isGoogleMapsRuntimeMessage(message) && !isGoogleMapsRuntimeMessage(event.filename)) return
+        logMapDiagnostic("error", "Google Maps runtime error surfaced on window.error", {
+          message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          error: serializeError(event.error),
+        })
+      }
+
+      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+        const reason = serializeError(event.reason)
+        const reasonText =
+          typeof event.reason === "string"
+            ? event.reason
+            : event.reason instanceof Error
+              ? event.reason.message
+              : JSON.stringify(reason)
+        if (!isGoogleMapsRuntimeMessage(reasonText)) return
+        logMapDiagnostic("error", "Google Maps runtime error surfaced on unhandledrejection", {
+          reason,
+        })
+      }
+
+      window.addEventListener("error", handleWindowError)
+      window.addEventListener("unhandledrejection", handleUnhandledRejection)
+
       ;(window as any).gm_authFailure = () => {
-        setMapsLoading(false)
-        setMapsReady(false)
+        setMapStatus("failed")
         setMapsError(
           "Google Maps could not authenticate this browser key. Check API key restrictions, billing, and enabled Maps JavaScript/Places APIs."
         )
+        logMapDiagnostic("error", "Google Maps authentication failed via gm_authFailure", {
+          hasApiKey: Boolean(apiKey),
+          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
+          origin: window.location.origin,
+        })
         if (typeof previousAuthFailure === "function") previousAuthFailure()
       }
+
+      mapListeners.push({
+        remove: () => {
+          window.removeEventListener("error", handleWindowError)
+          window.removeEventListener("unhandledrejection", handleUnhandledRejection)
+        },
+      } as google.maps.MapsEventListener)
     }
 
     async function loadMap() {
       try {
         setMapsError(null)
-        setMapsLoading(true)
-        setMapsReady(false)
+        setTileWarning(null)
+        setMapStatus("loading")
+        logMapDiagnostic("info", "Starting Google Maps initialization", {
+          hasApiKey: Boolean(apiKey),
+          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
+          approximateQuery,
+          latitude,
+          longitude,
+        })
         setOptions({
           key: apiKey,
           v: "weekly",
@@ -218,6 +346,10 @@ export function AdvancedLocationEntry({
 
         const maps = google.maps
         mapsRef.current = maps
+        logMapDiagnostic("info", "Google Maps libraries loaded", {
+          libraries: ["maps", "places", "geometry"],
+          version: maps.version,
+        })
 
         const center =
           typeof latitude === "number" && typeof longitude === "number"
@@ -233,9 +365,18 @@ export function AdvancedLocationEntry({
           mapTypeControl: true,
         })
         mapRef.current = map
+        placesServiceRef.current = new maps.places.PlacesService(map)
+        logMapDiagnostic("info", "Google Map instance created", {
+          center,
+          zoom: latitude && longitude ? 17 : 12,
+          mapTypeId: "satellite",
+          containerSize: {
+            width: mapContainerRef.current.offsetWidth,
+            height: mapContainerRef.current.offsetHeight,
+          },
+        })
 
         if (searchInputRef.current) {
-          searchInputRef.current.value = approximateQuery
           const nextAutocomplete = new maps.places.Autocomplete(searchInputRef.current, {
             componentRestrictions: { country: "ke" },
             fields: ["geometry", "name", "formatted_address"],
@@ -245,24 +386,61 @@ export function AdvancedLocationEntry({
           mapListeners.push(nextAutocomplete.addListener("place_changed", () => {
             const place = nextAutocomplete.getPlace()
             const location = place?.geometry?.location
-            if (!location) return
+            if (!location) {
+              logMapDiagnostic("warn", "Autocomplete place_changed returned no geometry", {
+                placeName: place?.name,
+                formattedAddress: place?.formatted_address,
+              })
+              return
+            }
             map.setCenter(location)
             map.setZoom(18)
+            setSearchQuery(place.formatted_address || place.name || searchInputRef.current?.value || approximateQuery)
+            setSearchError(null)
             setManualLat(location.lat().toFixed(6))
             setManualLng(location.lng().toFixed(6))
           }))
         }
 
-        let tilesLoaded = false
-        mapListeners.push(maps.event.addListenerOnce(map, "tilesloaded", () => {
-          tilesLoaded = true
-          setMapsLoading(false)
-        }))
-        window.setTimeout(() => {
-          if (!cancelled && mapRef.current === map && !tilesLoaded) {
-            setMapsLoading(false)
+        const loadTimeout = window.setTimeout(() => {
+          if (!cancelled && mapRef.current === map) {
+            setTileWarning(MAP_FAILURE_MESSAGE)
+            logMapDiagnostic("error", "Google Maps tilesloaded event did not fire before timeout", {
+              timeoutMs: MAP_LOAD_TIMEOUT_MS,
+              center: map.getCenter()?.toJSON(),
+              zoom: map.getZoom(),
+              mapTypeId: map.getMapTypeId(),
+              hasPlacesService: Boolean(placesServiceRef.current),
+              mapStatus: mapStatusRef.current,
+            })
           }
-        }, 6000)
+        }, MAP_LOAD_TIMEOUT_MS)
+
+        mapListeners.push(maps.event.addListenerOnce(map, "idle", () => {
+          if (!cancelled && mapRef.current === map) {
+            setMapStatus("ready")
+            setMapsError(null)
+            logMapDiagnostic("info", "Google Map reached first idle; controls are enabled", {
+              center: map.getCenter()?.toJSON(),
+              zoom: map.getZoom(),
+              mapTypeId: map.getMapTypeId(),
+            })
+          }
+        }))
+
+        mapListeners.push(maps.event.addListenerOnce(map, "tilesloaded", () => {
+          window.clearTimeout(loadTimeout)
+          if (!cancelled && mapRef.current === map) {
+            setMapStatus("ready")
+            setMapsError(null)
+            setTileWarning(null)
+            logMapDiagnostic("info", "Google Maps tilesloaded fired", {
+              center: map.getCenter()?.toJSON(),
+              zoom: map.getZoom(),
+              mapTypeId: map.getMapTypeId(),
+            })
+          }
+        }))
 
         const refreshMapLayout = () => {
           if (cancelled || mapRef.current !== map) return
@@ -330,13 +508,14 @@ export function AdvancedLocationEntry({
             map,
           })
         }
-
-        setMapsReady(true)
-        setMapsLoading(false)
       } catch (error: any) {
-        setMapsLoading(false)
-        setMapsReady(false)
+        setMapStatus("failed")
         setMapsError(error?.message || "Could not load Google Maps.")
+        logMapDiagnostic("error", "Google Maps initialization threw", {
+          error: serializeError(error),
+          hasApiKey: Boolean(apiKey),
+          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
+        })
       }
     }
 
@@ -354,9 +533,11 @@ export function AdvancedLocationEntry({
       drawRef.current = null
       mapRef.current = null
       mapsRef.current = null
-      setMapsReady(false)
-      setMapsLoading(false)
+      placesServiceRef.current = null
+      setMapStatus("idle")
       setDrawing(false)
+      setSearchLoading(false)
+      setTileWarning(null)
     }
   }, [apiKey, approximateQuery, latitude, longitude, open])
 
@@ -397,7 +578,89 @@ export function AdvancedLocationEntry({
     return mapsRef.current.geometry.spherical.computeArea(path) / SQM_PER_ACRE
   }, [points])
 
+  const applyPlaceLocation = (place: google.maps.places.PlaceResult) => {
+    const location = place.geometry?.location
+    if (!location || !mapRef.current) return false
+
+    mapRef.current.setCenter(location)
+    mapRef.current.setZoom(18)
+    setManualLat(formatCoordinate(location.lat()))
+    setManualLng(formatCoordinate(location.lng()))
+    setSearchQuery(place.formatted_address || place.name || searchQuery)
+    setSearchError(null)
+    return true
+  }
+
+  const handleSearch = () => {
+    const service = placesServiceRef.current
+    const query = searchQuery.trim()
+
+    if (!query) {
+      setSearchError("Enter a nearby town, village, road, or farm area first.")
+      return
+    }
+
+    if (!service || !mapRef.current || !mapsRef.current || mapStatus !== "ready") {
+      logMapDiagnostic("warn", "Search attempted before Google Maps controls were ready", {
+        hasPlacesService: Boolean(service),
+        hasMap: Boolean(mapRef.current),
+        hasMapsLibrary: Boolean(mapsRef.current),
+        mapStatus,
+      })
+      setSearchError("The map is still loading. Try again once it is ready.")
+      return
+    }
+
+    setSearchLoading(true)
+    setSearchError(null)
+    logMapDiagnostic("info", "Running Places findPlaceFromQuery", {
+      query,
+      mapStatus,
+      bounds: mapRef.current.getBounds()?.toJSON(),
+    })
+
+    service.findPlaceFromQuery(
+      {
+        query,
+        fields: ["geometry", "name", "formatted_address"],
+        locationBias: mapRef.current.getBounds() || undefined,
+      },
+      (results, status) => {
+        setSearchLoading(false)
+
+        if (status !== mapsRef.current?.places.PlacesServiceStatus.OK || !results?.[0]) {
+          logMapDiagnostic("warn", "Places findPlaceFromQuery returned no usable result", {
+            query,
+            status,
+            resultCount: results?.length || 0,
+          })
+          setSearchError("No matching location was found. Try a nearby town, road, or trading centre.")
+          return
+        }
+
+        logMapDiagnostic("info", "Places search selected a result", {
+          query,
+          name: results[0].name,
+          formattedAddress: results[0].formatted_address,
+          location: results[0].geometry?.location?.toJSON(),
+        })
+        applyPlaceLocation(results[0])
+      }
+    )
+  }
+
   const handleDraw = () => {
+    if (!mapsReady || !hasValidCoordinates) {
+      logMapDiagnostic("warn", "Draw attempted before prerequisites were satisfied", {
+        mapsReady,
+        hasValidCoordinates,
+        mapStatus,
+        manualLat,
+        manualLng,
+      })
+      setSearchError("Search or enter valid coordinates before drawing the farm boundary.")
+      return
+    }
     previewPolygonRef.current?.setMap(null)
     drawRef.current?.clear()
     drawRef.current?.setMode("farm-boundary")
@@ -405,6 +668,10 @@ export function AdvancedLocationEntry({
     setManualBoundaryRows(createEmptyBoundaryRows())
     setManualBoundaryError(null)
     setDrawing(true)
+    logMapDiagnostic("info", "Farm boundary drawing started", {
+      manualLat,
+      manualLng,
+    })
   }
 
   const handleUndo = () => {
@@ -495,21 +762,60 @@ export function AdvancedLocationEntry({
                   <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input
                     ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value)
+                      setSearchError(null)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault()
+                        handleSearch()
+                      }
+                    }}
                     placeholder="Search farm area, trading centre, or village"
-                    className="h-11 pl-9"
+                    className="h-11 pl-9 pr-24"
                   />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSearch}
+                    disabled={mapStatus !== "ready" || searchLoading}
+                    className="absolute right-1.5 top-1 h-9 px-3"
+                  >
+                    {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+                  </Button>
                 </div>
                 <div className="relative h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                   <div ref={mapContainerRef} className="h-full w-full" />
-                  {mapsLoading ? (
-                    <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">
+                  {mapStatus === "loading" ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/85">
                       <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-agri-800 shadow">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Loading map...
                       </div>
                     </div>
                   ) : null}
+                  {mapStatus === "failed" ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-100 p-5 text-center">
+                      <div className="max-w-sm text-sm text-slate-700">
+                        <AlertCircle className="mx-auto mb-2 h-6 w-6 text-amber-600" />
+                        <div className="font-semibold text-slate-950">Map could not render</div>
+                        <div className="mt-1">
+                          Check the key referrer, billing, quota, and enabled Maps JavaScript and Places APIs.
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
+                {searchError ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <div className="flex gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{searchError}</span>
+                    </div>
+                  </div>
+                ) : null}
                 {mapsError ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                     <div className="flex gap-2">
@@ -518,11 +824,19 @@ export function AdvancedLocationEntry({
                     </div>
                   </div>
                 ) : null}
+                {tileWarning ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    <div className="flex gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>{tileWarning}. Search may still work because the Places service loaded.</span>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     onClick={handleDraw}
-                    disabled={!mapsReady}
+                    disabled={!mapsReady || !hasValidCoordinates}
                     className="bg-agri-700 hover:bg-agri-800"
                   >
                     Draw farm boundary
@@ -540,6 +854,11 @@ export function AdvancedLocationEntry({
                     Cancel
                   </Button>
                 </div>
+                {!hasValidCoordinates ? (
+                  <p className="text-xs font-medium text-slate-500">
+                    Search and select an approximate farm location before drawing the boundary.
+                  </p>
+                ) : null}
               </>
             ) : (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
