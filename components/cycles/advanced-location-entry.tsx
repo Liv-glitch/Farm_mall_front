@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader"
 import {
   TerraDraw,
@@ -10,7 +10,7 @@ import {
 } from "terra-draw"
 import { TerraDrawGoogleMapsAdapter } from "terra-draw-google-maps-adapter"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, Loader2, MapPin, Plus, RotateCcw, Save, Search, Trash2, Undo2 } from "lucide-react"
@@ -43,6 +43,7 @@ const MAP_LOAD_TIMEOUT_MS = 12000
 const MAP_FAILURE_MESSAGE =
   "Google Maps did not render. Check that the browser key allows this domain, billing is active, and Maps JavaScript plus Places APIs are enabled"
 const MAP_LOG_PREFIX = "[AdvancedLocationEntry:GoogleMaps]"
+const MAP_DIAGNOSTIC_MARKER = "map-diagnostics-2026-06-27.2"
 
 function createEmptyBoundaryRows(count = EMPTY_BOUNDARY_ROW_COUNT): BoundaryRow[] {
   return Array.from({ length: count }, () => ({ lat: "", lng: "" }))
@@ -165,6 +166,39 @@ function isGoogleMapsRuntimeMessage(value: unknown) {
   return /google maps|google\.maps|maps\.googleapis\.com|maps javascript api/i.test(value)
 }
 
+function normalizeApiKey(value: string | undefined) {
+  return value?.trim().replace(/^['"]|['"]$/g, "") || ""
+}
+
+function getMapDomSnapshot(container: HTMLDivElement | null) {
+  if (!container) {
+    return {
+      hasContainer: false,
+      width: 0,
+      height: 0,
+      childCount: 0,
+      hasGoogleMapShell: false,
+      imageCount: 0,
+      tileImageCount: 0,
+      hasAttribution: false,
+      text: "",
+    }
+  }
+
+  const images = Array.from(container.querySelectorAll("img"))
+  return {
+    hasContainer: true,
+    width: container.offsetWidth,
+    height: container.offsetHeight,
+    childCount: container.childElementCount,
+    hasGoogleMapShell: Boolean(container.querySelector(".gm-style")),
+    imageCount: images.length,
+    tileImageCount: images.filter((image) => /googleapis|ggpht|googleusercontent/i.test(image.src)).length,
+    hasAttribution: /Google|Map data|Terms/i.test(container.textContent || ""),
+    text: (container.textContent || "").trim().slice(0, 300),
+  }
+}
+
 function logMapDiagnostic(level: MapLogLevel, message: string, context: Record<string, unknown> = {}) {
   const payload = {
     component: "AdvancedLocationEntry",
@@ -220,6 +254,8 @@ export function AdvancedLocationEntry({
   const [searchQuery, setSearchQuery] = useState("")
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [mapDiagnosticText, setMapDiagnosticText] = useState("Map diagnostics have not started.")
+  const [mapContainerElement, setMapContainerElement] = useState<HTMLDivElement | null>(null)
   const [drawing, setDrawing] = useState(false)
   const [manualLat, setManualLat] = useState(latitude?.toString() || "")
   const [manualLng, setManualLng] = useState(longitude?.toString() || "")
@@ -228,7 +264,7 @@ export function AdvancedLocationEntry({
   const [manualBoundaryError, setManualBoundaryError] = useState<string | null>(null)
   const mapStatusRef = useRef<MapStatus>("idle")
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const apiKey = normalizeApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
 
   const approximateQuery = useMemo(
     () => [locationName, subcounty, county, "Kenya"].filter(Boolean).join(", "),
@@ -238,9 +274,28 @@ export function AdvancedLocationEntry({
   const hasValidCoordinates = isValidCoordinatePair(manualLat, manualLng)
   const mapsReady = mapStatus === "ready"
 
+  const setMapContainer = useCallback((node: HTMLDivElement | null) => {
+    mapContainerRef.current = node
+    setMapContainerElement(node)
+  }, [])
+
   useEffect(() => {
     mapStatusRef.current = mapStatus
   }, [mapStatus])
+
+  const reportMapDiagnostic = (
+    level: MapLogLevel,
+    message: string,
+    context: Record<string, unknown> = {}
+  ) => {
+    setMapDiagnosticText(message)
+    logMapDiagnostic(level, message, {
+      marker: MAP_DIAGNOSTIC_MARKER,
+      mapStatus: mapStatusRef.current,
+      dom: getMapDomSnapshot(mapContainerRef.current),
+      ...context,
+    })
+  }
 
   useEffect(() => {
     if (!open) return
@@ -251,18 +306,64 @@ export function AdvancedLocationEntry({
     setManualBoundaryError(null)
     setSearchQuery(approximateQuery)
     setSearchError(null)
+    setMapDiagnosticText(`${MAP_DIAGNOSTIC_MARKER}: component opened`)
   }, [approximateQuery, boundary, latitude, longitude, open])
 
   useEffect(() => {
     if (open && !apiKey) {
-      logMapDiagnostic("warn", "Google Maps browser key is missing", {
+      reportMapDiagnostic("warn", "Google Maps browser key is missing", {
         expectedEnv: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
       })
     }
   }, [apiKey, open])
 
   useEffect(() => {
-    if (!open || !apiKey || !mapContainerRef.current) return
+    if (!open) return
+
+    const checkContainer = () => {
+      const dom = getMapDomSnapshot(mapContainerRef.current)
+
+      if (!dom.hasContainer) {
+        reportMapDiagnostic("error", "Map container ref is missing after dialog opened", {
+          hasApiKey: Boolean(apiKey),
+        })
+        return
+      }
+
+      if (dom.width === 0 || dom.height === 0) {
+        reportMapDiagnostic("error", "Map container has zero size after dialog opened", {
+          hasApiKey: Boolean(apiKey),
+        })
+        return
+      }
+
+      reportMapDiagnostic("info", "Advanced location map container is mounted", {
+        hasApiKey: Boolean(apiKey),
+        apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
+      })
+    }
+
+    window.requestAnimationFrame(checkContainer)
+    const timeout = window.setTimeout(checkContainer, 750)
+    return () => window.clearTimeout(timeout)
+  }, [apiKey, open])
+
+  useEffect(() => {
+    if (!open) return
+
+    if (!apiKey) {
+      reportMapDiagnostic("warn", "Google Maps initialization is waiting for a browser key", {
+        hasContainerElement: Boolean(mapContainerElement),
+      })
+      return
+    }
+
+    if (!mapContainerElement) {
+      reportMapDiagnostic("warn", "Google Maps initialization is waiting for the map container", {
+        hasApiKey: Boolean(apiKey),
+      })
+      return
+    }
 
     let cancelled = false
     let draw: TerraDraw | null = null
@@ -274,7 +375,7 @@ export function AdvancedLocationEntry({
       const handleWindowError = (event: ErrorEvent) => {
         const message = event.message || event.error?.message
         if (!isGoogleMapsRuntimeMessage(message) && !isGoogleMapsRuntimeMessage(event.filename)) return
-        logMapDiagnostic("error", "Google Maps runtime error surfaced on window.error", {
+        reportMapDiagnostic("error", "Google Maps runtime error surfaced on window.error", {
           message,
           filename: event.filename,
           lineno: event.lineno,
@@ -292,7 +393,7 @@ export function AdvancedLocationEntry({
               ? event.reason.message
               : JSON.stringify(reason)
         if (!isGoogleMapsRuntimeMessage(reasonText)) return
-        logMapDiagnostic("error", "Google Maps runtime error surfaced on unhandledrejection", {
+        reportMapDiagnostic("error", "Google Maps runtime error surfaced on unhandledrejection", {
           reason,
         })
       }
@@ -305,7 +406,7 @@ export function AdvancedLocationEntry({
         setMapsError(
           "Google Maps could not authenticate this browser key. Check API key restrictions, billing, and enabled Maps JavaScript/Places APIs."
         )
-        logMapDiagnostic("error", "Google Maps authentication failed via gm_authFailure", {
+        reportMapDiagnostic("error", "Google Maps authentication failed via gm_authFailure", {
           hasApiKey: Boolean(apiKey),
           apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
           origin: window.location.origin,
@@ -326,7 +427,7 @@ export function AdvancedLocationEntry({
         setMapsError(null)
         setTileWarning(null)
         setMapStatus("loading")
-        logMapDiagnostic("info", "Starting Google Maps initialization", {
+        reportMapDiagnostic("info", "Starting Google Maps initialization", {
           hasApiKey: Boolean(apiKey),
           apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
           approximateQuery,
@@ -346,7 +447,7 @@ export function AdvancedLocationEntry({
 
         const maps = google.maps
         mapsRef.current = maps
-        logMapDiagnostic("info", "Google Maps libraries loaded", {
+        reportMapDiagnostic("info", "Google Maps libraries loaded", {
           libraries: ["maps", "places", "geometry"],
           version: maps.version,
         })
@@ -366,7 +467,7 @@ export function AdvancedLocationEntry({
         })
         mapRef.current = map
         placesServiceRef.current = new maps.places.PlacesService(map)
-        logMapDiagnostic("info", "Google Map instance created", {
+        reportMapDiagnostic("info", "Google Map instance created", {
           center,
           zoom: latitude && longitude ? 17 : 12,
           mapTypeId: "satellite",
@@ -387,7 +488,7 @@ export function AdvancedLocationEntry({
             const place = nextAutocomplete.getPlace()
             const location = place?.geometry?.location
             if (!location) {
-              logMapDiagnostic("warn", "Autocomplete place_changed returned no geometry", {
+              reportMapDiagnostic("warn", "Autocomplete place_changed returned no geometry", {
                 placeName: place?.name,
                 formattedAddress: place?.formatted_address,
               })
@@ -405,7 +506,7 @@ export function AdvancedLocationEntry({
         const loadTimeout = window.setTimeout(() => {
           if (!cancelled && mapRef.current === map) {
             setTileWarning(MAP_FAILURE_MESSAGE)
-            logMapDiagnostic("error", "Google Maps tilesloaded event did not fire before timeout", {
+            reportMapDiagnostic("error", "Google Maps tilesloaded event did not fire before timeout", {
               timeoutMs: MAP_LOAD_TIMEOUT_MS,
               center: map.getCenter()?.toJSON(),
               zoom: map.getZoom(),
@@ -420,7 +521,7 @@ export function AdvancedLocationEntry({
           if (!cancelled && mapRef.current === map) {
             setMapStatus("ready")
             setMapsError(null)
-            logMapDiagnostic("info", "Google Map reached first idle; controls are enabled", {
+            reportMapDiagnostic("info", "Google Map reached first idle; controls are enabled", {
               center: map.getCenter()?.toJSON(),
               zoom: map.getZoom(),
               mapTypeId: map.getMapTypeId(),
@@ -434,7 +535,7 @@ export function AdvancedLocationEntry({
             setMapStatus("ready")
             setMapsError(null)
             setTileWarning(null)
-            logMapDiagnostic("info", "Google Maps tilesloaded fired", {
+            reportMapDiagnostic("info", "Google Maps tilesloaded fired", {
               center: map.getCenter()?.toJSON(),
               zoom: map.getZoom(),
               mapTypeId: map.getMapTypeId(),
@@ -511,7 +612,7 @@ export function AdvancedLocationEntry({
       } catch (error: any) {
         setMapStatus("failed")
         setMapsError(error?.message || "Could not load Google Maps.")
-        logMapDiagnostic("error", "Google Maps initialization threw", {
+        reportMapDiagnostic("error", "Google Maps initialization threw", {
           error: serializeError(error),
           hasApiKey: Boolean(apiKey),
           apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
@@ -539,7 +640,47 @@ export function AdvancedLocationEntry({
       setSearchLoading(false)
       setTileWarning(null)
     }
-  }, [apiKey, approximateQuery, latitude, longitude, open])
+  }, [apiKey, approximateQuery, latitude, longitude, mapContainerElement, open])
+
+  useEffect(() => {
+    if (!open || !apiKey || mapStatus === "failed") return
+
+    const inspectMapDom = () => {
+      const dom = getMapDomSnapshot(mapContainerRef.current)
+
+      if (!dom.hasContainer || dom.width === 0 || dom.height === 0) {
+        setMapStatus("failed")
+        setMapsError("Google Maps cannot render because the map container is missing or has zero size.")
+        reportMapDiagnostic("error", "Google Maps render container is invalid", {
+          hasApiKey: Boolean(apiKey),
+        })
+        return
+      }
+
+      if (mapStatusRef.current === "ready" && !dom.hasGoogleMapShell) {
+        setMapStatus("failed")
+        setMapsError("Google Maps reported ready but did not attach its map DOM.")
+        reportMapDiagnostic("error", "Google Maps reported ready but .gm-style is missing", {
+          hasApiKey: Boolean(apiKey),
+        })
+        return
+      }
+
+      if (mapStatusRef.current === "ready" && dom.hasGoogleMapShell && dom.tileImageCount === 0) {
+        setTileWarning(MAP_FAILURE_MESSAGE)
+        reportMapDiagnostic("warn", "Google Maps shell is present but no tile images were detected", {
+          hasApiKey: Boolean(apiKey),
+        })
+      }
+    }
+
+    const firstTimeout = window.setTimeout(inspectMapDom, 2500)
+    const secondTimeout = window.setTimeout(inspectMapDom, 7000)
+    return () => {
+      window.clearTimeout(firstTimeout)
+      window.clearTimeout(secondTimeout)
+    }
+  }, [apiKey, mapStatus, open])
 
   useEffect(() => {
     if (!mapsRef.current || !mapRef.current) return
@@ -601,7 +742,7 @@ export function AdvancedLocationEntry({
     }
 
     if (!service || !mapRef.current || !mapsRef.current || mapStatus !== "ready") {
-      logMapDiagnostic("warn", "Search attempted before Google Maps controls were ready", {
+      reportMapDiagnostic("warn", "Search attempted before Google Maps controls were ready", {
         hasPlacesService: Boolean(service),
         hasMap: Boolean(mapRef.current),
         hasMapsLibrary: Boolean(mapsRef.current),
@@ -613,7 +754,7 @@ export function AdvancedLocationEntry({
 
     setSearchLoading(true)
     setSearchError(null)
-    logMapDiagnostic("info", "Running Places findPlaceFromQuery", {
+    reportMapDiagnostic("info", "Running Places findPlaceFromQuery", {
       query,
       mapStatus,
       bounds: mapRef.current.getBounds()?.toJSON(),
@@ -629,7 +770,7 @@ export function AdvancedLocationEntry({
         setSearchLoading(false)
 
         if (status !== mapsRef.current?.places.PlacesServiceStatus.OK || !results?.[0]) {
-          logMapDiagnostic("warn", "Places findPlaceFromQuery returned no usable result", {
+          reportMapDiagnostic("warn", "Places findPlaceFromQuery returned no usable result", {
             query,
             status,
             resultCount: results?.length || 0,
@@ -638,7 +779,7 @@ export function AdvancedLocationEntry({
           return
         }
 
-        logMapDiagnostic("info", "Places search selected a result", {
+        reportMapDiagnostic("info", "Places search selected a result", {
           query,
           name: results[0].name,
           formattedAddress: results[0].formatted_address,
@@ -651,7 +792,7 @@ export function AdvancedLocationEntry({
 
   const handleDraw = () => {
     if (!mapsReady || !hasValidCoordinates) {
-      logMapDiagnostic("warn", "Draw attempted before prerequisites were satisfied", {
+      reportMapDiagnostic("warn", "Draw attempted before prerequisites were satisfied", {
         mapsReady,
         hasValidCoordinates,
         mapStatus,
@@ -668,7 +809,7 @@ export function AdvancedLocationEntry({
     setManualBoundaryRows(createEmptyBoundaryRows())
     setManualBoundaryError(null)
     setDrawing(true)
-    logMapDiagnostic("info", "Farm boundary drawing started", {
+    reportMapDiagnostic("info", "Farm boundary drawing started", {
       manualLat,
       manualLng,
     })
@@ -747,6 +888,9 @@ export function AdvancedLocationEntry({
             <MapPin className="h-5 w-5 text-agri-600" />
             Advanced Location Entry
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Search for a farm location, draw a boundary on the map, or enter coordinates manually.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
@@ -787,7 +931,10 @@ export function AdvancedLocationEntry({
                   </Button>
                 </div>
                 <div className="relative h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  <div ref={mapContainerRef} className="h-full w-full" />
+                  <div ref={setMapContainer} className="h-full w-full" />
+                  <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] rounded bg-white/95 px-2 py-1 text-[10px] font-medium text-slate-700 shadow">
+                    {MAP_DIAGNOSTIC_MARKER} | {mapStatus} | {mapDiagnosticText}
+                  </div>
                   {mapStatus === "loading" ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/85">
                       <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-agri-800 shadow">
