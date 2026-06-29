@@ -39,9 +39,6 @@ interface AdvancedLocationEntryProps {
 const DEFAULT_CENTER = { lat: -0.3031, lng: 36.08 }
 const SQM_PER_ACRE = 4046.8564224
 const EMPTY_BOUNDARY_ROW_COUNT = 4
-const MAP_LOAD_TIMEOUT_MS = 12000
-const MAP_FAILURE_MESSAGE =
-  "Google Maps did not render. Check that the browser key allows this domain, billing is active, and Maps JavaScript plus Places APIs are enabled"
 const MAP_LOG_PREFIX = "[AdvancedLocationEntry:GoogleMaps]"
 const MAP_DIAGNOSTIC_MARKER = "map-diagnostics-2026-06-27.2"
 
@@ -250,7 +247,6 @@ export function AdvancedLocationEntry({
 
   const [mapStatus, setMapStatus] = useState<MapStatus>("idle")
   const [mapsError, setMapsError] = useState<string | null>(null)
-  const [tileWarning, setTileWarning] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
@@ -273,6 +269,7 @@ export function AdvancedLocationEntry({
 
   const hasValidCoordinates = isValidCoordinatePair(manualLat, manualLng)
   const mapsReady = mapStatus === "ready"
+  const hasSavedCoordinates = typeof latitude === "number" && typeof longitude === "number"
 
   const setMapContainer = useCallback((node: HTMLDivElement | null) => {
     mapContainerRef.current = node
@@ -425,7 +422,6 @@ export function AdvancedLocationEntry({
     async function loadMap() {
       try {
         setMapsError(null)
-        setTileWarning(null)
         setMapStatus("loading")
         reportMapDiagnostic("info", "Starting Google Maps initialization", {
           hasApiKey: Boolean(apiKey),
@@ -452,25 +448,26 @@ export function AdvancedLocationEntry({
           version: maps.version,
         })
 
-        const center =
-          typeof latitude === "number" && typeof longitude === "number"
-            ? { lat: latitude, lng: longitude }
-            : DEFAULT_CENTER
+        const center = hasSavedCoordinates ? { lat: latitude, lng: longitude } : DEFAULT_CENTER
+        const initialZoom = hasSavedCoordinates ? 17 : 11
+        const initialMapTypeId = "hybrid"
 
         const map = new maps.Map(mapContainerRef.current, {
           center,
-          zoom: latitude && longitude ? 17 : 12,
-          mapTypeId: "satellite",
+          zoom: initialZoom,
+          mapTypeId: initialMapTypeId,
           streetViewControl: false,
           fullscreenControl: false,
           mapTypeControl: true,
+          draggableCursor: "grab",
+          draggingCursor: "grabbing",
         })
         mapRef.current = map
         placesServiceRef.current = new maps.places.PlacesService(map)
         reportMapDiagnostic("info", "Google Map instance created", {
           center,
-          zoom: latitude && longitude ? 17 : 12,
-          mapTypeId: "satellite",
+          zoom: initialZoom,
+          mapTypeId: initialMapTypeId,
           containerSize: {
             width: mapContainerRef.current.offsetWidth,
             height: mapContainerRef.current.offsetHeight,
@@ -503,20 +500,6 @@ export function AdvancedLocationEntry({
           }))
         }
 
-        const loadTimeout = window.setTimeout(() => {
-          if (!cancelled && mapRef.current === map) {
-            setTileWarning(MAP_FAILURE_MESSAGE)
-            reportMapDiagnostic("error", "Google Maps tilesloaded event did not fire before timeout", {
-              timeoutMs: MAP_LOAD_TIMEOUT_MS,
-              center: map.getCenter()?.toJSON(),
-              zoom: map.getZoom(),
-              mapTypeId: map.getMapTypeId(),
-              hasPlacesService: Boolean(placesServiceRef.current),
-              mapStatus: mapStatusRef.current,
-            })
-          }
-        }, MAP_LOAD_TIMEOUT_MS)
-
         mapListeners.push(maps.event.addListenerOnce(map, "idle", () => {
           if (!cancelled && mapRef.current === map) {
             setMapStatus("ready")
@@ -530,11 +513,9 @@ export function AdvancedLocationEntry({
         }))
 
         mapListeners.push(maps.event.addListenerOnce(map, "tilesloaded", () => {
-          window.clearTimeout(loadTimeout)
           if (!cancelled && mapRef.current === map) {
             setMapStatus("ready")
             setMapsError(null)
-            setTileWarning(null)
             reportMapDiagnostic("info", "Google Maps tilesloaded fired", {
               center: map.getCenter()?.toJSON(),
               zoom: map.getZoom(),
@@ -555,6 +536,7 @@ export function AdvancedLocationEntry({
           adapter: new TerraDrawGoogleMapsAdapter({
             lib: maps,
             map,
+            forwardMapElementEvents: true,
             isolatedData: true,
             coordinatePrecision: 7,
           }),
@@ -563,6 +545,12 @@ export function AdvancedLocationEntry({
               modeName: "farm-boundary",
               editable: true,
               showCoordinatePoints: true,
+              cursors: {
+                start: "crosshair",
+                close: "pointer",
+                dragStart: "grabbing",
+                dragEnd: "crosshair",
+              },
               styles: {
                 fillColor: "#16a34a",
                 fillOpacity: 0.25,
@@ -584,6 +572,12 @@ export function AdvancedLocationEntry({
         })
         draw.start()
         draw.setMode("static")
+        draw.on("change", () => {
+          const nextPoints = draw ? getPolygonPoints(draw) : []
+          setPoints(nextPoints)
+          setManualBoundaryRows(boundaryPointsToRows(nextPoints))
+          setManualBoundaryError(null)
+        })
         draw.on("finish", () => {
           const nextPoints = draw ? getPolygonPoints(draw) : []
           const centroid = getBoundaryCentroid(nextPoints)
@@ -595,6 +589,11 @@ export function AdvancedLocationEntry({
             setManualLng(formatCoordinate(centroid.lng))
           }
           setDrawing(false)
+          map.setOptions({
+            draggable: true,
+            draggableCursor: "grab",
+            draggingCursor: "grabbing",
+          })
           draw?.setMode("static")
         })
         drawRef.current = draw
@@ -638,9 +637,8 @@ export function AdvancedLocationEntry({
       setMapStatus("idle")
       setDrawing(false)
       setSearchLoading(false)
-      setTileWarning(null)
     }
-  }, [apiKey, approximateQuery, latitude, longitude, mapContainerElement, open])
+  }, [apiKey, approximateQuery, hasSavedCoordinates, latitude, longitude, mapContainerElement, open])
 
   useEffect(() => {
     if (!open || !apiKey || mapStatus === "failed") return
@@ -667,9 +665,9 @@ export function AdvancedLocationEntry({
       }
 
       if (mapStatusRef.current === "ready" && dom.hasGoogleMapShell && dom.tileImageCount === 0) {
-        setTileWarning(MAP_FAILURE_MESSAGE)
-        reportMapDiagnostic("warn", "Google Maps shell is present but no tile images were detected", {
+        reportMapDiagnostic("info", "Google Maps shell is present; tile image DOM nodes were not detected", {
           hasApiKey: Boolean(apiKey),
+          note: "Maps can render vector or no-imagery states without exposing tile image elements.",
         })
       }
     }
@@ -805,6 +803,11 @@ export function AdvancedLocationEntry({
     previewPolygonRef.current?.setMap(null)
     drawRef.current?.clear()
     drawRef.current?.setMode("farm-boundary")
+    mapRef.current?.setOptions({
+      draggable: false,
+      draggableCursor: "crosshair",
+      draggingCursor: "crosshair",
+    })
     setPoints([])
     setManualBoundaryRows(createEmptyBoundaryRows())
     setManualBoundaryError(null)
@@ -826,6 +829,11 @@ export function AdvancedLocationEntry({
   const handleClear = () => {
     drawRef.current?.clear()
     drawRef.current?.setMode("static")
+    mapRef.current?.setOptions({
+      draggable: true,
+      draggableCursor: "grab",
+      draggingCursor: "grabbing",
+    })
     setDrawing(false)
     setPoints([])
     setManualBoundaryRows(createEmptyBoundaryRows())
@@ -954,6 +962,11 @@ export function AdvancedLocationEntry({
                       </div>
                     </div>
                   ) : null}
+                  {drawing ? (
+                    <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 rounded-lg bg-agri-900/90 px-3 py-2 text-sm font-medium text-white shadow">
+                      Click boundary corners. Click the first point or press Enter to finish.
+                    </div>
+                  ) : null}
                 </div>
                 {searchError ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -968,14 +981,6 @@ export function AdvancedLocationEntry({
                     <div className="flex gap-2">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>{mapsError}. You can still enter the farm boundary manually.</span>
-                    </div>
-                  </div>
-                ) : null}
-                {tileWarning ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    <div className="flex gap-2">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{tileWarning}. Search may still work because the Places service loaded.</span>
                     </div>
                   </div>
                 ) : null}
@@ -1003,7 +1008,7 @@ export function AdvancedLocationEntry({
                 </div>
                 {!hasValidCoordinates ? (
                   <p className="text-xs font-medium text-slate-500">
-                    Search and select an approximate farm location before drawing the boundary.
+                    Search and select an autocomplete result, or enter valid coordinates, before drawing the boundary.
                   </p>
                 ) : null}
               </>
