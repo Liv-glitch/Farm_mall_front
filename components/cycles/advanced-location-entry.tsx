@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader"
 import {
   TerraDraw,
@@ -10,15 +10,45 @@ import {
 } from "terra-draw"
 import { TerraDrawGoogleMapsAdapter } from "terra-draw-google-maps-adapter"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Loader2, MapPin, Plus, RotateCcw, Save, Search, Trash2, Undo2 } from "lucide-react"
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  Keyboard,
+  Loader2,
+  MapPin,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  Sparkles,
+  Trash2,
+  Undo2,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export type BoundaryPoint = { lat: number; lng: number }
 type BoundaryRow = { lat: string; lng: string }
 type MapStatus = "idle" | "loading" | "ready" | "failed"
-type MapLogLevel = "info" | "warn" | "error"
+type View = "map" | "manual"
+type Step = "search" | "adjust" | "drawing" | "confirm"
+
+type Prediction = {
+  placeId: string
+  description: string
+  mainText: string
+  secondaryText: string
+}
 
 interface AdvancedLocationEntryProps {
   open: boolean
@@ -36,11 +66,20 @@ interface AdvancedLocationEntryProps {
   }) => void
 }
 
-const DEFAULT_CENTER = { lat: -0.3031, lng: 36.08 }
+// Default to Nairobi as a well-known Kenyan starting point.
+const NAIROBI_CENTER = { lat: -1.286389, lng: 36.817223 }
+const DEFAULT_ZOOM = 11
+const FOCUSED_ZOOM = 17
+const SATELLITE_MAP_TYPE = "hybrid"
+const ROADMAP_MAP_TYPE = "roadmap"
 const SQM_PER_ACRE = 4046.8564224
+const MIN_BOUNDARY_POINTS = 3
 const EMPTY_BOUNDARY_ROW_COUNT = 4
-const MAP_LOG_PREFIX = "[AdvancedLocationEntry:GoogleMaps]"
-const MAP_DIAGNOSTIC_MARKER = "map-diagnostics-2026-06-27.2"
+// The Terra Draw Google Maps adapter looks up the map container by id when wiring
+// its OverlayView. Without this id the draw layer never attaches and clicks
+// never produce vertices.
+const MAP_CONTAINER_ID = "advanced-location-map-container"
+const AUTOCOMPLETE_DEBOUNCE_MS = 220
 
 function createEmptyBoundaryRows(count = EMPTY_BOUNDARY_ROW_COUNT): BoundaryRow[] {
   return Array.from({ length: count }, () => ({ lat: "", lng: "" }))
@@ -79,15 +118,15 @@ function parseBoundaryRows(rows: BoundaryRow[]): { points: BoundaryPoint[]; erro
       point.lat < -90 ||
       point.lat > 90 ||
       point.lng < -180 ||
-      point.lng > 180
+      point.lng > 180,
   )
 
   if (invalidPoint) {
     return { points: [], error: "Boundary coordinates must use valid latitude and longitude values." }
   }
 
-  if (points.length > 0 && points.length < 3) {
-    return { points, error: "A farm boundary needs at least 3 points." }
+  if (points.length > 0 && points.length < MIN_BOUNDARY_POINTS) {
+    return { points, error: `A farm boundary needs at least ${MIN_BOUNDARY_POINTS} points.` }
   }
 
   return { points, error: null }
@@ -100,7 +139,7 @@ function getBoundaryCentroid(points: BoundaryPoint[]): BoundaryPoint | null {
       lat: sum.lat + point.lat,
       lng: sum.lng + point.lng,
     }),
-    { lat: 0, lng: 0 }
+    { lat: 0, lng: 0 },
   )
 
   return {
@@ -110,18 +149,15 @@ function getBoundaryCentroid(points: BoundaryPoint[]): BoundaryPoint | null {
 }
 
 function getPolygonPoints(draw: TerraDraw): BoundaryPoint[] {
-  const polygon = draw
-    .getSnapshot()
-    .find((feature) => feature.geometry.type === "Polygon")
-
+  const polygon = draw.getSnapshot().find((feature) => feature.geometry.type === "Polygon")
   if (!polygon || polygon.geometry.type !== "Polygon") return []
 
   const ring = (polygon.geometry.coordinates[0] || []) as number[][]
   return ring
     .map(([lng, lat]: number[]) => ({ lat, lng }))
-    .filter((point: BoundaryPoint, index: number, points: BoundaryPoint[]) => {
-      if (index !== points.length - 1) return true
-      const first = points[0]
+    .filter((point: BoundaryPoint, index: number, all: BoundaryPoint[]) => {
+      if (index !== all.length - 1) return true
+      const first = all[0]
       return !(first && first.lat === point.lat && first.lng === point.lng)
     })
 }
@@ -132,106 +168,37 @@ function formatArea(areaAcres: number | null) {
   return `${areaAcres.toFixed(1)} acres`
 }
 
-function isValidCoordinatePair(latValue: string, lngValue: string) {
-  const lat = Number(latValue)
-  const lng = Number(lngValue)
-
-  return (
-    Number.isFinite(lat) &&
-    Number.isFinite(lng) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
-  )
-}
-
-function serializeError(error: unknown) {
-  if (error instanceof Error) {
-    return {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    }
-  }
-
-  return error
-}
-
-function isGoogleMapsRuntimeMessage(value: unknown) {
-  if (typeof value !== "string") return false
-  return /google maps|google\.maps|maps\.googleapis\.com|maps javascript api/i.test(value)
-}
-
 function normalizeApiKey(value: string | undefined) {
   return value?.trim().replace(/^['"]|['"]$/g, "") || ""
 }
 
-function getMapDomSnapshot(container: HTMLDivElement | null) {
-  if (!container) {
-    return {
-      hasContainer: false,
-      width: 0,
-      height: 0,
-      childCount: 0,
-      hasGoogleMapShell: false,
-      imageCount: 0,
-      tileImageCount: 0,
-      hasAttribution: false,
-      text: "",
-    }
-  }
-
-  const images = Array.from(container.querySelectorAll("img"))
-  return {
-    hasContainer: true,
-    width: container.offsetWidth,
-    height: container.offsetHeight,
-    childCount: container.childElementCount,
-    hasGoogleMapShell: Boolean(container.querySelector(".gm-style")),
-    imageCount: images.length,
-    tileImageCount: images.filter((image) => /googleapis|ggpht|googleusercontent/i.test(image.src)).length,
-    hasAttribution: /Google|Map data|Terms/i.test(container.textContent || ""),
-    text: (container.textContent || "").trim().slice(0, 300),
-  }
+function determineInitialStep(
+  boundary: BoundaryPoint[],
+  latitude: number | null,
+  longitude: number | null,
+): Step {
+  if (boundary.length >= MIN_BOUNDARY_POINTS) return "confirm"
+  if (latitude !== null && longitude !== null) return "adjust"
+  return "search"
 }
 
-function logMapDiagnostic(level: MapLogLevel, message: string, context: Record<string, unknown> = {}) {
-  const payload = {
-    component: "AdvancedLocationEntry",
-    feature: "google-maps-location-entry",
-    message,
-    context,
-    href: typeof window !== "undefined" ? window.location.href : undefined,
-    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-    timestamp: new Date().toISOString(),
-  }
-
-  const logger = level === "error" ? console.error : level === "warn" ? console.warn : console.info
-  logger(MAP_LOG_PREFIX, payload)
-
-  if (typeof navigator !== "undefined" && typeof Blob !== "undefined") {
-    const body = JSON.stringify({ level, ...payload })
-    const blob = new Blob([body], { type: "application/json" })
-    if (navigator.sendBeacon("/api/client-diagnostics", blob)) return
-  }
-
-  void fetch("/api/client-diagnostics", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ level, ...payload }),
-    keepalive: true,
-  }).catch((error) => {
-    console.warn(MAP_LOG_PREFIX, "Could not mirror map diagnostic to server stderr", serializeError(error))
-  })
+const STEP_HINTS: Record<Step, string> = {
+  search: "Search for your location and pick it from the suggestions below.",
+  adjust: "Pan and zoom until you can see your farm clearly, then start drawing the boundary.",
+  drawing: "Tap each corner of your farm. Press Enter (or tap the first point again) to finish.",
+  confirm: "Review your farm boundary. Approve to save, or start over to redraw it.",
 }
+
+const STEP_LABELS: { key: Step; label: string }[] = [
+  { key: "search", label: "Search" },
+  { key: "adjust", label: "Adjust" },
+  { key: "drawing", label: "Draw" },
+  { key: "confirm", label: "Confirm" },
+]
 
 export function AdvancedLocationEntry({
   open,
   onOpenChange,
-  county,
-  subcounty,
-  locationName,
   latitude,
   longitude,
   boundary,
@@ -244,196 +211,97 @@ export function AdvancedLocationEntry({
   const mapsRef = useRef<typeof google.maps | null>(null)
   const previewPolygonRef = useRef<google.maps.Polygon | null>(null)
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+  const predictionTimerRef = useRef<number | null>(null)
+  const stepRef = useRef<Step>("search")
+  // Capture latest props so the map init effect can read them without re-running.
+  const initPropsRef = useRef({ latitude, longitude, boundary })
 
+  const [mapContainerElement, setMapContainerElement] = useState<HTMLDivElement | null>(null)
   const [mapStatus, setMapStatus] = useState<MapStatus>("idle")
   const [mapsError, setMapsError] = useState<string | null>(null)
+  const [drawReady, setDrawReady] = useState(false)
+  const [view, setView] = useState<View>("map")
+  const [step, setStep] = useState<Step>("search")
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchLoading, setSearchLoading] = useState(false)
+  const [predictions, setPredictions] = useState<Prediction[]>([])
+  const [predictionsLoading, setPredictionsLoading] = useState(false)
+  const [predictionsOpen, setPredictionsOpen] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [mapDiagnosticText, setMapDiagnosticText] = useState("Map diagnostics have not started.")
-  const [mapContainerElement, setMapContainerElement] = useState<HTMLDivElement | null>(null)
-  const [drawing, setDrawing] = useState(false)
-  const [manualLat, setManualLat] = useState(latitude?.toString() || "")
-  const [manualLng, setManualLng] = useState(longitude?.toString() || "")
   const [points, setPoints] = useState<BoundaryPoint[]>(boundary)
-  const [manualBoundaryRows, setManualBoundaryRows] = useState<BoundaryRow[]>(boundaryPointsToRows(boundary))
+  const [manualLat, setManualLat] = useState<string>(latitude?.toString() ?? "")
+  const [manualLng, setManualLng] = useState<string>(longitude?.toString() ?? "")
+  const [manualBoundaryRows, setManualBoundaryRows] = useState<BoundaryRow[]>(
+    boundaryPointsToRows(boundary),
+  )
   const [manualBoundaryError, setManualBoundaryError] = useState<string | null>(null)
-  const mapStatusRef = useRef<MapStatus>("idle")
 
   const apiKey = normalizeApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
-
-  const approximateQuery = useMemo(
-    () => [locationName, subcounty, county, "Kenya"].filter(Boolean).join(", "),
-    [county, locationName, subcounty]
-  )
-
-  const hasValidCoordinates = isValidCoordinatePair(manualLat, manualLng)
   const mapsReady = mapStatus === "ready"
-  const hasSavedCoordinates = typeof latitude === "number" && typeof longitude === "number"
+  const canDraw = mapsReady && drawReady
+  const hasMinBoundary = points.length >= MIN_BOUNDARY_POINTS
 
   const setMapContainer = useCallback((node: HTMLDivElement | null) => {
     mapContainerRef.current = node
     setMapContainerElement(node)
   }, [])
 
+  // Keep refs in sync without retriggering the map init effect.
   useEffect(() => {
-    mapStatusRef.current = mapStatus
-  }, [mapStatus])
+    initPropsRef.current = { latitude, longitude, boundary }
+  })
 
-  const reportMapDiagnostic = (
-    level: MapLogLevel,
-    message: string,
-    context: Record<string, unknown> = {}
-  ) => {
-    setMapDiagnosticText(message)
-    logMapDiagnostic(level, message, {
-      marker: MAP_DIAGNOSTIC_MARKER,
-      mapStatus: mapStatusRef.current,
-      dom: getMapDomSnapshot(mapContainerRef.current),
-      ...context,
-    })
-  }
+  useEffect(() => {
+    stepRef.current = step
+  }, [step])
 
+  // Reset dialog state every time it opens. Depending only on `open` avoids
+  // wiping a user's in-progress changes when unrelated parent state shifts.
   useEffect(() => {
     if (!open) return
-    setManualLat(latitude?.toString() || "")
-    setManualLng(longitude?.toString() || "")
-    setPoints(boundary)
-    setManualBoundaryRows(boundaryPointsToRows(boundary))
+    const props = initPropsRef.current
+    setView("map")
+    setStep(determineInitialStep(props.boundary, props.latitude, props.longitude))
+    setPoints(props.boundary)
+    setManualLat(props.latitude?.toString() ?? "")
+    setManualLng(props.longitude?.toString() ?? "")
+    setManualBoundaryRows(boundaryPointsToRows(props.boundary))
     setManualBoundaryError(null)
-    setSearchQuery(approximateQuery)
+    setSearchQuery("")
     setSearchError(null)
-    setMapDiagnosticText(`${MAP_DIAGNOSTIC_MARKER}: component opened`)
-  }, [approximateQuery, boundary, latitude, longitude, open])
+    setPredictions([])
+    setPredictionsOpen(false)
+    setMapsError(null)
+  }, [open])
 
+  // Main Google Maps + Terra Draw initialization. Runs once per dialog open
+  // when both the API key and the map container element are available.
   useEffect(() => {
-    if (open && !apiKey) {
-      reportMapDiagnostic("warn", "Google Maps browser key is missing", {
-        expectedEnv: "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
-      })
-    }
-  }, [apiKey, open])
-
-  useEffect(() => {
-    if (!open) return
-
-    const checkContainer = () => {
-      const dom = getMapDomSnapshot(mapContainerRef.current)
-
-      if (!dom.hasContainer) {
-        reportMapDiagnostic("error", "Map container ref is missing after dialog opened", {
-          hasApiKey: Boolean(apiKey),
-        })
-        return
-      }
-
-      if (dom.width === 0 || dom.height === 0) {
-        reportMapDiagnostic("error", "Map container has zero size after dialog opened", {
-          hasApiKey: Boolean(apiKey),
-        })
-        return
-      }
-
-      reportMapDiagnostic("info", "Advanced location map container is mounted", {
-        hasApiKey: Boolean(apiKey),
-        apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
-      })
-    }
-
-    window.requestAnimationFrame(checkContainer)
-    const timeout = window.setTimeout(checkContainer, 750)
-    return () => window.clearTimeout(timeout)
-  }, [apiKey, open])
-
-  useEffect(() => {
-    if (!open) return
-
-    if (!apiKey) {
-      reportMapDiagnostic("warn", "Google Maps initialization is waiting for a browser key", {
-        hasContainerElement: Boolean(mapContainerElement),
-      })
-      return
-    }
-
-    if (!mapContainerElement) {
-      reportMapDiagnostic("warn", "Google Maps initialization is waiting for the map container", {
-        hasApiKey: Boolean(apiKey),
-      })
-      return
-    }
+    if (!open || !apiKey || !mapContainerElement) return
 
     let cancelled = false
     let draw: TerraDraw | null = null
-    let autocomplete: google.maps.places.Autocomplete | null = null
-    let mapListeners: google.maps.MapsEventListener[] = []
-    const previousAuthFailure = typeof window !== "undefined" ? (window as any).gm_authFailure : undefined
+    const cleanupFns: Array<() => void> = []
+    const previousAuthFailure =
+      typeof window !== "undefined" ? (window as any).gm_authFailure : undefined
 
     if (typeof window !== "undefined") {
-      const handleWindowError = (event: ErrorEvent) => {
-        const message = event.message || event.error?.message
-        if (!isGoogleMapsRuntimeMessage(message) && !isGoogleMapsRuntimeMessage(event.filename)) return
-        reportMapDiagnostic("error", "Google Maps runtime error surfaced on window.error", {
-          message,
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-          error: serializeError(event.error),
-        })
-      }
-
-      const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-        const reason = serializeError(event.reason)
-        const reasonText =
-          typeof event.reason === "string"
-            ? event.reason
-            : event.reason instanceof Error
-              ? event.reason.message
-              : JSON.stringify(reason)
-        if (!isGoogleMapsRuntimeMessage(reasonText)) return
-        reportMapDiagnostic("error", "Google Maps runtime error surfaced on unhandledrejection", {
-          reason,
-        })
-      }
-
-      window.addEventListener("error", handleWindowError)
-      window.addEventListener("unhandledrejection", handleUnhandledRejection)
-
       ;(window as any).gm_authFailure = () => {
         setMapStatus("failed")
         setMapsError(
-          "Google Maps could not authenticate this browser key. Check API key restrictions, billing, and enabled Maps JavaScript/Places APIs."
+          "Google Maps could not authenticate this browser key. You can still enter coordinates manually.",
         )
-        reportMapDiagnostic("error", "Google Maps authentication failed via gm_authFailure", {
-          hasApiKey: Boolean(apiKey),
-          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
-          origin: window.location.origin,
-        })
         if (typeof previousAuthFailure === "function") previousAuthFailure()
       }
-
-      mapListeners.push({
-        remove: () => {
-          window.removeEventListener("error", handleWindowError)
-          window.removeEventListener("unhandledrejection", handleUnhandledRejection)
-        },
-      } as google.maps.MapsEventListener)
     }
 
     async function loadMap() {
       try {
-        setMapsError(null)
         setMapStatus("loading")
-        reportMapDiagnostic("info", "Starting Google Maps initialization", {
-          hasApiKey: Boolean(apiKey),
-          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
-          approximateQuery,
-          latitude,
-          longitude,
-        })
-        setOptions({
-          key: apiKey,
-          v: "weekly",
-        })
+        setMapsError(null)
+        setDrawReady(false)
+        setOptions({ key: apiKey, v: "weekly" })
         await Promise.all([
           importLibrary("maps"),
           importLibrary("places"),
@@ -443,107 +311,76 @@ export function AdvancedLocationEntry({
 
         const maps = google.maps
         mapsRef.current = maps
-        reportMapDiagnostic("info", "Google Maps libraries loaded", {
-          libraries: ["maps", "places", "geometry"],
-          version: maps.version,
-        })
 
-        const center = hasSavedCoordinates ? { lat: latitude, lng: longitude } : DEFAULT_CENTER
-        const initialZoom = hasSavedCoordinates ? 17 : 11
-        const initialMapTypeId = "hybrid"
+        const props = initPropsRef.current
+        const hasSavedCoordinates =
+          typeof props.latitude === "number" && typeof props.longitude === "number"
+        const initialCenter = hasSavedCoordinates
+          ? { lat: props.latitude as number, lng: props.longitude as number }
+          : NAIROBI_CENTER
+        const initialZoom = hasSavedCoordinates ? FOCUSED_ZOOM : DEFAULT_ZOOM
+        const initialMapType = hasSavedCoordinates ? SATELLITE_MAP_TYPE : ROADMAP_MAP_TYPE
 
         const map = new maps.Map(mapContainerRef.current, {
-          center,
+          center: initialCenter,
           zoom: initialZoom,
-          mapTypeId: initialMapTypeId,
+          mapTypeId: initialMapType,
           streetViewControl: false,
           fullscreenControl: false,
           mapTypeControl: true,
+          clickableIcons: false,
           draggableCursor: "grab",
           draggingCursor: "grabbing",
         })
         mapRef.current = map
         placesServiceRef.current = new maps.places.PlacesService(map)
-        reportMapDiagnostic("info", "Google Map instance created", {
-          center,
-          zoom: initialZoom,
-          mapTypeId: initialMapTypeId,
-          containerSize: {
-            width: mapContainerRef.current.offsetWidth,
-            height: mapContainerRef.current.offsetHeight,
-          },
+        autocompleteServiceRef.current = new maps.places.AutocompleteService()
+        sessionTokenRef.current = new maps.places.AutocompleteSessionToken()
+
+        const idleListener = maps.event.addListenerOnce(map, "idle", () => {
+          if (cancelled || mapRef.current !== map) return
+          setMapStatus("ready")
         })
+        cleanupFns.push(() => idleListener.remove())
 
-        if (searchInputRef.current) {
-          const nextAutocomplete = new maps.places.Autocomplete(searchInputRef.current, {
-            componentRestrictions: { country: "ke" },
-            fields: ["geometry", "name", "formatted_address"],
-          })
-          autocomplete = nextAutocomplete
-          autocomplete.bindTo("bounds", map)
-          mapListeners.push(nextAutocomplete.addListener("place_changed", () => {
-            const place = nextAutocomplete.getPlace()
-            const location = place?.geometry?.location
-            if (!location) {
-              reportMapDiagnostic("warn", "Autocomplete place_changed returned no geometry", {
-                placeName: place?.name,
-                formattedAddress: place?.formatted_address,
-              })
-              return
-            }
-            map.setCenter(location)
-            map.setZoom(18)
-            setSearchQuery(place.formatted_address || place.name || searchInputRef.current?.value || approximateQuery)
-            setSearchError(null)
-            setManualLat(location.lat().toFixed(6))
-            setManualLng(location.lng().toFixed(6))
-          }))
-        }
+        const tilesListener = maps.event.addListenerOnce(map, "tilesloaded", () => {
+          if (cancelled || mapRef.current !== map) return
+          setMapStatus("ready")
+        })
+        cleanupFns.push(() => tilesListener.remove())
 
-        mapListeners.push(maps.event.addListenerOnce(map, "idle", () => {
-          if (!cancelled && mapRef.current === map) {
-            setMapStatus("ready")
-            setMapsError(null)
-            reportMapDiagnostic("info", "Google Map reached first idle; controls are enabled", {
-              center: map.getCenter()?.toJSON(),
-              zoom: map.getZoom(),
-              mapTypeId: map.getMapTypeId(),
-            })
-          }
-        }))
-
-        mapListeners.push(maps.event.addListenerOnce(map, "tilesloaded", () => {
-          if (!cancelled && mapRef.current === map) {
-            setMapStatus("ready")
-            setMapsError(null)
-            reportMapDiagnostic("info", "Google Maps tilesloaded fired", {
-              center: map.getCenter()?.toJSON(),
-              zoom: map.getZoom(),
-              mapTypeId: map.getMapTypeId(),
-            })
-          }
-        }))
-
+        // Force a layout refresh in case Radix's dialog finished animating
+        // after the map mounted (zero-size container race).
         const refreshMapLayout = () => {
           if (cancelled || mapRef.current !== map) return
           maps.event.trigger(map, "resize")
-          map.setCenter(center)
+          map.setCenter(initialCenter)
         }
         window.requestAnimationFrame(refreshMapLayout)
-        window.setTimeout(refreshMapLayout, 250)
+        const layoutTimeout = window.setTimeout(refreshMapLayout, 300)
+        cleanupFns.push(() => window.clearTimeout(layoutTimeout))
 
+        // Terra Draw + Google Maps adapter. Two hard requirements per the
+        // upstream docs that fix the "nothing renders when I click" bug:
+        //   1. The map container element MUST have an `id` set on the DOM
+        //      node. (Set on the rendered <div> further below.)
+        //   2. We MUST wait for the draw `ready` event before calling
+        //      `setMode`, because the adapter wires its OverlayView
+        //      asynchronously. Calling setMode earlier silently fails: the
+        //      cursor changes via map.setOptions but no click reaches Terra
+        //      Draw, so no vertices or lines ever render.
         draw = new TerraDraw({
           adapter: new TerraDrawGoogleMapsAdapter({
             lib: maps,
             map,
-            forwardMapElementEvents: true,
-            isolatedData: true,
             coordinatePrecision: 7,
           }),
           modes: [
+            // Keep the built-in `polygon` mode name. Using a custom modeName
+            // here previously caused style-lookup mismatches on closing
+            // points (upstream issue #749 on terra-draw).
             new TerraDrawPolygonMode({
-              modeName: "farm-boundary",
-              editable: true,
+              editable: false,
               showCoordinatePoints: true,
               cursors: {
                 start: "crosshair",
@@ -570,52 +407,45 @@ export function AdvancedLocationEntry({
             keyboardShortcuts: new TerraDrawUndoRedoKeyboardShortcuts(),
           },
         })
-        draw.start()
-        draw.setMode("static")
-        draw.on("change", () => {
-          const nextPoints = draw ? getPolygonPoints(draw) : []
-          setPoints(nextPoints)
-          setManualBoundaryRows(boundaryPointsToRows(nextPoints))
-          setManualBoundaryError(null)
+
+        draw.on("ready", () => {
+          if (cancelled || drawRef.current !== draw) return
+          setDrawReady(true)
         })
+
+        draw.on("change", () => {
+          if (!draw) return
+          const next = getPolygonPoints(draw)
+          setPoints(next)
+        })
+
         draw.on("finish", () => {
-          const nextPoints = draw ? getPolygonPoints(draw) : []
-          const centroid = getBoundaryCentroid(nextPoints)
-          setPoints(nextPoints)
-          setManualBoundaryRows(boundaryPointsToRows(nextPoints))
-          setManualBoundaryError(null)
-          if (centroid) {
-            setManualLat(formatCoordinate(centroid.lat))
-            setManualLng(formatCoordinate(centroid.lng))
+          if (!draw || !mapRef.current) return
+          const next = getPolygonPoints(draw)
+          if (next.length < MIN_BOUNDARY_POINTS) return
+          setPoints(next)
+          try {
+            draw.setMode("static")
+          } catch (error) {
+            console.warn("[AdvancedLocationEntry] Could not switch to static mode:", error)
           }
-          setDrawing(false)
-          map.setOptions({
+          mapRef.current.setOptions({
             draggable: true,
             draggableCursor: "grab",
             draggingCursor: "grabbing",
           })
-          draw?.setMode("static")
+          setStep("confirm")
         })
-        drawRef.current = draw
 
-        if (points.length > 2) {
-          previewPolygonRef.current = new maps.Polygon({
-            paths: points,
-            strokeColor: "#15803d",
-            strokeWeight: 3,
-            fillColor: "#16a34a",
-            fillOpacity: 0.2,
-            map,
-          })
-        }
+        draw.start()
+        drawRef.current = draw
       } catch (error: any) {
+        if (cancelled) return
         setMapStatus("failed")
-        setMapsError(error?.message || "Could not load Google Maps.")
-        reportMapDiagnostic("error", "Google Maps initialization threw", {
-          error: serializeError(error),
-          hasApiKey: Boolean(apiKey),
-          apiKeyPrefix: apiKey ? `${apiKey.slice(0, 6)}...` : null,
-        })
+        setMapsError(
+          error?.message || "Could not load Google Maps. You can still enter coordinates manually.",
+        )
+        console.error("[AdvancedLocationEntry] Google Maps initialization failed:", error)
       }
     }
 
@@ -626,405 +456,390 @@ export function AdvancedLocationEntry({
       if (typeof window !== "undefined") {
         ;(window as any).gm_authFailure = previousAuthFailure
       }
-      mapListeners.forEach((listener) => listener.remove())
+      cleanupFns.forEach((fn) => fn())
       previewPolygonRef.current?.setMap(null)
       previewPolygonRef.current = null
-      draw?.stop()
+      try {
+        draw?.clear()
+      } catch {
+        /* ignore */
+      }
+      try {
+        draw?.stop()
+      } catch {
+        /* ignore */
+      }
       drawRef.current = null
       mapRef.current = null
       mapsRef.current = null
       placesServiceRef.current = null
+      autocompleteServiceRef.current = null
+      sessionTokenRef.current = null
+      if (predictionTimerRef.current !== null) {
+        window.clearTimeout(predictionTimerRef.current)
+        predictionTimerRef.current = null
+      }
       setMapStatus("idle")
-      setDrawing(false)
-      setSearchLoading(false)
+      setDrawReady(false)
     }
-  }, [apiKey, approximateQuery, hasSavedCoordinates, latitude, longitude, mapContainerElement, open])
+  }, [apiKey, mapContainerElement, open])
 
-  useEffect(() => {
-    if (!open || !apiKey || mapStatus === "failed") return
-
-    const inspectMapDom = () => {
-      const dom = getMapDomSnapshot(mapContainerRef.current)
-
-      if (!dom.hasContainer || dom.width === 0 || dom.height === 0) {
-        setMapStatus("failed")
-        setMapsError("Google Maps cannot render because the map container is missing or has zero size.")
-        reportMapDiagnostic("error", "Google Maps render container is invalid", {
-          hasApiKey: Boolean(apiKey),
-        })
-        return
-      }
-
-      if (mapStatusRef.current === "ready" && !dom.hasGoogleMapShell) {
-        setMapStatus("failed")
-        setMapsError("Google Maps reported ready but did not attach its map DOM.")
-        reportMapDiagnostic("error", "Google Maps reported ready but .gm-style is missing", {
-          hasApiKey: Boolean(apiKey),
-        })
-        return
-      }
-
-      if (mapStatusRef.current === "ready" && dom.hasGoogleMapShell && dom.tileImageCount === 0) {
-        reportMapDiagnostic("info", "Google Maps shell is present; tile image DOM nodes were not detected", {
-          hasApiKey: Boolean(apiKey),
-          note: "Maps can render vector or no-imagery states without exposing tile image elements.",
-        })
-      }
-    }
-
-    const firstTimeout = window.setTimeout(inspectMapDom, 2500)
-    const secondTimeout = window.setTimeout(inspectMapDom, 7000)
-    return () => {
-      window.clearTimeout(firstTimeout)
-      window.clearTimeout(secondTimeout)
-    }
-  }, [apiKey, mapStatus, open])
-
+  // Sync the preview polygon overlay so saved/loaded boundaries are visible
+  // when Terra Draw itself isn't rendering them (e.g. when the dialog opens
+  // with an existing boundary or we leave the drawing step).
   useEffect(() => {
     if (!mapsRef.current || !mapRef.current) return
+
+    const drawHasPolygon = drawRef.current
+      ? drawRef.current.getSnapshot().some((feature) => feature.geometry.type === "Polygon")
+      : false
+
     previewPolygonRef.current?.setMap(null)
     previewPolygonRef.current = null
-    if (points.length > 2 && !drawing) {
-      previewPolygonRef.current = new mapsRef.current.Polygon({
-        paths: points,
-        strokeColor: "#15803d",
-        strokeWeight: 3,
-        fillColor: "#16a34a",
-        fillOpacity: 0.2,
-        map: mapRef.current,
-      })
-    }
-  }, [drawing, points])
 
-  useEffect(() => {
-    if (!open || !mapsReady || !mapsRef.current || !mapRef.current) return
-    const lat = Number(manualLat)
-    const lng = Number(manualLng)
-    const center = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : DEFAULT_CENTER
-    const refresh = () => {
-      if (!mapsRef.current || !mapRef.current) return
-      mapsRef.current.event.trigger(mapRef.current, "resize")
-      mapRef.current.setCenter(center)
-    }
-    window.requestAnimationFrame(refresh)
-    const timeout = window.setTimeout(refresh, 300)
-    return () => window.clearTimeout(timeout)
-  }, [manualLat, manualLng, mapsReady, open])
-
-  const areaAcres = useMemo(() => {
-    if (!mapsRef.current || points.length < 3) return null
-    const path = points.map((point) => new mapsRef.current!.LatLng(point.lat, point.lng))
-    return mapsRef.current.geometry.spherical.computeArea(path) / SQM_PER_ACRE
-  }, [points])
-
-  const applyPlaceLocation = (place: google.maps.places.PlaceResult) => {
-    const location = place.geometry?.location
-    if (!location || !mapRef.current) return false
-
-    mapRef.current.setCenter(location)
-    mapRef.current.setZoom(18)
-    setManualLat(formatCoordinate(location.lat()))
-    setManualLng(formatCoordinate(location.lng()))
-    setSearchQuery(place.formatted_address || place.name || searchQuery)
-    setSearchError(null)
-    return true
-  }
-
-  const handleSearch = () => {
-    const service = placesServiceRef.current
-    const query = searchQuery.trim()
-
-    if (!query) {
-      setSearchError("Enter a nearby town, village, road, or farm area first.")
+    if (drawHasPolygon || step === "drawing" || points.length < MIN_BOUNDARY_POINTS) {
       return
     }
 
-    if (!service || !mapRef.current || !mapsRef.current || mapStatus !== "ready") {
-      reportMapDiagnostic("warn", "Search attempted before Google Maps controls were ready", {
-        hasPlacesService: Boolean(service),
-        hasMap: Boolean(mapRef.current),
-        hasMapsLibrary: Boolean(mapsRef.current),
-        mapStatus,
-      })
-      setSearchError("The map is still loading. Try again once it is ready.")
-      return
-    }
-
-    setSearchLoading(true)
-    setSearchError(null)
-    reportMapDiagnostic("info", "Running Places findPlaceFromQuery", {
-      query,
-      mapStatus,
-      bounds: mapRef.current.getBounds()?.toJSON(),
+    previewPolygonRef.current = new mapsRef.current.Polygon({
+      paths: points,
+      strokeColor: "#15803d",
+      strokeWeight: 3,
+      fillColor: "#16a34a",
+      fillOpacity: 0.2,
+      map: mapRef.current,
     })
+  }, [points, step, drawReady, mapStatus])
 
-    service.findPlaceFromQuery(
+  // Area in acres, computed from the geometry library once it has loaded.
+  const areaAcres = useMemo(() => {
+    const maps = mapsRef.current
+    if (!maps || points.length < MIN_BOUNDARY_POINTS) return null
+    try {
+      const path = points.map((point) => new maps.LatLng(point.lat, point.lng))
+      return maps.geometry.spherical.computeArea(path) / SQM_PER_ACRE
+    } catch {
+      return null
+    }
+    // mapStatus is included so the calculation re-runs once geometry is loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, mapStatus])
+
+  // -----------------------------------------------------------------------
+  // Custom in-dialog autocomplete (replaces legacy `places.Autocomplete`).
+  // The legacy widget renders its `.pac-container` into document.body, which
+  // sits outside the Radix Dialog and is unreliable to tap, especially on
+  // mobile (z-index / focus-trap / blur-vs-tap races). Hosting the dropdown
+  // inside the dialog gives us reliable touch + click selection.
+  // -----------------------------------------------------------------------
+  const requestPredictions = useCallback((input: string) => {
+    const service = autocompleteServiceRef.current
+    const maps = mapsRef.current
+    if (!service || !maps) {
+      setPredictions([])
+      setPredictionsOpen(false)
+      return
+    }
+
+    setPredictionsLoading(true)
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = new maps.places.AutocompleteSessionToken()
+    }
+
+    service.getPlacePredictions(
       {
-        query,
-        fields: ["geometry", "name", "formatted_address"],
-        locationBias: mapRef.current.getBounds() || undefined,
+        input,
+        sessionToken: sessionTokenRef.current,
+        componentRestrictions: { country: "ke" },
       },
       (results, status) => {
-        setSearchLoading(false)
+        setPredictionsLoading(false)
+        if (!results || status !== maps.places.PlacesServiceStatus.OK) {
+          setPredictions([])
+          setPredictionsOpen(input.trim().length > 0)
+          return
+        }
+        setPredictions(
+          results.map((result) => ({
+            placeId: result.place_id,
+            description: result.description,
+            mainText: result.structured_formatting?.main_text || result.description,
+            secondaryText: result.structured_formatting?.secondary_text || "",
+          })),
+        )
+        setPredictionsOpen(true)
+      },
+    )
+  }, [])
 
-        if (status !== mapsRef.current?.places.PlacesServiceStatus.OK || !results?.[0]) {
-          reportMapDiagnostic("warn", "Places findPlaceFromQuery returned no usable result", {
-            query,
-            status,
-            resultCount: results?.length || 0,
-          })
-          setSearchError("No matching location was found. Try a nearby town, road, or trading centre.")
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value)
+    setSearchError(null)
+
+    if (predictionTimerRef.current !== null) {
+      window.clearTimeout(predictionTimerRef.current)
+      predictionTimerRef.current = null
+    }
+
+    const trimmed = value.trim()
+    if (!trimmed) {
+      setPredictions([])
+      setPredictionsOpen(false)
+      return
+    }
+
+    predictionTimerRef.current = window.setTimeout(() => {
+      requestPredictions(trimmed)
+    }, AUTOCOMPLETE_DEBOUNCE_MS)
+  }
+
+  const handlePredictionSelect = (prediction: Prediction) => {
+    const service = placesServiceRef.current
+    const map = mapRef.current
+    const maps = mapsRef.current
+    if (!service || !map || !maps) return
+
+    setPredictionsOpen(false)
+    setPredictions([])
+    setSearchQuery(prediction.description)
+
+    const sessionToken = sessionTokenRef.current ?? undefined
+
+    service.getDetails(
+      {
+        placeId: prediction.placeId,
+        fields: ["geometry", "name", "formatted_address"],
+        sessionToken,
+      },
+      (place, status) => {
+        // Each getDetails call ends the autocomplete session; mint a fresh token.
+        sessionTokenRef.current = new maps.places.AutocompleteSessionToken()
+
+        if (status !== maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
+          setSearchError("Could not load that place. Try another suggestion.")
           return
         }
 
-        reportMapDiagnostic("info", "Places search selected a result", {
-          query,
-          name: results[0].name,
-          formattedAddress: results[0].formatted_address,
-          location: results[0].geometry?.location?.toJSON(),
-        })
-        applyPlaceLocation(results[0])
-      }
+        const location = place.geometry.location
+        map.setCenter(location)
+        map.setZoom(FOCUSED_ZOOM)
+        map.setMapTypeId(SATELLITE_MAP_TYPE)
+        setManualLat(formatCoordinate(location.lat()))
+        setManualLng(formatCoordinate(location.lng()))
+        if (stepRef.current === "search") {
+          setStep("adjust")
+        }
+      },
     )
   }
 
-  const handleDraw = () => {
-    if (!mapsReady || !hasValidCoordinates) {
-      reportMapDiagnostic("warn", "Draw attempted before prerequisites were satisfied", {
-        mapsReady,
-        hasValidCoordinates,
-        mapStatus,
-        manualLat,
-        manualLng,
-      })
-      setSearchError("Search or enter valid coordinates before drawing the farm boundary.")
+  const handleStartDrawing = () => {
+    if (!canDraw) {
+      setSearchError("The map is still loading. Try again in a moment.")
       return
     }
     previewPolygonRef.current?.setMap(null)
-    drawRef.current?.clear()
-    drawRef.current?.setMode("farm-boundary")
+    previewPolygonRef.current = null
+    try {
+      drawRef.current?.clear()
+    } catch {
+      /* ignore */
+    }
+    setPoints([])
+    setManualBoundaryRows(createEmptyBoundaryRows())
+    setManualBoundaryError(null)
+    try {
+      drawRef.current?.setMode("polygon")
+    } catch (error) {
+      console.error("[AdvancedLocationEntry] Could not enter polygon mode:", error)
+      setSearchError("Drawing tools aren't ready yet. Wait for the map to finish loading.")
+      return
+    }
     mapRef.current?.setOptions({
       draggable: false,
       draggableCursor: "crosshair",
       draggingCursor: "crosshair",
     })
-    setPoints([])
-    setManualBoundaryRows(createEmptyBoundaryRows())
-    setManualBoundaryError(null)
-    setDrawing(true)
-    reportMapDiagnostic("info", "Farm boundary drawing started", {
-      manualLat,
-      manualLng,
-    })
+    setStep("drawing")
   }
 
-  const handleUndo = () => {
-    drawRef.current?.undo()
-    const nextPoints = drawRef.current ? getPolygonPoints(drawRef.current) : []
-    setPoints(nextPoints)
-    setManualBoundaryRows(boundaryPointsToRows(nextPoints))
-    setManualBoundaryError(null)
-  }
-
-  const handleClear = () => {
-    drawRef.current?.clear()
-    drawRef.current?.setMode("static")
+  const handleCancelDrawing = () => {
+    try {
+      drawRef.current?.clear()
+      drawRef.current?.setMode("static")
+    } catch {
+      /* ignore */
+    }
     mapRef.current?.setOptions({
       draggable: true,
       draggableCursor: "grab",
       draggingCursor: "grabbing",
     })
-    setDrawing(false)
     setPoints([])
     setManualBoundaryRows(createEmptyBoundaryRows())
-    setManualBoundaryError(null)
+    setStep(initPropsRef.current.latitude !== null ? "adjust" : "search")
   }
 
-  const applyBoundaryRows = (rows: BoundaryRow[]) => {
-    const result = parseBoundaryRows(rows)
-    setManualBoundaryError(result.error)
-    if (!result.error) {
-      setPoints(result.points)
-      const centroid = getBoundaryCentroid(result.points)
-      if (centroid) {
-        setManualLat(formatCoordinate(centroid.lat))
-        setManualLng(formatCoordinate(centroid.lng))
-      }
+  const handleUndo = () => {
+    try {
+      drawRef.current?.undo()
+    } catch {
+      /* ignore */
     }
-    return result
+    const next = drawRef.current ? getPolygonPoints(drawRef.current) : []
+    setPoints(next)
   }
 
-  const handleBoundaryRowChange = (index: number, field: keyof BoundaryRow, value: string) => {
-    const nextRows = manualBoundaryRows.map((row, rowIndex) =>
-      rowIndex === index ? { ...row, [field]: value } : row
-    )
-    setManualBoundaryRows(nextRows)
-    applyBoundaryRows(nextRows)
+  const handleStartOver = () => {
+    handleStartDrawing()
   }
 
-  const handleAddBoundaryRow = () => {
-    setManualBoundaryRows((rows) => [...rows, { lat: "", lng: "" }])
-  }
-
-  const handleRemoveBoundaryRow = (index: number) => {
-    const nextRows = manualBoundaryRows.filter((_, rowIndex) => rowIndex !== index)
-    const paddedRows = nextRows.length > 0 ? nextRows : createEmptyBoundaryRows()
-    setManualBoundaryRows(paddedRows)
-    applyBoundaryRows(paddedRows)
-  }
-
-  const handleSave = () => {
-    const boundaryResult = applyBoundaryRows(manualBoundaryRows)
-    if (boundaryResult.error) {
-      return
-    }
-    const nextPoints = boundaryResult.points.length >= 3 ? boundaryResult.points : []
-
+  const handleApprove = () => {
+    if (!hasMinBoundary) return
+    const centroid = getBoundaryCentroid(points)
     onSave({
-      latitude: manualLat.trim() ? Number.parseFloat(manualLat) : null,
-      longitude: manualLng.trim() ? Number.parseFloat(manualLng) : null,
-      boundary: nextPoints,
+      latitude: centroid?.lat ?? null,
+      longitude: centroid?.lng ?? null,
+      boundary: points,
     })
     onOpenChange(false)
   }
 
+  const handleManualBoundaryRowChange = (
+    index: number,
+    field: keyof BoundaryRow,
+    value: string,
+  ) => {
+    const next = manualBoundaryRows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, [field]: value } : row,
+    )
+    setManualBoundaryRows(next)
+    setManualBoundaryError(null)
+  }
+
+  const handleAddManualBoundaryRow = () => {
+    setManualBoundaryRows((rows) => [...rows, { lat: "", lng: "" }])
+  }
+
+  const handleRemoveManualBoundaryRow = (index: number) => {
+    const next = manualBoundaryRows.filter((_, rowIndex) => rowIndex !== index)
+    setManualBoundaryRows(next.length > 0 ? next : createEmptyBoundaryRows())
+    setManualBoundaryError(null)
+  }
+
+  const handleManualSave = () => {
+    const latTrimmed = manualLat.trim()
+    const lngTrimmed = manualLng.trim()
+
+    let nextLat: number | null = null
+    let nextLng: number | null = null
+
+    if (latTrimmed) {
+      const value = Number.parseFloat(latTrimmed)
+      if (!Number.isFinite(value) || value < -90 || value > 90) {
+        setManualBoundaryError("Latitude must be a number between -90 and 90.")
+        return
+      }
+      nextLat = value
+    }
+
+    if (lngTrimmed) {
+      const value = Number.parseFloat(lngTrimmed)
+      if (!Number.isFinite(value) || value < -180 || value > 180) {
+        setManualBoundaryError("Longitude must be a number between -180 and 180.")
+        return
+      }
+      nextLng = value
+    }
+
+    const boundaryResult = parseBoundaryRows(manualBoundaryRows)
+    if (boundaryResult.error) {
+      setManualBoundaryError(boundaryResult.error)
+      return
+    }
+
+    const nextBoundary =
+      boundaryResult.points.length >= MIN_BOUNDARY_POINTS ? boundaryResult.points : []
+
+    if (nextLat === null || nextLng === null) {
+      if (nextBoundary.length >= MIN_BOUNDARY_POINTS) {
+        const centroid = getBoundaryCentroid(nextBoundary)
+        if (centroid) {
+          nextLat = centroid.lat
+          nextLng = centroid.lng
+        }
+      }
+    }
+
+    onSave({
+      latitude: nextLat,
+      longitude: nextLng,
+      boundary: nextBoundary,
+    })
+    onOpenChange(false)
+  }
+
+  const currentStepIndex = STEP_LABELS.findIndex((s) => s.key === step)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
+      <DialogContent
+        className={cn(
+          "max-h-[92vh] overflow-y-auto",
+          view === "manual" ? "max-w-2xl" : "max-w-5xl",
+        )}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-agri-800">
-            <MapPin className="h-5 w-5 text-agri-600" />
-            Advanced Location Entry
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Search for a farm location, draw a boundary on the map, or enter coordinates manually.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="space-y-3">
-            <div className="rounded-xl border border-agri-100 bg-agri-50 p-3 text-sm text-agri-800">
-              Search near the farm, zoom in, then tap points around the boundary.
-              Tap the first point again or press Enter to finish.
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="flex items-center gap-2 text-agri-800">
+                <MapPin className="h-5 w-5 text-agri-600" />
+                {view === "manual" ? "Enter Coordinates Manually" : "Advanced Location Entry"}
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm">
+                {view === "manual"
+                  ? "Type your farm's exact latitude and longitude, and optionally the corner points of its boundary."
+                  : "Find your farm on the map and trace its boundary, or switch to manual entry."}
+              </DialogDescription>
             </div>
-
-            {apiKey ? (
-              <>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(event) => {
-                      setSearchQuery(event.target.value)
-                      setSearchError(null)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault()
-                        handleSearch()
-                      }
-                    }}
-                    placeholder="Search farm area, trading centre, or village"
-                    className="h-11 pl-9 pr-24"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleSearch}
-                    disabled={mapStatus !== "ready" || searchLoading}
-                    className="absolute right-1.5 top-1 h-9 px-3"
-                  >
-                    {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                  </Button>
-                </div>
-                <div className="relative h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  <div ref={setMapContainer} className="h-full w-full" />
-                  <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] rounded bg-white/95 px-2 py-1 text-[10px] font-medium text-slate-700 shadow">
-                    {MAP_DIAGNOSTIC_MARKER} | {mapStatus} | {mapDiagnosticText}
-                  </div>
-                  {mapStatus === "loading" ? (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/85">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-agri-800 shadow">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading map...
-                      </div>
-                    </div>
-                  ) : null}
-                  {mapStatus === "failed" ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-100 p-5 text-center">
-                      <div className="max-w-sm text-sm text-slate-700">
-                        <AlertCircle className="mx-auto mb-2 h-6 w-6 text-amber-600" />
-                        <div className="font-semibold text-slate-950">Map could not render</div>
-                        <div className="mt-1">
-                          Check the key referrer, billing, quota, and enabled Maps JavaScript and Places APIs.
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                  {drawing ? (
-                    <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 rounded-lg bg-agri-900/90 px-3 py-2 text-sm font-medium text-white shadow">
-                      Click boundary corners. Click the first point or press Enter to finish.
-                    </div>
-                  ) : null}
-                </div>
-                {searchError ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    <div className="flex gap-2">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{searchError}</span>
-                    </div>
-                  </div>
-                ) : null}
-                {mapsError ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    <div className="flex gap-2">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span>{mapsError}. You can still enter the farm boundary manually.</span>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleDraw}
-                    disabled={!mapsReady || !hasValidCoordinates}
-                    className="bg-agri-700 hover:bg-agri-800"
-                  >
-                    Draw farm boundary
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handleUndo} disabled={!drawing}>
-                    <Undo2 className="mr-2 h-4 w-4" />
-                    Undo
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handleClear}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Clear
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
-                </div>
-                {!hasValidCoordinates ? (
-                  <p className="text-xs font-medium text-slate-500">
-                    Search and select an autocomplete result, or enter valid coordinates, before drawing the boundary.
-                  </p>
-                ) : null}
-              </>
+            {view === "map" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setView("manual")}
+                className="text-agri-700 underline-offset-4 hover:bg-transparent hover:text-agri-900 hover:underline"
+              >
+                <Keyboard className="mr-1.5 h-4 w-4" />
+                Enter coordinates manually instead
+              </Button>
             ) : (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Location service is not available. Manual coordinate entry is available below.
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setView("map")}
+                className="text-agri-700 hover:bg-agri-50 hover:text-agri-900"
+              >
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                Back to map
+              </Button>
             )}
           </div>
+        </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        {view === "manual" ? (
+          <div className="space-y-5">
+            <div className="rounded-xl border border-agri-100 bg-agri-50 p-3 text-sm text-agri-800">
+              Use this form only if you already know your farm&apos;s exact coordinates or you
+              can&apos;t use the map. Otherwise, switch back to the map view to draw your boundary.
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <Label htmlFor="advanced-lat">Latitude</Label>
+                <Label htmlFor="manual-lat">Latitude</Label>
                 <Input
-                  id="advanced-lat"
+                  id="manual-lat"
                   type="number"
                   step="0.000001"
                   min="-90"
@@ -1036,9 +851,9 @@ export function AdvancedLocationEntry({
                 />
               </div>
               <div>
-                <Label htmlFor="advanced-lng">Longitude</Label>
+                <Label htmlFor="manual-lng">Longitude</Label>
                 <Input
-                  id="advanced-lng"
+                  id="manual-lng"
                   type="number"
                   step="0.000001"
                   min="-180"
@@ -1051,38 +866,31 @@ export function AdvancedLocationEntry({
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <div className="text-sm font-semibold text-slate-950">Boundary preview</div>
-              <div className="mt-2 text-sm text-slate-600">
-                {points.length >= 3
-                  ? `${points.length} boundary points captured`
-                  : "No boundary saved yet"}
-              </div>
-              {formatArea(areaAcres) ? (
-                <div className="mt-2 rounded-lg bg-agri-50 px-3 py-2 text-sm font-semibold text-agri-800">
-                  Approximate area: {formatArea(areaAcres)}
-                </div>
-              ) : null}
-            </div>
-
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <Label>Manual farm boundary points</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddBoundaryRow}>
+                <Label>Farm boundary points (optional)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddManualBoundaryRow}
+                >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Add point
                 </Button>
               </div>
               <div className="space-y-2">
                 {manualBoundaryRows.map((row, index) => (
-                  <div key={`boundary-row-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <div key={`manual-boundary-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
                     <Input
                       type="number"
                       step="0.000001"
                       min="-90"
                       max="90"
                       value={row.lat}
-                      onChange={(event) => handleBoundaryRowChange(index, "lat", event.target.value)}
+                      onChange={(event) =>
+                        handleManualBoundaryRowChange(index, "lat", event.target.value)
+                      }
                       placeholder={index === 0 ? "-0.303100" : "Latitude"}
                       aria-label={`Boundary point ${index + 1} latitude`}
                     />
@@ -1092,7 +900,9 @@ export function AdvancedLocationEntry({
                       min="-180"
                       max="180"
                       value={row.lng}
-                      onChange={(event) => handleBoundaryRowChange(index, "lng", event.target.value)}
+                      onChange={(event) =>
+                        handleManualBoundaryRowChange(index, "lng", event.target.value)
+                      }
                       placeholder={index === 0 ? "36.080000" : "Longitude"}
                       aria-label={`Boundary point ${index + 1} longitude`}
                     />
@@ -1100,7 +910,7 @@ export function AdvancedLocationEntry({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemoveBoundaryRow(index)}
+                      onClick={() => handleRemoveManualBoundaryRow(index)}
                       aria-label={`Remove boundary point ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1112,18 +922,361 @@ export function AdvancedLocationEntry({
                 <p className="text-xs font-medium text-red-700">{manualBoundaryError}</p>
               ) : (
                 <p className="text-xs text-slate-500">
-                  Enter the corner points around your farm boundary in order. Four rows are provided for a typical rectangular plot; add or remove points as needed.
+                  Enter at least {MIN_BOUNDARY_POINTS} corner points if you want to save a
+                  boundary, or leave them blank to save just the coordinates.
                 </p>
               )}
             </div>
 
-            <Button type="button" onClick={handleSave} className="w-full bg-agri-700 hover:bg-agri-800">
-              <Save className="mr-2 h-4 w-4" />
-              Save location details
-            </Button>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleManualSave}
+                className="bg-agri-700 hover:bg-agri-800"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save coordinates
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <StepIndicator currentIndex={currentStepIndex} />
+
+            <div className="rounded-xl border border-agri-100 bg-agri-50 p-3 text-sm text-agri-800">
+              <div className="flex items-start gap-2">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-agri-600" />
+                <span>{STEP_HINTS[step]}</span>
+              </div>
+            </div>
+
+            {apiKey ? (
+              <div className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+                <div className="space-y-3">
+                  {/* Search input + custom in-dialog autocomplete dropdown */}
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(event) => handleSearchInput(event.target.value)}
+                      onFocus={() => {
+                        if (predictions.length > 0) setPredictionsOpen(true)
+                      }}
+                      onBlur={() => {
+                        // onPointerDown on prediction items uses preventDefault to keep
+                        // the input focused, so this only fires when the user genuinely
+                        // moves focus away.
+                        setPredictionsOpen(false)
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          setPredictionsOpen(false)
+                        } else if (event.key === "Enter" && predictions.length > 0) {
+                          event.preventDefault()
+                          handlePredictionSelect(predictions[0])
+                        }
+                      }}
+                      placeholder="Search a town, village, road, or landmark"
+                      className="h-11 pl-9 pr-10"
+                      autoComplete="off"
+                      disabled={!mapsReady}
+                    />
+                    {predictionsLoading ? (
+                      <Loader2 className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 animate-spin text-slate-400" />
+                    ) : null}
+                    {predictionsOpen ? (
+                      <div
+                        className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                        role="listbox"
+                      >
+                        {predictionsLoading && predictions.length === 0 ? (
+                          <div className="flex items-center gap-2 px-3 py-3 text-sm text-slate-500">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Searching...
+                          </div>
+                        ) : predictions.length === 0 ? (
+                          <div className="px-3 py-3 text-sm text-slate-500">
+                            No matches. Try a different town, road, or landmark.
+                          </div>
+                        ) : (
+                          predictions.map((prediction) => (
+                            <button
+                              type="button"
+                              key={prediction.placeId}
+                              // onPointerDown + preventDefault keeps focus on the
+                              // input so onBlur doesn't close the list before our
+                              // onClick handler can run. Works for mouse AND touch.
+                              onPointerDown={(event) => event.preventDefault()}
+                              onClick={() => handlePredictionSelect(prediction)}
+                              className="flex w-full min-h-[44px] items-start gap-2 px-3 py-2.5 text-left hover:bg-agri-50 focus:bg-agri-50 focus:outline-none"
+                              style={{ touchAction: "manipulation" }}
+                              role="option"
+                              aria-selected="false"
+                            >
+                              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-agri-600" />
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium text-slate-900">
+                                  {prediction.mainText}
+                                </div>
+                                {prediction.secondaryText ? (
+                                  <div className="truncate text-xs text-slate-500">
+                                    {prediction.secondaryText}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Map container.
+                      CRITICAL: keep the id attribute. The Terra Draw Google
+                      Maps adapter looks it up when wiring its OverlayView. */}
+                  <div className="relative h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                    <div
+                      id={MAP_CONTAINER_ID}
+                      ref={setMapContainer}
+                      className="h-full w-full"
+                    />
+                    {mapStatus === "loading" ? (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/85">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-agri-800 shadow">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading map...
+                        </div>
+                      </div>
+                    ) : null}
+                    {mapStatus === "failed" ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-100 p-5 text-center">
+                        <div className="max-w-sm text-sm text-slate-700">
+                          <AlertCircle className="mx-auto mb-2 h-6 w-6 text-amber-600" />
+                          <div className="font-semibold text-slate-950">Map could not load</div>
+                          <div className="mt-1">
+                            {mapsError ||
+                              "Check your network or try again. You can still enter coordinates manually."}
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => setView("manual")}
+                          >
+                            <Keyboard className="mr-1.5 h-4 w-4" />
+                            Enter coordinates manually
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {step === "drawing" ? (
+                      <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 rounded-lg bg-agri-900/90 px-3 py-2 text-sm font-medium text-white shadow">
+                        Tap each corner of your farm. Press Enter (or tap the first point again)
+                        to finish.
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {searchError ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      <div className="flex gap-2">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{searchError}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {mapsError && mapStatus !== "failed" ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      <div className="flex gap-2">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{mapsError}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Step-specific action buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {step === "drawing" ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleUndo}
+                          disabled={points.length === 0}
+                        >
+                          <Undo2 className="mr-2 h-4 w-4" />
+                          Undo last point
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleCancelDrawing}
+                        >
+                          Cancel drawing
+                        </Button>
+                      </>
+                    ) : step === "confirm" ? (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={handleApprove}
+                          disabled={!hasMinBoundary}
+                          className="bg-agri-700 hover:bg-agri-800"
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Approve and save
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleStartOver}
+                          disabled={!canDraw}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Start over
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={handleStartDrawing}
+                        disabled={!canDraw}
+                        className="bg-agri-700 hover:bg-agri-800"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Draw farm boundary
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => onOpenChange(false)}
+                      className="ml-auto"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+
+                  {!canDraw && step !== "drawing" && step !== "confirm" ? (
+                    <p className="text-xs font-medium text-slate-500">
+                      {mapStatus === "ready"
+                        ? "Preparing drawing tools..."
+                        : "Waiting for the map to finish loading..."}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Side panel: status + summary */}
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="text-sm font-semibold text-slate-950">Boundary preview</div>
+                    <div className="mt-2 text-sm text-slate-600">
+                      {points.length === 0
+                        ? "No boundary captured yet."
+                        : points.length < MIN_BOUNDARY_POINTS
+                          ? `${points.length} point${points.length === 1 ? "" : "s"} so far. Add at least ${MIN_BOUNDARY_POINTS} to form a boundary.`
+                          : `${points.length} boundary points captured.`}
+                    </div>
+                    {formatArea(areaAcres) ? (
+                      <div className="mt-2 rounded-lg bg-agri-50 px-3 py-2 text-sm font-semibold text-agri-800">
+                        Approximate area: {formatArea(areaAcres)}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {(manualLat || manualLng) && step !== "drawing" ? (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+                      <div className="font-semibold text-slate-950">Current centre</div>
+                      <div className="mt-1 text-slate-600">
+                        {manualLat && manualLng
+                          ? `${manualLat}, ${manualLng}`
+                          : "Pick a place from the search to set a centre."}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+                    <div className="font-semibold text-slate-700">Tips</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-4">
+                      <li>Switch the map type to Satellite to see field outlines.</li>
+                      <li>Zoom in tight before drawing so corners are accurate.</li>
+                      <li>You need at least {MIN_BOUNDARY_POINTS} points to save a boundary.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    Map service is not configured for this site. Use the manual entry option
+                    instead.
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setView("manual")}
+                      >
+                        <Keyboard className="mr-1.5 h-4 w-4" />
+                        Enter coordinates manually
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function StepIndicator({ currentIndex }: { currentIndex: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-xs">
+      {STEP_LABELS.map((entry, index) => {
+        const state = index === currentIndex ? "current" : index < currentIndex ? "done" : "upcoming"
+        return (
+          <Fragment key={entry.key}>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium",
+                state === "current" && "bg-agri-100 text-agri-900",
+                state === "done" && "text-agri-700",
+                state === "upcoming" && "text-slate-400",
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                  state === "current" && "bg-agri-700 text-white",
+                  state === "done" && "bg-agri-100 text-agri-700",
+                  state === "upcoming" && "bg-slate-100 text-slate-500",
+                )}
+              >
+                {index + 1}
+              </span>
+              {entry.label}
+            </span>
+            {index < STEP_LABELS.length - 1 ? (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+            ) : null}
+          </Fragment>
+        )
+      })}
+    </div>
   )
 }
