@@ -222,6 +222,7 @@ export function AdvancedLocationEntry({
   const [mapStatus, setMapStatus] = useState<MapStatus>("idle")
   const [mapsError, setMapsError] = useState<string | null>(null)
   const [drawReady, setDrawReady] = useState(false)
+  const [drawError, setDrawError] = useState<string | null>(null)
   const [view, setView] = useState<View>("map")
   const [step, setStep] = useState<Step>("search")
   const [searchQuery, setSearchQuery] = useState("")
@@ -273,6 +274,7 @@ export function AdvancedLocationEntry({
     setPredictions([])
     setPredictionsOpen(false)
     setMapsError(null)
+    setDrawError(null)
   }, [open])
 
   // Main Google Maps + Terra Draw initialization. Runs once per dialog open
@@ -296,11 +298,109 @@ export function AdvancedLocationEntry({
       }
     }
 
+    // Initialize Terra Draw against an already-projected map. Must run AFTER
+    // `projection_changed` (or `idle`) has fired at least once, because the
+    // Google Maps adapter's `register()` queries the map's internal DOM
+    // (`.gm-style` children, the OverlayView panes). Calling this earlier
+    // throws `Cannot read properties of null (reading 'addEventListener')`
+    // from inside the adapter when it tries to attach DOM listeners.
+    function initializeTerraDraw(maps: typeof google.maps, map: google.maps.Map) {
+      if (cancelled || mapRef.current !== map || drawRef.current) return
+
+      try {
+        draw = new TerraDraw({
+          adapter: new TerraDrawGoogleMapsAdapter({
+            lib: maps,
+            map,
+            coordinatePrecision: 7,
+          }),
+          modes: [
+            // Keep the built-in `polygon` mode name. Using a custom modeName
+            // previously caused style-lookup mismatches on closing points
+            // (upstream issue #749 on terra-draw).
+            new TerraDrawPolygonMode({
+              editable: false,
+              showCoordinatePoints: true,
+              cursors: {
+                start: "crosshair",
+                close: "pointer",
+                dragStart: "grabbing",
+                dragEnd: "crosshair",
+              },
+              styles: {
+                fillColor: "#16a34a",
+                fillOpacity: 0.25,
+                outlineColor: "#15803d",
+                outlineWidth: 3,
+                coordinatePointColor: "#ffffff",
+                coordinatePointOutlineColor: "#15803d",
+                coordinatePointWidth: 8,
+                closingPointColor: "#f59e0b",
+                closingPointOutlineColor: "#92400e",
+                closingPointWidth: 10,
+              },
+            }),
+          ],
+          undoRedo: {
+            modeLevel: new TerraDrawModeUndoRedo(),
+            keyboardShortcuts: new TerraDrawUndoRedoKeyboardShortcuts(),
+          },
+        })
+
+        const drawInstance = draw
+
+        // We MUST wait for the draw `ready` event before calling `setMode`,
+        // because the adapter's OverlayView is created asynchronously.
+        drawInstance.on("ready", () => {
+          if (cancelled || drawRef.current !== drawInstance) return
+          setDrawReady(true)
+        })
+
+        drawInstance.on("change", () => {
+          const next = getPolygonPoints(drawInstance)
+          setPoints(next)
+        })
+
+        drawInstance.on("finish", () => {
+          if (!mapRef.current) return
+          const next = getPolygonPoints(drawInstance)
+          if (next.length < MIN_BOUNDARY_POINTS) return
+          setPoints(next)
+          try {
+            drawInstance.setMode("static")
+          } catch (error) {
+            console.warn("[AdvancedLocationEntry] Could not switch to static mode:", error)
+          }
+          mapRef.current.setOptions({
+            draggable: true,
+            draggableCursor: "grab",
+            draggingCursor: "grabbing",
+          })
+          setStep("confirm")
+        })
+
+        drawInstance.start()
+        drawRef.current = drawInstance
+      } catch (error: any) {
+        // Surface the failure WITHOUT marking the whole map as failed: the
+        // search box, panning, and manual fallback should still work.
+        draw = null
+        drawRef.current = null
+        setDrawReady(false)
+        setDrawError(
+          error?.message ||
+            "Drawing tools could not initialize. You can still search the map or enter coordinates manually.",
+        )
+        console.error("[AdvancedLocationEntry] Terra Draw initialization failed:", error)
+      }
+    }
+
     async function loadMap() {
       try {
         setMapStatus("loading")
         setMapsError(null)
         setDrawReady(false)
+        setDrawError(null)
         setOptions({ key: apiKey, v: "weekly" })
         await Promise.all([
           importLibrary("maps"),
@@ -360,85 +460,33 @@ export function AdvancedLocationEntry({
         const layoutTimeout = window.setTimeout(refreshMapLayout, 300)
         cleanupFns.push(() => window.clearTimeout(layoutTimeout))
 
-        // Terra Draw + Google Maps adapter. Two hard requirements per the
-        // upstream docs that fix the "nothing renders when I click" bug:
-        //   1. The map container element MUST have an `id` set on the DOM
-        //      node. (Set on the rendered <div> further below.)
-        //   2. We MUST wait for the draw `ready` event before calling
-        //      `setMode`, because the adapter wires its OverlayView
-        //      asynchronously. Calling setMode earlier silently fails: the
-        //      cursor changes via map.setOptions but no click reaches Terra
-        //      Draw, so no vertices or lines ever render.
-        draw = new TerraDraw({
-          adapter: new TerraDrawGoogleMapsAdapter({
-            lib: maps,
+        // Wait for the map's projection to be ready before wiring Terra
+        // Draw. Per the official Google Maps adapter docs, Terra Draw must
+        // be created inside a `projection_changed` callback. If a
+        // projection is already available (extremely rare on first load,
+        // but possible across hot reloads), initialize immediately.
+        if (map.getProjection()) {
+          initializeTerraDraw(maps, map)
+        } else {
+          const projectionListener = maps.event.addListenerOnce(
             map,
-            coordinatePrecision: 7,
-          }),
-          modes: [
-            // Keep the built-in `polygon` mode name. Using a custom modeName
-            // here previously caused style-lookup mismatches on closing
-            // points (upstream issue #749 on terra-draw).
-            new TerraDrawPolygonMode({
-              editable: false,
-              showCoordinatePoints: true,
-              cursors: {
-                start: "crosshair",
-                close: "pointer",
-                dragStart: "grabbing",
-                dragEnd: "crosshair",
-              },
-              styles: {
-                fillColor: "#16a34a",
-                fillOpacity: 0.25,
-                outlineColor: "#15803d",
-                outlineWidth: 3,
-                coordinatePointColor: "#ffffff",
-                coordinatePointOutlineColor: "#15803d",
-                coordinatePointWidth: 8,
-                closingPointColor: "#f59e0b",
-                closingPointOutlineColor: "#92400e",
-                closingPointWidth: 10,
-              },
-            }),
-          ],
-          undoRedo: {
-            modeLevel: new TerraDrawModeUndoRedo(),
-            keyboardShortcuts: new TerraDrawUndoRedoKeyboardShortcuts(),
-          },
-        })
+            "projection_changed",
+            () => {
+              if (cancelled || mapRef.current !== map) return
+              initializeTerraDraw(maps, map)
+            },
+          )
+          cleanupFns.push(() => projectionListener.remove())
 
-        draw.on("ready", () => {
-          if (cancelled || drawRef.current !== draw) return
-          setDrawReady(true)
-        })
-
-        draw.on("change", () => {
-          if (!draw) return
-          const next = getPolygonPoints(draw)
-          setPoints(next)
-        })
-
-        draw.on("finish", () => {
-          if (!draw || !mapRef.current) return
-          const next = getPolygonPoints(draw)
-          if (next.length < MIN_BOUNDARY_POINTS) return
-          setPoints(next)
-          try {
-            draw.setMode("static")
-          } catch (error) {
-            console.warn("[AdvancedLocationEntry] Could not switch to static mode:", error)
-          }
-          mapRef.current.setOptions({
-            draggable: true,
-            draggableCursor: "grab",
-            draggingCursor: "grabbing",
+          // Fallback safety net: if for some reason projection_changed
+          // never fires (e.g. an exotic vector-only state), `idle` will,
+          // and the map's DOM is definitely live by then.
+          const idleDrawListener = maps.event.addListenerOnce(map, "idle", () => {
+            if (cancelled || mapRef.current !== map || drawRef.current) return
+            initializeTerraDraw(maps, map)
           })
-          setStep("confirm")
-        })
-
-        draw.start()
-        drawRef.current = draw
+          cleanupFns.push(() => idleDrawListener.remove())
+        }
       } catch (error: any) {
         if (cancelled) return
         setMapStatus("failed")
@@ -1104,6 +1152,29 @@ export function AdvancedLocationEntry({
                     </div>
                   ) : null}
 
+                  {drawError ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div>
+                          <div className="font-semibold">Drawing tools unavailable</div>
+                          <div className="mt-1">{drawError}</div>
+                          <div className="mt-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setView("manual")}
+                            >
+                              <Keyboard className="mr-1.5 h-4 w-4" />
+                              Enter coordinates manually
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
                   {/* Step-specific action buttons */}
                   <div className="flex flex-wrap gap-2">
                     {step === "drawing" ? (
@@ -1167,7 +1238,7 @@ export function AdvancedLocationEntry({
                     </Button>
                   </div>
 
-                  {!canDraw && step !== "drawing" && step !== "confirm" ? (
+                  {!canDraw && !drawError && step !== "drawing" && step !== "confirm" ? (
                     <p className="text-xs font-medium text-slate-500">
                       {mapStatus === "ready"
                         ? "Preparing drawing tools..."
