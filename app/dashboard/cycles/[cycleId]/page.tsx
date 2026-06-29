@@ -6,30 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   ArrowLeft,
-  MapPin,
   Calendar,
   Sprout,
   Edit,
   ActivityIcon,
-  Clock,
-  ShoppingBag,
-  Target,
-  Loader2,
-  AlertCircle,
+  Bell,
+  Package,
+  Plus,
+  ReceiptText,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
-import type { ProductionCycle, Activity } from "@/lib/types/production"
+import type { Activity, ActivityPrefill, ProductionCycle } from "@/lib/types/production"
 import { ActivityList } from "@/components/cycles/activity-list"
+import { AddActivityModal } from "@/components/cycles/add-activity-modal"
 import { EditCycleModal } from "@/components/cycles/edit-cycle-modal"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { calendarItemToActivityPrefill, getNextCalendarItem } from "@/lib/production/activity-calendar"
 
 export default function CycleDetailPage() {
   const params = useParams()
@@ -39,10 +36,8 @@ export default function CycleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [expectedYieldInput, setExpectedYieldInput] = useState("")
-  const [expectedPriceInput, setExpectedPriceInput] = useState("")
-  const [savingProjection, setSavingProjection] = useState(false)
-  const [projectionError, setProjectionError] = useState<string | null>(null)
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false)
+  const [activityPrefill, setActivityPrefill] = useState<ActivityPrefill | null>(null)
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -61,8 +56,6 @@ export default function CycleDetailPage() {
           updatedAt: cycleRes.updatedAt ? new Date(cycleRes.updatedAt).toISOString() : null,
         }
         setCycle(parsedCycle)
-        setExpectedYieldInput(parsedCycle.expectedYield ? String(parsedCycle.expectedYield) : "")
-        setExpectedPriceInput(parsedCycle.expectedPricePerKg ? String(parsedCycle.expectedPricePerKg) : "")
 
         const activitiesRes = await apiClient.getCycleActivities(cycleId)
         const parsedActivities = (Array.isArray(activitiesRes) ? activitiesRes : activitiesRes.data || [])
@@ -139,27 +132,18 @@ export default function CycleDetailPage() {
     return differenceInDays(harvestDate, new Date())
   }
 
-  const getNextActivity = () => {
-    if (!activities.length) return null
-    return activities
-      .filter((activity) => activity.status === "in_progress")
-      .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0]
-  }
-
   const toNumber = (value: number | string | null | undefined) => {
     const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : null
   }
 
   const progress = calculateProgress()
-  const daysRemaining = getDaysRemaining()
-  const nextActivity = getNextActivity()
-  const expectedYield = toNumber(cycle.expectedYield)
-  const expectedPricePerKg = toNumber(cycle.expectedPricePerKg)
-  const hasProjection = expectedYield != null && expectedYield > 0 && expectedPricePerKg != null && expectedPricePerKg > 0
-  const expectedRevenue = hasProjection ? expectedYield * expectedPricePerKg : null
-  const actualRevenue = cycle.actualYield && cycle.actualPricePerKg ? cycle.actualYield * cycle.actualPricePerKg : null
-  const displayedRevenue = cycle.status === "harvested" && actualRevenue ? actualRevenue : expectedRevenue
+  const actualYield = toNumber(cycle.actualYield)
+  const actualPricePerKg = toNumber(cycle.actualPricePerKg)
+  const actualRevenue =
+    actualYield != null && actualYield > 0 && actualPricePerKg != null && actualPricePerKg > 0
+      ? actualYield * actualPricePerKg
+      : null
   const completedActivities = activities.filter((activity) => activity.status === "completed").length
   const totalActivities = activities.length
   const locationParts = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
@@ -178,6 +162,7 @@ export default function CycleDetailPage() {
     const parsed = Number(activity.cost)
     return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
+  const nextCalendarItem = getNextCalendarItem(cycle, activities)
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) return null
@@ -186,8 +171,6 @@ export default function CycleDetailPage() {
 
   const handleCycleUpdate = (updatedCycle: ProductionCycle) => {
     setCycle(updatedCycle)
-    setExpectedYieldInput(updatedCycle.expectedYield ? String(updatedCycle.expectedYield) : "")
-    setExpectedPriceInput(updatedCycle.expectedPricePerKg ? String(updatedCycle.expectedPricePerKg) : "")
     toast({
       title: "Success",
       description: "Production cycle updated successfully",
@@ -206,39 +189,10 @@ export default function CycleDetailPage() {
     setCycle((prev) => (prev ? { ...prev, activities: updatedActivities } : prev))
   }
 
-  const handleProjectionSave = async () => {
-    setProjectionError(null)
-    const nextYield = Number(expectedYieldInput)
-    const nextPrice = Number(expectedPriceInput)
-
-    if (!Number.isFinite(nextYield) || nextYield <= 0 || !Number.isFinite(nextPrice) || nextPrice <= 0) {
-      setProjectionError("Enter expected yield and expected price using numbers greater than zero.")
-      return
-    }
-
-    try {
-      setSavingProjection(true)
-      const updatedCycle = await apiClient.updateCycle({
-        id: cycle.id,
-        expectedYield: nextYield,
-        expectedPricePerKg: nextPrice,
-      }) as ProductionCycle
-      setCycle((prev) => prev ? { ...prev, ...updatedCycle, expectedYield: nextYield, expectedPricePerKg: nextPrice } : updatedCycle)
-      toast({
-        title: "Projection saved",
-        description: "Expected yield and price have been added to this cycle.",
-      })
-    } catch (err: any) {
-      const message = err.message || "Could not save the expected yield and price."
-      setProjectionError(message)
-      toast({
-        title: "Projection not saved",
-        description: message,
-        variant: "destructive",
-      })
-    } finally {
-      setSavingProjection(false)
-    }
+  const handleAddCalendarActivity = () => {
+    if (!nextCalendarItem) return
+    setActivityPrefill(calendarItemToActivityPrefill(nextCalendarItem))
+    setShowAddActivityModal(true)
   }
 
   return (
@@ -255,15 +209,6 @@ export default function CycleDetailPage() {
             Back to Production Cycles
           </Button>
 
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button
-              onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-              className="w-full bg-blue-600 text-white shadow-md transition-all duration-200 hover:bg-blue-700 hover:shadow-lg sm:w-auto"
-            >
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Find Market
-            </Button>
-          </div>
         </div>
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
@@ -281,7 +226,7 @@ export default function CycleDetailPage() {
               </Button>
             </div>
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 space-y-4">
+              <div className="min-w-0 space-y-4 lg:max-w-md">
                 <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
                   {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
                 </Badge>
@@ -291,15 +236,40 @@ export default function CycleDetailPage() {
                     {cycle.cropVariety?.name || "Unknown Variety"}
                   </h1>
                 </div>
-                <div className="flex flex-col gap-2 text-sm text-primary-50 sm:flex-row sm:flex-wrap sm:gap-4">
-                  <span className="flex min-w-0 items-center gap-1">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{displayLocation}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4 flex-shrink-0" />
-                    {cycle.landSizeAcres} acres
-                  </span>
+                <div className="rounded-lg border border-white/15 bg-white/10 p-4">
+                  {nextCalendarItem ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary-100" />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold uppercase text-primary-100">Next activity reminder</div>
+                          <h2 className="mt-1 text-lg font-extrabold text-white">{nextCalendarItem.name}</h2>
+                          <p className="mt-1 text-sm text-primary-50">
+                            {nextCalendarItem.stage} • {format(nextCalendarItem.date, "MMM dd, yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {nextCalendarItem.inputs.map((item) => (
+                          <span key={item.name} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-primary-50">
+                            {item.name}
+                          </span>
+                        ))}
+                      </div>
+                      <Button type="button" onClick={handleAddCalendarActivity} className="bg-white text-primary-900 hover:bg-primary-50">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add as activity
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary-100" />
+                      <div>
+                        <div className="text-xs font-bold uppercase text-primary-100">Activity calendar</div>
+                        <p className="mt-1 text-sm text-primary-50">All suggested calendar activities have been added.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -320,63 +290,16 @@ export default function CycleDetailPage() {
                   <div className="text-xs text-primary-100">Total Investment</div>
                   <div className="mt-1 text-sm font-bold">{formatCurrency(totalCost) || "Not added"}</div>
                 </div>
-                {hasProjection && (
-                  <div className="rounded-lg bg-white/10 p-3">
-                    <div className="text-xs text-primary-100">Expected Yield</div>
-                    <div className="mt-1 text-sm font-bold">{expectedYield.toLocaleString()} kg</div>
-                  </div>
-                )}
-                {displayedRevenue != null && (
-                  <div className="rounded-lg bg-white/10 p-3">
-                    <div className="text-xs text-primary-100">Expected Revenue</div>
-                    <div className="mt-1 text-sm font-bold">{formatCurrency(displayedRevenue)}</div>
-                  </div>
-                )}
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">Revenue</div>
+                  <div className="mt-1 text-sm font-bold">{actualRevenue != null ? formatCurrency(actualRevenue) : "Not recorded"}</div>
+                </div>
+                <div className="rounded-lg bg-white/10 p-3">
+                  <div className="text-xs text-primary-100">Actual Yield</div>
+                  <div className="mt-1 text-sm font-bold">{actualYield != null ? `${actualYield.toLocaleString()} kg` : "Not recorded"}</div>
+                </div>
               </div>
             </div>
-
-            {!hasProjection && (
-              <div className="mt-5 rounded-lg border border-white/15 bg-white/10 p-4">
-                <div className="flex items-start gap-2 text-sm text-primary-50">
-                  <Target className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <p>Add expected yield and price to calculate projected revenue.</p>
-                </div>
-                {projectionError && (
-                  <Alert variant="destructive" className="mt-3 bg-white">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{projectionError}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                  <div>
-                    <Label htmlFor="expectedYield" className="text-primary-50">Enter expected yield(kg)</Label>
-                    <Input
-                      id="expectedYield"
-                      type="number"
-                      min="1"
-                      value={expectedYieldInput}
-                      onChange={(event) => setExpectedYieldInput(event.target.value)}
-                      className="mt-2 bg-white text-primary-950"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="expectedPricePerKg" className="text-primary-50">Enter expected price per kg (ksh)</Label>
-                    <Input
-                      id="expectedPricePerKg"
-                      type="number"
-                      min="1"
-                      value={expectedPriceInput}
-                      onChange={(event) => setExpectedPriceInput(event.target.value)}
-                      className="mt-2 bg-white text-primary-950"
-                    />
-                  </div>
-                  <Button type="button" onClick={handleProjectionSave} disabled={savingProjection} className="bg-white text-primary-900 hover:bg-primary-50">
-                    {savingProjection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Save
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -402,8 +325,8 @@ export default function CycleDetailPage() {
                   <div className="text-xs text-muted-foreground">Activities completed</div>
                 </div>
                 <div className="text-sm">
-                  <div className="font-bold text-primary-950">{nextActivity?.description || "No activity in progress"}</div>
-                  <div className="text-xs text-muted-foreground">Next activity</div>
+                  <div className="font-bold text-primary-950">{nextCalendarItem?.name || "Calendar complete"}</div>
+                  <div className="text-xs text-muted-foreground">Next calendar activity</div>
                 </div>
               </div>
 
@@ -419,42 +342,43 @@ export default function CycleDetailPage() {
           <Card className="border-0 bg-white shadow-card">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Calendar className="h-5 w-5 text-primary-700" />
-                Cycle Timeline
+                <ReceiptText className="h-5 w-5 text-primary-700" />
+                Cost History
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="font-bold text-muted-foreground">Planting Date</div>
-                  <div>{cycle.plantingDate ? format(new Date(cycle.plantingDate), "MMM dd, yyyy") : "Not set"}</div>
-                </div>
-                <div>
-                  <div className="font-bold text-muted-foreground">Estimated Harvest</div>
-                  <div>{cycle.estimatedHarvestDate ? format(new Date(cycle.estimatedHarvestDate), "MMM dd, yyyy") : "Not set"}</div>
-                </div>
-                {cycle.actualHarvestDate && (
-                  <div className="rounded-lg bg-primary-50 p-3">
-                    <div className="font-medium text-green-800">Harvested</div>
-                    <div className="text-green-700">{format(new Date(cycle.actualHarvestDate), "MMM dd, yyyy")}</div>
+            <CardContent>
+              <div className="max-h-[440px] space-y-3 overflow-y-auto pr-1">
+                {activities.filter((activity) => Number(activity.cost) > 0).length === 0 ? (
+                  <div className="rounded-lg bg-primary-50 p-4 text-sm text-muted-foreground">
+                    No activity costs have been recorded yet.
                   </div>
+                ) : (
+                  activities
+                    .filter((activity) => Number(activity.cost) > 0)
+                    .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+                    .map((activity) => (
+                      <div key={activity.id} className="rounded-lg border border-primary-100 bg-primary-50 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-bold text-primary-950">
+                              {activity.description || activity.type.replace(/_/g, " ")}
+                            </div>
+                            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Package className="h-3.5 w-3.5" />
+                              <span className="truncate">{activity.type.replace(/_/g, " ")}</span>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-sm font-extrabold text-primary-900">
+                            {formatCurrency(Number(activity.cost))}
+                          </div>
+                        </div>
+                      </div>
+                    ))
                 )}
               </div>
-
-              <div className="border-t pt-4 text-center">
-                <Clock className="mx-auto mb-2 h-5 w-5 text-primary-700" />
-                <div className="text-xl font-extrabold text-primary-900">
-                  {daysRemaining == null
-                    ? "Not set"
-                    : daysRemaining > 0
-                      ? `${daysRemaining} days`
-                      : cycle.status === "harvested"
-                        ? "Harvested"
-                        : "Ready"}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {daysRemaining != null && daysRemaining > 0 ? "remaining" : "timeline status"}
-                </div>
+              <div className="mt-4 flex items-center justify-between border-t pt-4 text-sm">
+                <span className="font-bold text-primary-950">Total</span>
+                <span className="font-extrabold text-primary-900">{formatCurrency(totalCost) || "KSh 0"}</span>
               </div>
             </CardContent>
           </Card>
@@ -466,6 +390,16 @@ export default function CycleDetailPage() {
         onClose={() => setShowEditModal(false)}
         cycle={cycle}
         onUpdate={handleCycleUpdate}
+      />
+      <AddActivityModal
+        isOpen={showAddActivityModal}
+        onClose={() => {
+          setShowAddActivityModal(false)
+          setActivityPrefill(null)
+        }}
+        cycleId={cycle.id}
+        onActivityAdd={handleActivityAdd}
+        initialActivity={activityPrefill}
       />
     </DashboardLayout>
   )

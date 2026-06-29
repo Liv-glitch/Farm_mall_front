@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CloudSun, Loader2 } from "lucide-react"
+import { Calendar, CloudRain, CloudSun, Loader2, Sprout, Sun, ThermometerSun } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { HarvestPredictionRequest, HarvestPredictionResponse } from "@/lib/types/calculator"
@@ -334,11 +334,15 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
                     <h4 className="font-medium mb-3">Planning weather conditions</h4>
                     <div className="space-y-2">
                       {planningConditions.map((item) => (
-                        <div key={item.month} className="flex items-start gap-3 rounded-lg bg-blue-50 p-3">
-                          <CloudSun className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                        <div key={item.month} className={`flex items-start gap-3 rounded-lg p-3 ${getConditionStyle(item.category).card}`}>
+                          {(() => {
+                            const style = getConditionStyle(item.category)
+                            const Icon = style.icon
+                            return <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${style.iconClass}`} />
+                          })()}
                           <div>
-                            <div className="font-semibold text-blue-950">{item.month}</div>
-                            <div className="text-sm text-blue-800">{item.condition}</div>
+                            <div className={`font-semibold ${getConditionStyle(item.category).title}`}>{item.month}</div>
+                            <div className={`text-sm ${getConditionStyle(item.category).body}`}>{item.condition}</div>
                           </div>
                         </div>
                       ))}
@@ -359,13 +363,30 @@ export function HarvestForecastModal({ open, onOpenChange }: HarvestForecastModa
   )
 }
 
+type PlanningConditionCategory = "rainy" | "cool" | "dry" | "transition" | "mild"
+
+function getConditionStyle(category: PlanningConditionCategory) {
+  switch (category) {
+    case "rainy":
+      return { card: "bg-sky-50", title: "text-sky-950", body: "text-sky-800", iconClass: "text-sky-600", icon: CloudRain }
+    case "cool":
+      return { card: "bg-teal-50", title: "text-teal-950", body: "text-teal-800", iconClass: "text-teal-600", icon: CloudSun }
+    case "dry":
+      return { card: "bg-amber-50", title: "text-amber-950", body: "text-amber-800", iconClass: "text-amber-600", icon: Sun }
+    case "transition":
+      return { card: "bg-orange-50", title: "text-orange-950", body: "text-orange-800", iconClass: "text-orange-600", icon: ThermometerSun }
+    default:
+      return { card: "bg-emerald-50", title: "text-emerald-950", body: "text-emerald-800", iconClass: "text-emerald-600", icon: Sprout }
+  }
+}
+
 function getMonthlyPlanningConditions(startDate: string, endDate: string, locationName: string) {
   const start = new Date(startDate)
   const end = new Date(endDate)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return []
 
   const highlandLocation = /(meru|nyandarua|nakuru|kiambu|nyeri|embu|elgeyo|uasin|kericho|bomet|nandi)/i.test(locationName)
-  const conditions: Array<{ month: string; condition: string }> = []
+  const conditions: Array<{ month: string; condition: string; category: PlanningConditionCategory }> = []
   const cursor = new Date(start.getFullYear(), start.getMonth(), 1)
   const last = new Date(end.getFullYear(), end.getMonth(), 1)
 
@@ -373,24 +394,30 @@ function getMonthlyPlanningConditions(startDate: string, endDate: string, locati
     const month = cursor.toLocaleDateString("en-GB", { month: "long" })
     const monthIndex = cursor.getMonth()
     let condition = "Mild conditions likely; monitor local rainfall and soil moisture."
+    let category: PlanningConditionCategory = "mild"
 
     if ([2, 3, 4].includes(monthIndex)) {
+      category = "rainy"
       condition = highlandLocation
         ? "Long rains likely; plan drainage and watch for fungal disease pressure."
         : "Rainy conditions likely; protect young crops from waterlogging."
     } else if ([5, 6, 7].includes(monthIndex)) {
+      category = "cool"
       condition = highlandLocation
         ? "Cool conditions; monitor late blight risk during misty or wet spells."
         : "Cool to dry conditions; check soil moisture before fertilizer applications."
     } else if (monthIndex === 8) {
+      category = "transition"
       condition = "Mostly dry transition period; plan irrigation if rains delay."
     } else if ([9, 10, 11].includes(monthIndex)) {
+      category = "rainy"
       condition = "Short rains possible; plan spray timing around wet days."
     } else {
+      category = "dry"
       condition = "Warmer and drier conditions; conserve moisture and schedule irrigation early."
     }
 
-    conditions.push({ month, condition })
+    conditions.push({ month, condition, category })
     cursor.setMonth(cursor.getMonth() + 1)
   }
 

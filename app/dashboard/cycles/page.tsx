@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Filter, TrendingUp, Sprout, DollarSign, BarChart3 } from "lucide-react"
+import { Plus, Search, Filter, TrendingUp, Sprout, DollarSign, BarChart3, ShoppingBag } from "lucide-react"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
 import { ProductionCycleCard } from "@/components/cycles/production-cycle-card"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
@@ -76,7 +76,7 @@ export default function CyclesPage() {
     .filter((cycle) => {
       const matchesSearch =
         cycle.cropVariety?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cycle.farmLocation.toLowerCase().includes(searchTerm.toLowerCase())
+        cycle.farmLocation?.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === "all" || cycle.status === statusFilter
       return matchesSearch && matchesStatus
     })
@@ -114,21 +114,14 @@ export default function CyclesPage() {
     return sum + activityCosts
   }, 0)
 
-  // Calculate estimated revenue
-  const expectedRevenue = cycles.reduce((sum, cycle) => {
-    let cycleRevenue = 0
-    if (cycle.status === "harvested" && cycle.actualYield && cycle.actualPricePerKg) {
-      const actualYield = isNaN(cycle.actualYield) ? 0 : cycle.actualYield
-      const actualPrice = isNaN(cycle.actualPricePerKg) ? 0 : cycle.actualPricePerKg
-      cycleRevenue = actualYield * actualPrice
-    } else {
-      const expectedYield = Number(cycle.expectedYield)
-      const expectedPrice = Number(cycle.expectedPricePerKg)
-      cycleRevenue =
-        Number.isFinite(expectedYield) && expectedYield > 0 && Number.isFinite(expectedPrice) && expectedPrice > 0
-          ? expectedYield * expectedPrice
-          : 0
-    }
+  // Calculate actual revenue only after harvest results are recorded
+  const totalRevenue = cycles.reduce((sum, cycle) => {
+    const actualYield = Number(cycle.actualYield)
+    const actualPrice = Number(cycle.actualPricePerKg)
+    const cycleRevenue =
+      Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPrice) && actualPrice > 0
+        ? actualYield * actualPrice
+        : 0
     return sum + cycleRevenue
   }, 0)
 
@@ -229,13 +222,22 @@ export default function CyclesPage() {
               <h1 className="page-title">Production Cycles</h1>
               <p className="page-subtitle">Manage your production cycles and track progress</p>
             </div>
-            <Button 
-              onClick={() => router.push("/dashboard/cycles/new")} 
-              className="w-full sm:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Cycle
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <Button
+                onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
+                className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
+              >
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Find Market
+              </Button>
+              <Button
+                onClick={() => router.push("/dashboard/cycles/new")}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Cycle
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -264,11 +266,11 @@ export default function CyclesPage() {
               className="border-0 bg-white"
             />
             <StatsCard
-              title="Estimated Revenue"
-              value={formatLargeNumber(expectedRevenue)}
-              suffix={!isNaN(expectedRevenue) && expectedRevenue >= 1000000 ? "M" : (!isNaN(expectedRevenue) && expectedRevenue >= 1000 ? "K" : "")}
+              title="Recorded Revenue"
+              value={formatLargeNumber(totalRevenue)}
+              suffix={!isNaN(totalRevenue) && totalRevenue >= 1000000 ? "M" : (!isNaN(totalRevenue) && totalRevenue >= 1000 ? "K" : "")}
               prefix="KSh "
-              description="Projected earnings"
+              description="From harvest results"
               icon={BarChart3}
               className="border-0 bg-white"
             />

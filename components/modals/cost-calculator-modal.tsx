@@ -11,7 +11,7 @@ import { Calculator, TrendingUp, Loader2 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
 import type { CostCalculationRequest, CostCalculationResponse } from "@/lib/types/calculator"
-import type { CropVariety } from "@/lib/types/production"
+import type { CropVariety, ProductionCycle } from "@/lib/types/production"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 interface CostCalculatorModalProps {
@@ -21,14 +21,12 @@ interface CostCalculatorModalProps {
 
 export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalProps) {
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
+  const [cycles, setCycles] = useState<ProductionCycle[]>([])
+  const [selectedCycleId, setSelectedCycleId] = useState("none")
   const [formData, setFormData] = useState<CostCalculationRequest>({
     cropVarietyId: "",
     landSizeAcres: 0,
     seedSize: 1,
-    location: {
-      county: "",
-      subCounty: "",
-    },
   })
   const [result, setResult] = useState<CostCalculationResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -37,6 +35,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   useEffect(() => {
     if (open) {
       loadCropVarieties()
+      loadCycles()
     }
   }, [open])
 
@@ -58,11 +57,21 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
     }
   }
 
+  const loadCycles = async () => {
+    try {
+      const data = await apiClient.getCycles()
+      setCycles(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Failed to load production cycles for calculator:", error)
+      setCycles([])
+    }
+  }
+
   const calculateCost = async () => {
-    if (!formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county) {
+    if (!formData.cropVarietyId || !formData.landSizeAcres) {
       toast({
         title: "Missing Information",
-        description: "Please fill in crop variety, land size, and county",
+        description: "Please fill in crop variety and land size",
         variant: "destructive",
       })
       return
@@ -70,13 +79,10 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
     setLoading(true)
     try {
-      // Ensure subCounty has a default value
       const requestData = {
-        ...formData,
-        location: {
-          county: formData.location?.county || "",
-          subCounty: formData.location?.subCounty || "General"
-        }
+        cropVarietyId: formData.cropVarietyId,
+        landSizeAcres: formData.landSizeAcres,
+        seedSize: formData.seedSize,
       }
       
       const response = await apiClient.getCostEstimate(requestData)
@@ -103,10 +109,30 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
       cropVarietyId: "",
       landSizeAcres: 0,
       seedSize: 1,
-      location: { county: "", subCounty: "" },
     })
+    setSelectedCycleId("none")
     setResult(null)
   }
+
+  const handleCycleSelect = (cycleId: string) => {
+    setSelectedCycleId(cycleId)
+    if (cycleId === "none") {
+      setFormData((prev) => ({ ...prev, cropVarietyId: "", landSizeAcres: 0 }))
+      setResult(null)
+      return
+    }
+
+    const cycle = cycles.find((item) => item.id === cycleId)
+    if (!cycle) return
+    setFormData((prev) => ({
+      ...prev,
+      cropVarietyId: cycle.cropVarietyId,
+      landSizeAcres: Number(cycle.landSizeAcres) || 0,
+    }))
+    setResult(null)
+  }
+
+  const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -136,6 +162,30 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                 </div>
               ) : (
                 <>
+                  <div>
+                    <Label htmlFor="productionCycle">Production Cycle (Optional)</Label>
+                    <Select value={selectedCycleId} onValueChange={handleCycleSelect}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Choose a cycle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No production cycle</SelectItem>
+                        {cycles.map((cycle) => (
+                          <SelectItem key={cycle.id} value={cycle.id}>
+                            {cycle.cropVariety?.name || "Production cycle"} - {cycle.landSizeAcres} acres
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedCycle ? (
+                    <div className="rounded-xl bg-sage-50 p-4 text-sm">
+                      <div className="font-semibold text-sage-900">{selectedCycle.cropVariety?.name || "Selected cycle"}</div>
+                      <div className="mt-1 text-sage-700">{selectedCycle.landSizeAcres} acres</div>
+                    </div>
+                  ) : (
+                    <>
                   <div>
                     <Label htmlFor="cropVariety">Crop Variety *</Label>
                     <Select
@@ -178,6 +228,8 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                       className="h-12"
                     />
                   </div>
+                    </>
+                  )}
 
                   <div>
                     <Label htmlFor="seedSize">Seed Size</Label>
@@ -198,42 +250,10 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                     </Select>
                   </div>
 
-                  <div>
-                    <Label htmlFor="county">County *</Label>
-                    <Input
-                      id="county"
-                      placeholder="Enter your county"
-                      value={formData.location?.county || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: { ...prev.location, county: e.target.value },
-                        }))
-                      }
-                      className="h-12"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subCounty">Sub County (Optional)</Label>
-                    <Input
-                      id="subCounty"
-                      placeholder="Sub County (optional)"
-                      value={formData.location?.subCounty || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          location: { ...prev.location, subCounty: e.target.value },
-                        }))
-                      }
-                      className="h-12"
-                    />
-                  </div>
-
                   <Button
                     onClick={calculateCost}
                     className="w-full h-12 bg-sage-700 hover:bg-sage-800"
-                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres || !formData.location?.county}
+                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres}
                   >
                     {loading ? (
                       <>

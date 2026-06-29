@@ -2,17 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 import { Loader2, Plus, Trash2 } from "lucide-react"
-import type { Activity, ActivityInput, CreateActivityRequest } from "@/lib/types/production"
+import type { Activity, ActivityInput, ActivityPrefill, CreateActivityRequest } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 
@@ -21,96 +20,20 @@ interface AddActivityModalProps {
   onClose: () => void
   cycleId: string
   onActivityAdd: (cycleId: string, activity: Activity) => void
+  initialActivity?: ActivityPrefill | null
 }
 
-// Activity templates for common farming activities
-const activityTemplates = [
-  {
-    name: "Land Preparation",
-    description: "Plowing and harrowing the field",
-    type: "soil_preparation" as const,
-    cost: 15000,
-    laborHours: 8,
-    laborType: "manual-hired" as const,
-    inputs: "Tractor, fuel",
-    notes: "Ensure proper depth for plowing"
-  },
-  {
-    name: "Planting",
-    description: "Plant seeds or seedlings",
-    type: "planting" as const,
-    cost: 25000,
-    laborHours: 12,
-    laborType: "mechanized" as const,
-    inputs: "Seeds, fertilizer",
-    notes: "Follow recommended spacing"
-  },
-  {
-    name: "Fertilizer Application",
-    description: "Apply base fertilizer",
-    type: "fertilization" as const,
-    cost: 20000,
-    laborHours: 6,
-    laborType: "manual-family" as const,
-    inputs: "NPK fertilizer",
-    notes: "Apply in the morning or evening"
-  },
-  {
-    name: "First Weeding",
-    description: "Remove weeds and apply top dressing",
-    type: "weeding" as const,
-    cost: 8000,
-    laborHours: 8,
-    laborType: "manual-hired" as const,
-    inputs: "Weeding tools, CAN fertilizer",
-    notes: "Careful not to damage crop roots"
-  },
-  {
-    name: "Pest Control",
-    description: "Apply pesticides to control pests",
-    type: "pest_control" as const,
-    cost: 12000,
-    laborHours: 4,
-    laborType: "manual-family" as const,
-    inputs: "Pesticides, sprayer",
-    notes: "Use protective gear"
-  },
-  {
-    name: "Disease Control",
-    description: "Apply fungicides to prevent diseases",
-    type: "disease_control" as const,
-    cost: 10000,
-    laborHours: 4,
-    laborType: "manual-family" as const,
-    inputs: "Fungicides, sprayer",
-    notes: "Apply during dry weather"
-  },
-  {
-    name: "Irrigation",
-    description: "Water application to the crop",
-    type: "irrigation" as const,
-    cost: 6000,
-    laborHours: 3,
-    laborType: "manual-family" as const,
-    inputs: "Water pump, fuel",
-    notes: "Check soil moisture first"
-  },
-  {
-    name: "Harvesting",
-    description: "Harvest the crop",
-    type: "harvesting" as const,
-    cost: 15000,
-    laborHours: 16,
-    laborType: "mechanized" as const,
-    inputs: "Harvesting tools, bags",
-    notes: "Ensure proper storage conditions"
-  },
-]
+const EMPTY_INPUT: ActivityInput = {
+  name: "",
+  quantity: 0,
+  unit: "kg",
+  cost: 0,
+  brand: "",
+  supplier: "",
+}
 
-export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: AddActivityModalProps) {
+export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, initialActivity }: AddActivityModalProps) {
   const [loading, setLoading] = useState(false)
-  const [useTemplate, setUseTemplate] = useState(true)
-  const [selectedTemplate, setSelectedTemplate] = useState<(typeof activityTemplates)[0] | null>(null)
 
   // Helper function to format date for input
   const formatDateForInput = (date: string | Date | undefined): string => {
@@ -142,24 +65,31 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
     notes: "",
   })
 
-  const [inputs, setInputs] = useState<ActivityInput[]>([{
-    name: "",
-    quantity: 0,
-    unit: "kg",
-    cost: 0,
-    brand: "",
-    supplier: ""
-  }])
+  const [inputs, setInputs] = useState<ActivityInput[]>([{ ...EMPTY_INPUT }])
+
+  const resetForm = (prefill?: ActivityPrefill | null) => {
+    setFormData({
+      name: prefill?.name || "",
+      type: prefill?.type || "soil_preparation",
+      description: prefill?.description || "",
+      scheduledDate: formatDateForInput(prefill?.scheduledDate),
+      laborHours: prefill?.laborHours || 0,
+      laborType: prefill?.laborType || "manual-family",
+      laborCost: prefill?.laborCost || 0,
+      notes: prefill?.notes || "",
+    })
+    setInputs(prefill?.inputs?.length ? prefill.inputs : [{ ...EMPTY_INPUT }])
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm(initialActivity)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialActivity])
 
   const addInput = () => {
-    setInputs([...inputs, {
-      name: "",
-      quantity: 0,
-      unit: "kg",
-      cost: 0,
-      brand: "",
-      supplier: ""
-    }])
+    setInputs([...inputs, { ...EMPTY_INPUT }])
   }
 
   const updateInput = (index: number, field: keyof ActivityInput, value: string | number) => {
@@ -193,21 +123,6 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
       throw new Error(`${fieldName} cannot be negative`)
     }
     return value
-  }
-
-  const handleTemplateSelect = (template: (typeof activityTemplates)[0]) => {
-    setSelectedTemplate(template)
-    // Only set the type, keep other fields empty but use template values as placeholders
-    setFormData({
-      name: "",
-      type: template.type,
-      description: "",
-      scheduledDate: "",
-      laborHours: 0,
-      laborType: "manual-family",
-      laborCost: 0,
-      notes: "",
-    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -258,25 +173,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
       onClose()
 
       // Reset form
-      setFormData({
-        name: "",
-        type: "soil_preparation",
-        description: "",
-        scheduledDate: "",
-        laborHours: 0,
-        laborType: "manual-family",
-        laborCost: 0,
-        notes: "",
-      })
-      setInputs([{
-        name: "",
-        quantity: 0,
-        unit: "kg",
-        cost: 0,
-        brand: "",
-        supplier: ""
-      }])
-      setSelectedTemplate(null)
+      resetForm(null)
 
       toast({
         title: "Activity Added",
@@ -299,52 +196,11 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
         <DialogHeader className="sticky top-0 z-10 bg-background/95 p-4 backdrop-blur sm:p-6">
           <DialogTitle>Add New Activity</DialogTitle>
           <DialogDescription>
-            Add a new activity to your production cycle. You can use predefined templates or create a custom activity.
+            Add an activity to your production cycle and record any inputs or labor costs.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
-          {/* Template Selection */}
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-              <Button
-                type="button"
-                variant={useTemplate ? "default" : "outline"}
-                onClick={() => setUseTemplate(true)}
-                className="w-full sm:w-auto"
-              >
-                Use Template
-              </Button>
-              <Button
-                type="button"
-                variant={!useTemplate ? "default" : "outline"}
-                onClick={() => setUseTemplate(false)}
-                className="w-full sm:w-auto"
-              >
-                Custom Activity
-              </Button>
-            </div>
-
-            {useTemplate && (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-[300px] sm:max-h-none overflow-y-auto">
-                {activityTemplates.slice(0, 6).map((template) => (
-                  <Card
-                    key={template.name}
-                    className={`cursor-pointer border-0 transition-all hover:-translate-y-0.5 hover:shadow-card ${
-                      selectedTemplate?.name === template.name ? "ring-2 ring-primary" : ""
-                    }`}
-                    onClick={() => handleTemplateSelect(template)}
-                  >
-                    <CardContent className="p-2 sm:p-3">
-                      <h4 className="font-bold text-xs sm:text-sm mb-1 line-clamp-1 text-primary-900">{template.name}</h4>
-                      <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 hidden sm:block">{template.description}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Activity Details */}
             <div className="space-y-4">
@@ -355,7 +211,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 <Input
                   id="name"
                   value={formData.name}
-                  placeholder={selectedTemplate ? selectedTemplate.name : "Enter activity name"}
+                  placeholder="Enter activity name"
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
@@ -398,8 +254,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
               <div className="space-y-2">
                 <Label htmlFor="laborType">Labor Type</Label>
                 <Select
-                  value={formData.laborType}
-                  onValueChange={(value: Activity["laborType"]) => setFormData({ ...formData, laborType: value })}
+                  value={formData.laborType || "manual-family"}
+                  onValueChange={(value) => setFormData({ ...formData, laborType: value as Activity["laborType"] })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -430,7 +286,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd }: Ad
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  placeholder={selectedTemplate ? selectedTemplate.notes : "Additional notes about this activity..."}
+                  placeholder="Additional notes about this activity..."
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="min-h-[100px]"
                 />

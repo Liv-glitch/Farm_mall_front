@@ -250,7 +250,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                           <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
                             <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                             <span className="truncate">
-                              {formatNumber(Number(activity.laborHours), 1)} hours • {formatLaborType(activity.laborType)}
+                              {formatNumber(Number(activity.laborHours), 1)} hours • {formatLaborType(activity.laborType || undefined)}
                             </span>
                           </div>
 

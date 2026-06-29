@@ -6,6 +6,8 @@ import { UserSidebar } from "@/components/user/user-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   BarChart3, 
@@ -21,11 +23,20 @@ import {
 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import type { ProductionCycle } from "@/lib/types/production"
+import { toast } from "@/components/ui/use-toast"
+
+interface HarvestResultForm {
+  actualYield: string
+  actualPricePerKg: string
+  actualHarvestDate: string
+}
 
 export default function AnalyticsPage() {
   const [cycles, setCycles] = useState<ProductionCycle[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
+  const [savingCycleId, setSavingCycleId] = useState<string | null>(null)
+  const [harvestForms, setHarvestForms] = useState<Record<string, HarvestResultForm>>({})
 
   useEffect(() => {
     async function fetchData() {
@@ -64,10 +75,12 @@ export default function AnalyticsPage() {
   }, 0)
 
   const totalRevenue = cycles.reduce((sum, cycle) => {
-    if (cycle.status === "harvested" && cycle.actualYield && cycle.actualPricePerKg) {
-      return sum + (cycle.actualYield * cycle.actualPricePerKg)
+    const actualYield = Number(cycle.actualYield)
+    const actualPrice = Number(cycle.actualPricePerKg)
+    if (Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPrice) && actualPrice > 0) {
+      return sum + (actualYield * actualPrice)
     }
-    return sum + ((cycle.expectedYield || 0) * (cycle.expectedPricePerKg || 0))
+    return sum
   }, 0)
 
   const totalProfit = totalRevenue - totalInvestment
@@ -92,6 +105,90 @@ export default function AnalyticsPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const needsHarvestResult = (cycle: ProductionCycle) => {
+    const actualYield = Number(cycle.actualYield)
+    const actualPrice = Number(cycle.actualPricePerKg)
+    const hasActuals = Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPrice) && actualPrice > 0
+    if (hasActuals) return false
+    if (cycle.status === "harvested") return true
+    if (!cycle.estimatedHarvestDate) return false
+    const harvestDate = new Date(cycle.estimatedHarvestDate)
+    return !Number.isNaN(harvestDate.getTime()) && harvestDate <= new Date()
+  }
+
+  const cyclesNeedingHarvestResults = cycles.filter(needsHarvestResult)
+
+  const getHarvestForm = (cycle: ProductionCycle): HarvestResultForm => {
+    return harvestForms[cycle.id] || {
+      actualYield: cycle.actualYield ? String(cycle.actualYield) : "",
+      actualPricePerKg: cycle.actualPricePerKg ? String(cycle.actualPricePerKg) : "",
+      actualHarvestDate: cycle.actualHarvestDate
+        ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+    }
+  }
+
+  const updateHarvestForm = (cycle: ProductionCycle, patch: Partial<HarvestResultForm>) => {
+    setHarvestForms((current) => ({
+      ...current,
+      [cycle.id]: {
+        ...getHarvestForm(cycle),
+        ...patch,
+      },
+    }))
+  }
+
+  const saveHarvestResult = async (cycle: ProductionCycle) => {
+    const form = getHarvestForm(cycle)
+    const actualYield = Number(form.actualYield)
+    const actualPricePerKg = Number(form.actualPricePerKg)
+
+    if (!Number.isFinite(actualYield) || actualYield <= 0 || !Number.isFinite(actualPricePerKg) || actualPricePerKg <= 0) {
+      toast({
+        title: "Harvest result not saved",
+        description: "Enter total yield and buying price using numbers greater than zero.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setSavingCycleId(cycle.id)
+      const updatedCycle = await apiClient.updateCycle({
+        id: cycle.id,
+        actualYield,
+        actualPricePerKg,
+        actualHarvestDate: form.actualHarvestDate,
+        status: cycle.status === "active" ? "harvested" : cycle.status,
+      }) as ProductionCycle
+
+      setCycles((current) =>
+        current.map((item) =>
+          item.id === cycle.id
+            ? { ...item, ...updatedCycle, actualYield, actualPricePerKg, actualHarvestDate: new Date(form.actualHarvestDate), status: "harvested" }
+            : item
+        )
+      )
+      setHarvestForms((current) => {
+        const next = { ...current }
+        delete next[cycle.id]
+        return next
+      })
+      toast({
+        title: "Harvest results recorded",
+        description: "Revenue and profit analytics have been updated.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Could not save harvest results",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingCycleId(null)
+    }
   }
 
   if (loading) {
@@ -149,6 +246,73 @@ export default function AnalyticsPage() {
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
+                {cyclesNeedingHarvestResults.length > 0 && (
+                  <Card className="border-agri-100 bg-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-agri-800">
+                        <Target className="h-5 w-5 text-agri-600" />
+                        Record harvest results
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {cyclesNeedingHarvestResults.map((cycle) => {
+                        const form = getHarvestForm(cycle)
+                        return (
+                          <div key={cycle.id} className="rounded-xl border border-agri-100 bg-agri-50 p-4">
+                            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="font-bold text-agri-900">{cycle.cropVariety?.name || "Production cycle"}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {cycle.farmLocation || "Location not set"}
+                                </div>
+                              </div>
+                              <Badge className="w-fit bg-amber-100 text-amber-800">Revenue not recorded</Badge>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+                              <div className="space-y-2">
+                                <Label htmlFor={`actual-yield-${cycle.id}`}>Total yield (kg)</Label>
+                                <Input
+                                  id={`actual-yield-${cycle.id}`}
+                                  type="number"
+                                  min="1"
+                                  value={form.actualYield}
+                                  onChange={(event) => updateHarvestForm(cycle, { actualYield: event.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`actual-price-${cycle.id}`}>Buying price per kg</Label>
+                                <Input
+                                  id={`actual-price-${cycle.id}`}
+                                  type="number"
+                                  min="1"
+                                  value={form.actualPricePerKg}
+                                  onChange={(event) => updateHarvestForm(cycle, { actualPricePerKg: event.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor={`actual-harvest-${cycle.id}`}>Harvest date</Label>
+                                <Input
+                                  id={`actual-harvest-${cycle.id}`}
+                                  type="date"
+                                  value={form.actualHarvestDate}
+                                  onChange={(event) => updateHarvestForm(cycle, { actualHarvestDate: event.target.value })}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                onClick={() => saveHarvestResult(cycle)}
+                                disabled={savingCycleId === cycle.id}
+                              >
+                                {savingCycleId === cycle.id ? "Saving..." : "Save"}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Key Metrics */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card className="bg-agri-50 border-agri-100">

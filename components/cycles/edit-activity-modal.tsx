@@ -236,8 +236,8 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
             <div>
               <Label htmlFor="laborType">Labor Type</Label>
               <Select
-                value={formData.laborType}
-                onValueChange={(value: Activity["laborType"]) => setFormData((prev) => ({ ...prev, laborType: value }))}
+                value={formData.laborType || "manual-family"}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, laborType: value as Activity["laborType"] }))}
               >
                 <SelectTrigger>
                   <SelectValue />

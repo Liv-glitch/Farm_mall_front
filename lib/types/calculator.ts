@@ -25,7 +25,7 @@ export interface CostCalculationRequest {
   cropVarietyId: string
   landSizeAcres: number
   seedSize: 1 | 2
-  location: {
+  location?: {
     county: string | undefined
     subCounty: string | undefined
   }

@@ -13,13 +13,12 @@ interface CompletionCtaProps {
 export function CompletionCta({ plan }: CompletionCtaProps) {
   // Hand the plan's details to Crop Tracker so it can prefill a new record.
   const params = new URLSearchParams({
-    prefill: "1",
-    name: plan.name,
+    sourcePlanId: plan.id,
     variety: plan.potatoVariety,
     plantingDate: plan.plantingDate,
     location: plan.location,
   })
-  const href = `/dashboard/cycles?${params.toString()}`
+  const href = `/dashboard/cycles/new?${params.toString()}`
 
   return (
     <Card className="border-0 bg-gradient-to-br from-primary-50 to-amber-50">

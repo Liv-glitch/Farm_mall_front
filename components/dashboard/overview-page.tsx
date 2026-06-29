@@ -10,6 +10,7 @@ import {
   Droplets,
   Loader2,
   MapPin,
+  ShoppingBag,
   Sprout,
   Stethoscope,
   ThermometerSun,
@@ -315,6 +316,14 @@ export function OverviewPage() {
             <p className="mt-4 text-sm leading-6 text-agri-950">
               {recommendation || "Weather-based recommendations will appear after current conditions load."}
             </p>
+            <Button
+              type="button"
+              onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
+              className="mt-5 w-full bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Find Market
+            </Button>
           </CardContent>
         </Card>
       </section>

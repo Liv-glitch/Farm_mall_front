@@ -3,9 +3,14 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
-import { Loader2, ChevronLeft, MapPin, CalendarDays } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Loader2, ChevronLeft, MapPin, CalendarDays, CalendarCheck } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { PreproductionPlan } from "@/lib/types/preproduction"
@@ -181,10 +186,12 @@ interface PlanDetailPageProps {
 
 export function PlanDetailPage({ planId }: PlanDetailPageProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [plan, setPlan] = useState<PreproductionPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [actualPlantingDate, setActualPlantingDate] = useState("")
 
   useEffect(() => {
     let active = true
@@ -194,7 +201,11 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
       setLoadError(false)
       try {
         const data = await apiClient.getPreproductionPlan(planId)
-        if (active) setPlan(normalizePreproductionPlan(data))
+        if (active) {
+          const normalized = normalizePreproductionPlan(data)
+          setPlan(normalized)
+          setActualPlantingDate(normalized.plantingDate || "")
+        }
       } catch (error: any) {
         if (active) {
           const isNotFound = error?.status === 404
@@ -260,6 +271,31 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
 
   const progressPct = plan.totalTasks ? (plan.completedTasks / plan.totalTasks) * 100 : 0
 
+  const handleRecordPlantingDate = () => {
+    if (!actualPlantingDate) {
+      toast({
+        title: "Planting date required",
+        description: "Choose the actual planting date first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const createCycle = window.confirm("Actual planting date recorded. Do you want to create a production cycle now?")
+    if (!createCycle) {
+      toast({ title: "Planting date recorded for this session" })
+      return
+    }
+
+    const params = new URLSearchParams({
+      sourcePlanId: plan.id,
+      variety: plan.potatoVariety,
+      plantingDate: actualPlantingDate,
+      location: plan.location,
+    })
+    router.push(`/dashboard/cycles/new?${params.toString()}`)
+  }
+
   return (
     <div className="page-shell lg:max-w-5xl lg:mx-auto">
       <Link
@@ -301,6 +337,37 @@ export function PlanDetailPage({ planId }: PlanDetailPageProps) {
       </div>
 
       {plan.status === "completed" && <CompletionCta plan={plan} />}
+
+      <Card className="border-0 bg-primary-50">
+        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100">
+                <CalendarCheck className="h-5 w-5 text-primary-700" />
+              </div>
+              <div>
+                <h2 className="font-extrabold text-primary-900">Record actual planting date</h2>
+                <p className="text-sm text-muted-foreground">
+                  Use the real planting date to start a production cycle from this preparation plan.
+                </p>
+              </div>
+            </div>
+            <div className="max-w-xs space-y-2">
+              <Label htmlFor="actual-planting-date">Actual planting date</Label>
+              <Input
+                id="actual-planting-date"
+                type="date"
+                value={actualPlantingDate}
+                onChange={(event) => setActualPlantingDate(event.target.value)}
+              />
+            </div>
+          </div>
+          <Button type="button" onClick={handleRecordPlantingDate} className="w-full sm:w-auto">
+            <CalendarCheck className="mr-2 h-4 w-4" />
+            Record
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Steps */}
       <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-3">

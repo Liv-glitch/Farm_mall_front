@@ -34,14 +34,14 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Production Cycles",
-    url: "/dashboard/cycles",
-    icon: Activity,
-  },
-  {
     title: "Farm Preparations",
     url: "/dashboard/pre-production-planning",
     icon: Sprout,
+  },
+  {
+    title: "Production Cycles",
+    url: "/dashboard/cycles",
+    icon: Activity,
   },
   {
     title: "Diagnosis",

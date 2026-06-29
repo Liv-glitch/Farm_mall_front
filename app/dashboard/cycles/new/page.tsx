@@ -15,7 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ArrowLeft, AlertCircle, Loader2, Sprout } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
-import type { CropVariety, CreateProductionCycleRequest } from "@/lib/types/production"
+import type { ActivityInput, CropVariety, CreateProductionCycleRequest } from "@/lib/types/production"
+import type { PreproductionPlan } from "@/lib/types/preproduction"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 import { AdvancedLocationEntry, type BoundaryPoint } from "@/components/cycles/advanced-location-entry"
@@ -38,6 +39,7 @@ export default function NewProductionCyclePage() {
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
   const [advancedLocationOpen, setAdvancedLocationOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [sourcePlanId, setSourcePlanId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     cropVarietyId: "",
@@ -62,6 +64,38 @@ export default function NewProductionCyclePage() {
       loadFarms()
     }
   }, [authLoading])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || loadingVarieties) return
+
+    const params = new URLSearchParams(window.location.search)
+    const planId = params.get("sourcePlanId")
+    const varietyName = params.get("variety")
+    const plantingDate = params.get("plantingDate")
+    const location = params.get("location")
+
+    if (!planId && !varietyName && !plantingDate && !location) return
+
+    const matchingVariety = varietyName
+      ? cropVarieties.find((variety) => variety.name.toLowerCase() === varietyName.toLowerCase())
+      : undefined
+    const locationParts = (location || "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+
+    setSourcePlanId(planId)
+    setFormData((prev) => ({
+      ...prev,
+      cropVarietyId: matchingVariety?.id || prev.cropVarietyId,
+      plantingDate: plantingDate ? new Date(plantingDate).toISOString() : prev.plantingDate,
+      farmCounty: prev.farmCounty || locationParts[0] || location || "",
+      farmSubcounty: prev.farmSubcounty || locationParts[1] || "Not specified",
+      farmLocationName: prev.farmLocationName || locationParts.slice(2).join(", ") || locationParts[1] || locationParts[0] || location || "",
+      farmLocation: location || prev.farmLocation,
+      landSizeAcres: prev.landSizeAcres || (farm?.size ? Number(farm.size) : 0),
+    }))
+  }, [cropVarieties, farm?.size, loadingVarieties])
 
   const loadCropVarieties = async () => {
     try {
@@ -122,6 +156,56 @@ export default function NewProductionCyclePage() {
     formData.farmSubcounty.trim(),
     formData.farmCounty.trim(),
   ].filter(Boolean).join(", ")
+
+  const createPreparationActivity = async (cycleId: string) => {
+    if (!sourcePlanId) return
+
+    try {
+      const sourcePlan = (await apiClient.getPreproductionPlan(sourcePlanId)) as PreproductionPlan
+      const completedTasks = sourcePlan.steps
+        .flatMap((step) => step.tasks || [])
+        .filter((task) => task.activityType === "task" && task.completed)
+      const inputs: ActivityInput[] = completedTasks.map((task) => ({
+        name: task.title,
+        quantity: task.cost && Number(task.cost) > 0 ? 1 : 0,
+        unit: "item",
+        cost: task.cost ? Number(task.cost) : 0,
+        brand: "",
+        supplier: task.supplier || "",
+      }))
+      const totalCost = inputs.reduce((sum, item) => sum + item.quantity * item.cost, 0)
+      const plantingDate = new Date(formData.plantingDate)
+      const newActivity = await apiClient.addActivity(cycleId, {
+        cycleId,
+        name: "Farm preparation",
+        type: "soil_preparation",
+        description: "Land Preparation",
+        scheduledDate: plantingDate.toISOString(),
+        completedDate: plantingDate.toISOString(),
+        status: "completed",
+        cost: totalCost.toFixed(2),
+        laborHours: "0.0",
+        laborType: null,
+        inputs: inputs.length > 0 ? JSON.stringify(inputs) : undefined,
+        notes: "Created from completed farm preparation tasks.",
+      })
+
+      if (newActivity?.id) {
+        await apiClient.updateActivity(cycleId, {
+          id: newActivity.id,
+          status: "completed",
+          completedDate: plantingDate.toISOString(),
+        })
+      }
+    } catch (error) {
+      console.error("Could not create preparation activity", error)
+      toast({
+        title: "Cycle created",
+        description: "The production cycle was created, but preparation costs could not be copied.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -188,16 +272,23 @@ export default function NewProductionCyclePage() {
       }
 
       const response = await apiClient.createProductionCycle(payload)
+      const createdCycleId =
+        response && typeof response === 'object' && 'id' in response && typeof response.id === "string"
+          ? response.id
+          : null
+      if (createdCycleId) {
+        await createPreparationActivity(createdCycleId)
+      }
       await refreshUser()
 
       toast({
         title: "Success!",
-        description: "Farm preparation record created successfully",
+        description: "Production cycle created successfully",
       })
 
       // Navigate to the production cycles page or to the specific record if we have an ID
-      if (response && typeof response === 'object' && 'id' in response && response.id) {
-        router.push(`/dashboard/cycles/${response.id}`)
+      if (createdCycleId) {
+        router.push(`/dashboard/cycles/${createdCycleId}`)
       } else {
         router.push("/dashboard/cycles")
       }

@@ -81,13 +81,12 @@ export function ProductionCycleCard({
   const progress = calculateProgress()
   const daysRemaining = getDaysRemaining()
   const nextActivity = getNextActivity()
-  const expectedYield = Number(cycle.expectedYield)
-  const expectedPricePerKg = Number(cycle.expectedPricePerKg)
-  const expectedRevenue =
-    Number.isFinite(expectedYield) && expectedYield > 0 && Number.isFinite(expectedPricePerKg) && expectedPricePerKg > 0
-      ? expectedYield * expectedPricePerKg
+  const actualYield = Number(cycle.actualYield)
+  const actualPricePerKg = Number(cycle.actualPricePerKg)
+  const actualRevenue =
+    Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPricePerKg) && actualPricePerKg > 0
+      ? actualYield * actualPricePerKg
       : null
-  const actualRevenue = (cycle.actualYield || 0) * (cycle.actualPricePerKg || 0)
   
   // Calculate total cost from all activities
   const totalCost = cycle.activities?.reduce((sum, activity) => {
@@ -251,14 +250,9 @@ export function ProductionCycleCard({
             </div>
             <div className="rounded-2xl bg-primary-50 p-3">
               <div className="text-sm font-extrabold text-primary-800">
-                {(() => {
-                  const revenue = cycle.status === "harvested" && actualRevenue > 0 ? actualRevenue : expectedRevenue
-                  return revenue == null || isNaN(revenue) ? "Not set" : `KSh ${(revenue / 1000).toFixed(0)}k`
-                })()}
+                {actualRevenue == null || isNaN(actualRevenue) ? "Not recorded" : `KSh ${(actualRevenue / 1000).toFixed(0)}k`}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {cycle.status === "harvested" && actualRevenue > 0 ? "Revenue" : "Est. Revenue"}
-              </div>
+              <div className="text-xs text-muted-foreground">Revenue</div>
             </div>
           </div>
 

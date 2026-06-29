@@ -40,7 +40,7 @@ export interface Activity {
   status: "in_progress" | "completed"
   cost: string | number
   laborHours: string | number
-  laborType: "manual-family" | "manual-hired" | "mechanized"
+  laborType?: "manual-family" | "manual-hired" | "mechanized" | null
   laborCost?: number
   inputs: string | ActivityInput[]
   notes: string
@@ -123,10 +123,22 @@ export interface CreateActivityRequest {
   activityDate?: Date // legacy field
   cost?: number
   laborHours?: number
-  laborType?: 'manual-hired' | 'manual-family' | 'mechanized'
+  laborType?: 'manual-hired' | 'manual-family' | 'mechanized' | null
   laborCost?: number
   inputs?: ActivityInput[]
   notes?: string
+}
+
+export interface ActivityPrefill {
+  name?: string
+  type?: Activity["type"]
+  description?: string
+  scheduledDate?: string | Date
+  laborHours?: number
+  laborType?: Activity["laborType"]
+  laborCost?: number
+  notes?: string
+  inputs?: ActivityInput[]
 }
 
 export interface ApiClient {
