@@ -171,10 +171,10 @@ export function EditActivityModal({ isOpen, onClose, activity, onActivityUpdate 
               <SelectContent>
                 <SelectItem value="soil_preparation">Soil Preparation</SelectItem>
                 <SelectItem value="planting">Planting</SelectItem>
-                <SelectItem value="fertilization">Fertilization</SelectItem>
+                <SelectItem value="fertilizing">Fertilization</SelectItem>
                 <SelectItem value="irrigation">Irrigation</SelectItem>
                 <SelectItem value="pest_control">Pest Control</SelectItem>
-                <SelectItem value="disease_control">Disease Control</SelectItem>
+                <SelectItem value="pest_control">Disease Control</SelectItem>
                 <SelectItem value="weeding">Weeding</SelectItem>
                 <SelectItem value="harvesting">Harvesting</SelectItem>
                 <SelectItem value="other">Other</SelectItem>

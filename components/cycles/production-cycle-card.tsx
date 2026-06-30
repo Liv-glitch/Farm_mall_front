@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ChevronDown, ChevronUp, MapPin, Calendar, Sprout, TrendingUp, Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react"
+import { ChevronDown, ChevronUp, MapPin, Calendar, Sprout, Edit, MoreHorizontal, Trash2 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
 import { ActivityList } from "./activity-list"
@@ -81,24 +81,6 @@ export function ProductionCycleCard({
   const progress = calculateProgress()
   const daysRemaining = getDaysRemaining()
   const nextActivity = getNextActivity()
-  const actualYield = Number(cycle.actualYield)
-  const actualPricePerKg = Number(cycle.actualPricePerKg)
-  const actualRevenue =
-    Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPricePerKg) && actualPricePerKg > 0
-      ? actualYield * actualPricePerKg
-      : null
-  
-  // Calculate total cost from all activities
-  const totalCost = cycle.activities?.reduce((sum, activity) => {
-    let cost = 0
-    if (typeof activity.cost === 'string') {
-      const parsed = parseFloat(activity.cost)
-      cost = isNaN(parsed) ? 0 : parsed
-    } else if (typeof activity.cost === 'number') {
-      cost = isNaN(activity.cost) ? 0 : activity.cost
-    }
-    return sum + cost
-  }, 0) || 0
   const cardImageUrl = cycle.status === "harvested" ? HARVEST_IMAGE_URL : FIELD_IMAGE_URL
 
   const handleViewDetails = () => {
@@ -240,27 +222,10 @@ export function ProductionCycleCard({
         </CardHeader>
 
         <CardContent className="pt-0">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-2xl bg-primary-50 p-3">
-              <div className="text-sm font-extrabold text-primary-800">
-                KSh {isNaN(totalCost) ? '0' : (totalCost / 1000).toFixed(0)}k
-              </div>
-              <div className="text-xs text-muted-foreground">Cost</div>
-            </div>
-            <div className="rounded-2xl bg-primary-50 p-3">
-              <div className="text-sm font-extrabold text-primary-800">
-                {actualRevenue == null || isNaN(actualRevenue) ? "Not recorded" : `KSh ${(actualRevenue / 1000).toFixed(0)}k`}
-              </div>
-              <div className="text-xs text-muted-foreground">Revenue</div>
-            </div>
-          </div>
-
           {/* Next Activity Preview */}
           {nextActivity && (
-            <div className="mt-3 rounded-2xl bg-primary-50 p-3">
+            <div className="rounded-2xl bg-primary-50 p-3">
               <div className="flex items-center gap-1.5 text-xs text-primary-800">
-                <TrendingUp className="h-3 w-3 text-primary-600" />
                 <span className="font-medium">Next:</span>
                 <span className="truncate">{nextActivity.description}</span>
                 <span className="ml-auto font-medium">

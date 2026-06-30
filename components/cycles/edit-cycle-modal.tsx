@@ -24,18 +24,19 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
   const [cropVarieties, setCropVarieties] = useState<CropVariety[]>([])
   const [loadingVarieties, setLoadingVarieties] = useState(false)
   const [varietiesError, setVarietiesError] = useState<string | null>(null)
-  const [imageFile, setImageFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     cropVarietyId: cycle.cropVarietyId,
     landSizeAcres: cycle.landSizeAcres,
     farmLocation: cycle.farmLocation,
+    farmCounty: cycle.farmCounty || "",
+    farmSubcounty: cycle.farmSubcounty || "",
+    farmLocationName: cycle.farmLocationName || "",
     farmLocationLat: cycle.farmLocationLat || 0,
     farmLocationLng: cycle.farmLocationLng || 0,
     plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
     estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
     actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
     status: cycle.status || "active",
-    cropStage: cycle.cropStage,
     actualYield: cycle.actualYield || 0,
     actualPricePerKg: cycle.actualPricePerKg || 0,
   })
@@ -47,13 +48,15 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
       cropVarietyId: cycle.cropVarietyId,
       landSizeAcres: cycle.landSizeAcres,
       farmLocation: cycle.farmLocation,
+      farmCounty: cycle.farmCounty || "",
+      farmSubcounty: cycle.farmSubcounty || "",
+      farmLocationName: cycle.farmLocationName || "",
       farmLocationLat: cycle.farmLocationLat || 0,
       farmLocationLng: cycle.farmLocationLng || 0,
       plantingDate: cycle.plantingDate ? new Date(cycle.plantingDate).toISOString().split("T")[0] : "",
       estimatedHarvestDate: cycle.estimatedHarvestDate ? new Date(cycle.estimatedHarvestDate).toISOString().split("T")[0] : "",
       actualHarvestDate: cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate).toISOString().split("T")[0] : "",
       status: cycle.status || "active",
-      cropStage: cycle.cropStage,
       actualYield: cycle.actualYield || 0,
       actualPricePerKg: cycle.actualPricePerKg || 0,
     })
@@ -93,39 +96,22 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
     setLoading(true)
 
     try {
-      let payload
-      if (imageFile) {
-        payload = new FormData()
-        payload.append("id", cycle.id)
-        payload.append("cropVarietyId", formData.cropVarietyId)
-        payload.append("landSizeAcres", formData.landSizeAcres.toString())
-        payload.append("farmLocation", formData.farmLocation)
-        payload.append("farmLocationLat", formData.farmLocationLat.toString())
-        payload.append("farmLocationLng", formData.farmLocationLng.toString())
-        payload.append("plantingDate", new Date(formData.plantingDate).toISOString())
-        payload.append("estimatedHarvestDate", new Date(formData.estimatedHarvestDate).toISOString())
-        if (formData.actualHarvestDate) payload.append("actualHarvestDate", new Date(formData.actualHarvestDate).toISOString())
-        payload.append("status", formData.status || "planning")
-        if (formData.cropStage) payload.append("cropStage", formData.cropStage)
-        payload.append("actualYield", formData.actualYield.toString())
-        payload.append("actualPricePerKg", formData.actualPricePerKg.toString())
-        payload.append("image", imageFile)
-      } else {
-        payload = {
-          id: cycle.id,
-          cropVarietyId: formData.cropVarietyId,
-          landSizeAcres: formData.landSizeAcres,
-          farmLocation: formData.farmLocation,
-          farmLocationLat: formData.farmLocationLat,
-          farmLocationLng: formData.farmLocationLng,
-          plantingDate: new Date(formData.plantingDate).toISOString(),
-          estimatedHarvestDate: new Date(formData.estimatedHarvestDate).toISOString(),
-          actualHarvestDate: formData.actualHarvestDate ? new Date(formData.actualHarvestDate).toISOString() : undefined,
-          status: formData.status || "planning",
-          cropStage: formData.cropStage,
-          actualYield: formData.actualYield,
-          actualPricePerKg: formData.actualPricePerKg
-        }
+      const payload = {
+        id: cycle.id,
+        cropVarietyId: formData.cropVarietyId,
+        landSizeAcres: formData.landSizeAcres,
+        farmLocation: formData.farmLocation,
+        farmCounty: formData.farmCounty || undefined,
+        farmSubcounty: formData.farmSubcounty || undefined,
+        farmLocationName: formData.farmLocationName || undefined,
+        farmLocationLat: formData.farmLocationLat || undefined,
+        farmLocationLng: formData.farmLocationLng || undefined,
+        plantingDate: new Date(formData.plantingDate).toISOString(),
+        estimatedHarvestDate: new Date(formData.estimatedHarvestDate).toISOString(),
+        actualHarvestDate: formData.actualHarvestDate ? new Date(formData.actualHarvestDate).toISOString() : undefined,
+        status: formData.status,
+        actualYield: formData.actualYield,
+        actualPricePerKg: formData.actualPricePerKg
       }
 
       // Call the API to update the record.
@@ -206,35 +192,10 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="planning">Planning</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="harvested">Harvested</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="cropStage">Crop Stage</Label>
-              <Select
-                value={formData.cropStage || "pre_planting"}
-                onValueChange={(value) => {
-                  const cropStage = value as ProductionCycle["cropStage"]
-                  setFormData((prev) => ({ ...prev, cropStage }))
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select crop stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pre_planting">Pre-planting</SelectItem>
-                  <SelectItem value="planting">Planting</SelectItem>
-                  <SelectItem value="vegetative">Vegetative</SelectItem>
-                  <SelectItem value="flowering">Flowering</SelectItem>
-                  <SelectItem value="fruiting">Fruiting</SelectItem>
-                  <SelectItem value="harvesting">Harvesting</SelectItem>
-                  <SelectItem value="post_harvest">Post-harvest</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -250,6 +211,36 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
                 value={formData.farmLocation}
                 onChange={(e) => setFormData((prev) => ({ ...prev, farmLocation: e.target.value }))}
                 className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="farmLocationName">Location Name</Label>
+              <Input
+                id="farmLocationName"
+                placeholder="Field or village name"
+                value={formData.farmLocationName}
+                onChange={(e) => setFormData((prev) => ({ ...prev, farmLocationName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="farmSubcounty">Subcounty</Label>
+              <Input
+                id="farmSubcounty"
+                placeholder="Njoro"
+                value={formData.farmSubcounty}
+                onChange={(e) => setFormData((prev) => ({ ...prev, farmSubcounty: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="farmCounty">County</Label>
+              <Input
+                id="farmCounty"
+                placeholder="Nakuru"
+                value={formData.farmCounty}
+                onChange={(e) => setFormData((prev) => ({ ...prev, farmCounty: e.target.value }))}
               />
             </div>
           </div>
@@ -357,19 +348,6 @@ export function EditCycleModal({ isOpen, onClose, onUpdate, cycle }: EditCycleMo
               </div>
             </div>
           )}
-
-          {/* Show image preview if available and type allows */}
-          {('imageUrl' in cycle) && (cycle as any).imageUrl && (
-            <div className="mb-2">
-              <img src={(cycle as any).imageUrl} alt="Farm preparation record" className="w-full max-h-48 rounded-2xl object-cover shadow-card" />
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e => setImageFile(e.target.files?.[0] || null)}
-            className="block w-full rounded-xl bg-white p-3 text-sm shadow-soft file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-bold file:text-white"
-          />
 
           <div className="flex justify-end space-x-3">
             <Button type="button" variant="outline" onClick={onClose}>

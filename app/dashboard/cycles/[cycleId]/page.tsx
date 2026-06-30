@@ -139,11 +139,6 @@ export default function CycleDetailPage() {
 
   const progress = calculateProgress()
   const actualYield = toNumber(cycle.actualYield)
-  const actualPricePerKg = toNumber(cycle.actualPricePerKg)
-  const actualRevenue =
-    actualYield != null && actualYield > 0 && actualPricePerKg != null && actualPricePerKg > 0
-      ? actualYield * actualPricePerKg
-      : null
   const completedActivities = activities.filter((activity) => activity.status === "completed").length
   const totalActivities = activities.length
   const locationParts = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
@@ -212,8 +207,11 @@ export default function CycleDetailPage() {
         </div>
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
-          <CardContent className="p-5 sm:p-7">
-            <div className="mb-4 flex justify-end">
+          <CardContent className="p-5 sm:p-6">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
+                {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
+              </Badge>
               <Button
                 type="button"
                 size="icon"
@@ -225,11 +223,8 @@ export default function CycleDetailPage() {
                 <Edit className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 space-y-4 lg:max-w-md">
-                <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
-                  {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-                </Badge>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0 space-y-4 lg:max-w-2xl xl:max-w-3xl">
                 <div className="flex min-w-0 items-center gap-2">
                   <Sprout className="h-6 w-6 flex-shrink-0 text-primary-100" />
                   <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
@@ -273,7 +268,7 @@ export default function CycleDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[420px] xl:min-w-[480px]">
                 <div className="rounded-lg bg-white/10 p-3">
                   <div className="text-xs text-primary-100">Crop Variety</div>
                   <div className="mt-1 truncate text-sm font-bold">{cycle.cropVariety?.name || "Not set"}</div>
@@ -289,10 +284,6 @@ export default function CycleDetailPage() {
                 <div className="rounded-lg bg-white/10 p-3">
                   <div className="text-xs text-primary-100">Total Investment</div>
                   <div className="mt-1 text-sm font-bold">{formatCurrency(totalCost) || "Not added"}</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">Revenue</div>
-                  <div className="mt-1 text-sm font-bold">{actualRevenue != null ? formatCurrency(actualRevenue) : "Not recorded"}</div>
                 </div>
                 <div className="rounded-lg bg-white/10 p-3">
                   <div className="text-xs text-primary-100">Actual Yield</div>

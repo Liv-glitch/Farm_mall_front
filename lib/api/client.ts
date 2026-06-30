@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse,
 import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
 import type { Event, EventFormData } from "@/lib/types/event"
-import type { CropVariety } from "@/lib/types/production"
+import type { CropVariety, ProductionCycleReportDetail, ProductionCycleReportSummary } from "@/lib/types/production"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 const CROP_VARIETY_NUMBER_FIELDS = [
@@ -20,6 +20,34 @@ const CROP_VARIETY_NUMBER_FIELDS = [
   "miscellaneousCostPerAcre",
   "averageYieldPerAcre",
 ] as const
+
+const ACTIVITY_TYPE_API_ALIASES: Record<string, string> = {
+  fertilization: "fertilizing",
+  disease_control: "pest_control",
+}
+
+function normalizeActivityPayload<T>(payload: T): T {
+  if (payload instanceof FormData) {
+    const type = payload.get("type")
+    if (typeof type === "string" && ACTIVITY_TYPE_API_ALIASES[type]) {
+      payload.set("type", ACTIVITY_TYPE_API_ALIASES[type])
+    }
+    return payload
+  }
+
+  if (payload && typeof payload === "object" && "type" in payload) {
+    const activityPayload = payload as Record<string, any>
+    const type = activityPayload.type
+    if (typeof type === "string" && ACTIVITY_TYPE_API_ALIASES[type]) {
+      return {
+        ...activityPayload,
+        type: ACTIVITY_TYPE_API_ALIASES[type],
+      } as T
+    }
+  }
+
+  return payload
+}
 
 function normalizeCropVarietiesResponse(response: any): CropVariety[] {
   const rawVarieties = Array.isArray(response)
@@ -731,21 +759,23 @@ class ApiClient {
     return this.client.get(`/production/cycles/${cycleId}/activities`).then(r => r.data)
   }
   async addActivity(cycleId: string, activityOrFormData: any) {
+    const payload = normalizeActivityPayload(activityOrFormData)
     if (activityOrFormData instanceof FormData) {
-      return this.client.post(`/production/cycles/${cycleId}/activities`, activityOrFormData, {
+      return this.client.post(`/production/cycles/${cycleId}/activities`, payload, {
         headers: { "Content-Type": "multipart/form-data" },
       }).then(r => r.data)
     } else {
-      return this.client.post(`/production/cycles/${cycleId}/activities`, activityOrFormData).then(r => r.data)
+      return this.client.post(`/production/cycles/${cycleId}/activities`, payload).then(r => r.data)
     }
   }
   async updateActivity(cycleId: string, activityOrFormData: any) {
+    const payload = normalizeActivityPayload(activityOrFormData)
     if (activityOrFormData instanceof FormData) {
-      return this.client.put(`/production/activities/${activityOrFormData.get("id")}`, activityOrFormData, {
+      return this.client.put(`/production/activities/${activityOrFormData.get("id")}`, payload, {
         headers: { "Content-Type": "multipart/form-data" },
       }).then(r => r.data)
     } else {
-      return this.client.put(`/production/activities/${activityOrFormData.id}`, activityOrFormData).then(r => r.data)
+      return this.client.put(`/production/activities/${activityOrFormData.id}`, payload).then(r => r.data)
     }
   }
 
@@ -760,6 +790,14 @@ class ApiClient {
   async deleteAllActivities(cycleId: string) {
     const activities = await this.getCycleActivities(cycleId)
     await Promise.all((activities || []).map((activity: any) => this.deleteActivity(cycleId, activity.id)))
+  }
+
+  async getCycleReports(): Promise<ProductionCycleReportSummary[]> {
+    return this.client.get("/production/reports").then(r => r.data)
+  }
+
+  async getCycleReport(reportId: string): Promise<ProductionCycleReportDetail> {
+    return this.client.get(`/production/reports/${reportId}`).then(r => r.data)
   }
 
   // Collaboration endpoints

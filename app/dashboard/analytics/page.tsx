@@ -19,10 +19,12 @@ import {
   Sprout,
   ArrowUpRight,
   ArrowDownRight,
-  PieChart
+  PieChart,
+  FileText,
+  ExternalLink
 } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
-import type { ProductionCycle } from "@/lib/types/production"
+import type { ProductionCycle, ProductionCycleReportSummary } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 
 interface HarvestResultForm {
@@ -37,16 +39,22 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [savingCycleId, setSavingCycleId] = useState<string | null>(null)
   const [harvestForms, setHarvestForms] = useState<Record<string, HarvestResultForm>>({})
+  const [reports, setReports] = useState<ProductionCycleReportSummary[]>([])
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await apiClient.getCycles()
+        const [res, reportsRes] = await Promise.all([
+          apiClient.getCycles(),
+          apiClient.getCycleReports(),
+        ])
         const cyclesData = Array.isArray(res) ? res : (res?.data ? res.data : [])
         setCycles(cyclesData)
+        setReports(Array.isArray(reportsRes) ? reportsRes : [])
       } catch (err) {
         console.error("Error fetching cycles:", err)
         setCycles([])
+        setReports([])
       } finally {
         setLoading(false)
       }
@@ -119,6 +127,11 @@ export default function AnalyticsPage() {
   }
 
   const cyclesNeedingHarvestResults = cycles.filter(needsHarvestResult)
+  const reportsByCycle = reports.reduce<Record<string, ProductionCycleReportSummary[]>>((groups, report) => {
+    groups[report.productionCycleId] = [...(groups[report.productionCycleId] || []), report]
+    return groups
+  }, {})
+  const reportGroups = Object.values(reportsByCycle)
 
   const getHarvestForm = (cycle: ProductionCycle): HarvestResultForm => {
     return harvestForms[cycle.id] || {
@@ -178,8 +191,10 @@ export default function AnalyticsPage() {
       })
       toast({
         title: "Harvest results recorded",
-        description: "Revenue and profit analytics have been updated.",
+        description: "Revenue, profit analytics, and completion reports have been updated.",
       })
+      const reportsRes = await apiClient.getCycleReports()
+      setReports(Array.isArray(reportsRes) ? reportsRes : [])
     } catch (error: any) {
       toast({
         title: "Could not save harvest results",
@@ -565,13 +580,55 @@ export default function AnalyticsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
+                    {reportGroups.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p>Detailed financial reports will be displayed here</p>
-                        <p className="text-sm">Coming soon with detailed breakdowns and exports</p>
+                        <p>No completed-cycle reports yet</p>
+                        <p className="text-sm">Reports will appear here after a cycle is marked harvested.</p>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {reportGroups.map((cycleReports) => {
+                          const firstReport = cycleReports[0]
+                          const activityReport = cycleReports.find((report) => report.type === "activity")
+                          const financialReport = cycleReports.find((report) => report.type === "financial")
+                          return (
+                            <div key={firstReport.productionCycleId} className="rounded-lg border border-agri-100 bg-agri-50 p-4">
+                              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                  <div className="font-bold text-agri-900">{firstReport.cropLabel}</div>
+                                  <div className="text-sm text-muted-foreground">{firstReport.farmLabel}</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    Generated {new Date(firstReport.generatedAt).toLocaleDateString()}
+                                    {firstReport.harvestDate ? ` • Harvested ${new Date(firstReport.harvestDate).toLocaleDateString()}` : ""}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                  {activityReport && (
+                                    <Button asChild variant="outline" className="bg-white">
+                                      <a href={`/dashboard/analytics/reports/${activityReport.id}`} target="_blank" rel="noreferrer">
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Activity Report
+                                        <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                                      </a>
+                                    </Button>
+                                  )}
+                                  {financialReport && (
+                                    <Button asChild>
+                                      <a href={`/dashboard/analytics/reports/${financialReport.id}`} target="_blank" rel="noreferrer">
+                                        <DollarSign className="mr-2 h-4 w-4" />
+                                        Financial Report
+                                        <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                                      </a>
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

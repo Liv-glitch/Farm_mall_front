@@ -229,10 +229,10 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
                   <SelectContent className="max-h-[200px] sm:max-h-none overflow-y-auto">
                     <SelectItem value="soil_preparation">Soil Testing</SelectItem>
                     <SelectItem value="planting">Planting</SelectItem>
-                    <SelectItem value="fertilization">Fertilization</SelectItem>
+                    <SelectItem value="fertilizing">Fertilization</SelectItem>
                     <SelectItem value="weeding">Weeding</SelectItem>
                     <SelectItem value="pest_control">Pest Control</SelectItem>
-                    <SelectItem value="disease_control">Disease Control</SelectItem>
+                    <SelectItem value="pest_control">Disease Control</SelectItem>
                     <SelectItem value="irrigation">Irrigation</SelectItem>
                     <SelectItem value="harvesting">Harvesting</SelectItem>
                     <SelectItem value="other">Other</SelectItem>

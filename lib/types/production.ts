@@ -33,7 +33,7 @@ export interface Activity {
   id: string
   userId: string
   productionCycleId: string
-  type: "soil_preparation" | "planting" | "fertilization" | "irrigation" | "pest_control" | "disease_control" | "weeding" | "harvesting" | "other"
+  type: "soil_preparation" | "planting" | "fertilizing" | "fertilization" | "irrigation" | "pest_control" | "disease_control" | "weeding" | "harvesting" | "other"
   description: string
   scheduledDate: string | Date
   completedDate?: string | Date | null
@@ -65,7 +65,7 @@ export interface ProductionCycle {
   plantingDate: Date
   estimatedHarvestDate: Date
   actualHarvestDate?: Date
-  status: "active" | "harvested" | "archived"
+  status: "planning" | "active" | "harvested" | "archived"
   cropStage?: "pre_planting" | "planting" | "vegetative" | "flowering" | "fruiting" | "harvesting" | "post_harvest"
   expectedYield?: number | null
   actualYield?: number
@@ -141,6 +141,78 @@ export interface ActivityPrefill {
   inputs?: ActivityInput[]
 }
 
+export type ProductionCycleReportType = "activity" | "financial"
+
+export interface ProductionCycleReportSummary {
+  id: string
+  productionCycleId: string
+  type: ProductionCycleReportType
+  snapshotVersion: number
+  generatedAt: string | Date
+  cropLabel: string
+  farmLabel: string
+  harvestDate?: string | Date | null
+}
+
+export interface ProductionCycleReportDetail extends ProductionCycleReportSummary {
+  snapshotData: ProductionCycleReportSnapshot
+}
+
+export interface ProductionCycleReportSnapshot {
+  reportType: ProductionCycleReportType
+  generatedAt: string
+  cycle: {
+    id: string
+    cropVariety: string
+    cropType?: string | null
+    farmName?: string | null
+    farmLocation?: string | null
+    county?: string | null
+    subcounty?: string | null
+    landSizeAcres?: number | null
+    plantingDate?: string | null
+    estimatedHarvestDate?: string | null
+    actualHarvestDate?: string | null
+    status: ProductionCycle["status"]
+  }
+  activities: Array<{
+    id: string
+    type: string
+    description: string
+    status: string
+    scheduledDate?: string | null
+    completedDate?: string | null
+    durationDays?: number | null
+    daysSincePreviousActivity?: number | null
+    laborHours?: number | null
+    laborType?: string | null
+    notes?: string | null
+    cost?: number
+    inputs?: Array<{
+      name: string
+      quantity: number
+      unit: string
+      cost?: number
+      brand?: string | null
+      supplier?: string | null
+    }>
+  }>
+  activitySummary: {
+    totalActivities: number
+    completedActivities: number
+    cycleDurationDays?: number | null
+  }
+  financialSummary?: {
+    activityCostTotal: number
+    inputCostTotal: number
+    totalCost: number
+    actualYield?: number | null
+    actualPricePerKg?: number | null
+    actualRevenue?: number | null
+    profit?: number | null
+  }
+}
+
 export interface ApiClient {
   // ... existing methods ...
   
@@ -157,4 +229,6 @@ export interface ApiClient {
   updateActivity(cycleId: string, activityOrFormData: any): Promise<Activity>
   deleteActivity(cycleId: string, activityId: string): Promise<void>
   deleteAllActivities(cycleId: string): Promise<void>
+  getCycleReports(): Promise<ProductionCycleReportSummary[]>
+  getCycleReport(reportId: string): Promise<ProductionCycleReportDetail>
 }
