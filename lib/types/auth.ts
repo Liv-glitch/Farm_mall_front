@@ -25,6 +25,8 @@ export interface User {
   locationLng?: number;
   subscriptionType: "free" | "premium";
   subscriptionExpiresAt?: Date;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
   role: "user" | "admin";
   farms?: Farm[];
   createdAt: string;

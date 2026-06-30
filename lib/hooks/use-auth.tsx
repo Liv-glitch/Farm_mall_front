@@ -13,6 +13,8 @@ interface AuthContextType {
   loading: boolean
   login: (credentials: LoginRequest) => Promise<void>
   register: (userData: RegisterRequest) => Promise<void>
+  verifyOtp: (email: string, otp: string) => Promise<void>
+  resendOtp: (email: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('lastLoginAttempt')
       
       const token = response?.token || response?.tokens?.accessToken || response?.accessToken
+      const refreshToken = response?.tokens?.refreshToken || response?.refreshToken
       const user = response?.user || response?.data?.user
       
       if (!token || !user) {
@@ -148,6 +151,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setAuthToken(token)
       apiClient.setToken(token)
+      if (refreshToken) {
+        apiClient.setRefreshToken(refreshToken)
+      }
       setUser(user)
 
       // Fetch farm data after successful login
@@ -196,7 +202,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const authData = response?.data || response
       
       const token = authData?.token || authData?.tokens?.accessToken || authData?.accessToken
+      const refreshToken = authData?.tokens?.refreshToken || authData?.refreshToken
       const user = authData?.user
+
+      if (authData?.emailVerificationRequired && user?.email) {
+        toast({
+          title: "Check Your Email",
+          description: "We sent you a verification code.",
+        })
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(user.email)}`)
+        return
+      }
       
       if (!token || !user) {
         throw new Error("Invalid response from server")
@@ -204,6 +220,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setAuthToken(token)
       apiClient.setToken(token)
+      if (refreshToken) {
+        apiClient.setRefreshToken(refreshToken)
+      }
       setUser(user)
 
       toast({
@@ -224,6 +243,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
       throw error
     }
+  }
+
+  const verifyOtp = async (email: string, otp: string) => {
+    const response = await apiClient.verifyOtp(email, otp) as any
+    const authData = response?.data || response
+    const token = authData?.token || authData?.tokens?.accessToken || authData?.accessToken
+    const refreshToken = authData?.tokens?.refreshToken || authData?.refreshToken
+    const verifiedUser = authData?.user
+
+    if (!token || !verifiedUser) {
+      throw new Error("Invalid response from server")
+    }
+
+    setAuthToken(token)
+    apiClient.setToken(token)
+    if (refreshToken) {
+      apiClient.setRefreshToken(refreshToken)
+    }
+    setUser(verifiedUser)
+
+    toast({
+      title: "Email Verified",
+      description: `Welcome to Farm Mall, ${verifiedUser.fullName}!`,
+    })
+
+    if (verifiedUser.role === "admin") {
+      router.push("/admin")
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
+  const resendOtp = async (email: string) => {
+    await apiClient.resendOtp(email)
+    toast({
+      title: "Code Sent",
+      description: "If your account still needs verification, a new code has been sent.",
+    })
   }
 
   const logout = () => {
@@ -256,6 +313,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         loading,
         login,
         register,
+        verifyOtp,
+        resendOtp,
         logout,
         refreshUser,
       }}

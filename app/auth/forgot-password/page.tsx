@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle, CheckCircle2, ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { apiClient } from "@/lib/api/client"
 
 export default function ResetPasswordPage() {
   return (
@@ -44,21 +45,7 @@ function ResetPasswordContent() {
     setError("")
     
     try {
-      // Call your backend API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ identifier: email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send reset email")
-      }
-
+      await apiClient.forgotPassword(email.trim())
       setSuccess(true)
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.")
@@ -79,32 +66,14 @@ function ResetPasswordContent() {
       return
     }
 
-    // Validate password strength (optional)
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long")
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
+      setError("Password must be at least 8 characters and include uppercase, lowercase, and a number")
       setIsLoading(false)
       return
     }
     
     try {
-      // Call your backend API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          token, 
-          newPassword 
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to reset password")
-      }
-
+      await apiClient.resetPassword(token || "", newPassword)
       setSuccess(true)
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.")
@@ -279,7 +248,7 @@ function ResetPasswordContent() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Password must be at least 8 characters long
+                  Use at least 8 characters with uppercase, lowercase, and a number
                 </p>
               </div>
 

@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/hooks/use-auth"
 
 export default function LoginPage() {
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   const { login } = useAuth()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +49,11 @@ export default function LoginPage() {
       })
       // Navigation is handled in the auth hook
     } catch (err: any) {
+      if (err?.responseData?.code === "EMAIL_NOT_VERIFIED" && email.includes("@")) {
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email.trim())}`)
+        return
+      }
+
       // Better error handling for API validation errors
       let errorMessage = err.message || "Login failed"
 

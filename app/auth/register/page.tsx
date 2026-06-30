@@ -13,7 +13,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/hooks/use-auth"
 
 const kenyanCounties = [
@@ -103,7 +102,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
 
   const { register } = useAuth()
-  const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -128,6 +126,12 @@ export default function RegisterPage() {
     // Validation
     if (!formData.fullName.trim()) {
       setError("Full name is required")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.trim()) {
+      setError("Email is required so we can verify your account")
       setLoading(false)
       return
     }
@@ -173,7 +177,6 @@ export default function RegisterPage() {
         subCounty: formData.subCounty.trim(),
         password: formData.password,
       })
-      router.push("/dashboard")
     } catch (err: any) {
       // Better error handling for API validation errors
       let errorMessage = err.message || "Registration failed"
@@ -259,7 +262,9 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email (Optional)</Label>
+                <Label htmlFor="email">
+                  Email <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="email"
                   name="email"

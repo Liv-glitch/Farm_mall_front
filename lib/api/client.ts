@@ -378,6 +378,38 @@ class ApiClient {
     }
   }
 
+  async forgotPassword(email: string): Promise<any> {
+    return this.request({
+      method: "POST",
+      url: "/auth/forgot-password",
+      data: { email },
+    })
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<any> {
+    return this.request({
+      method: "POST",
+      url: "/auth/reset-password",
+      data: { token, newPassword },
+    })
+  }
+
+  async verifyOtp(email: string, otp: string): Promise<any> {
+    return this.request({
+      method: "POST",
+      url: "/auth/verify-otp",
+      data: { email, otp },
+    })
+  }
+
+  async resendOtp(email: string): Promise<any> {
+    return this.request({
+      method: "POST",
+      url: "/auth/resend-otp",
+      data: { email },
+    })
+  }
+
   async getProfile(): Promise<User> {
     return this.request({
       method: "GET",

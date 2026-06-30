@@ -24,8 +24,8 @@ export function RegisterPage() {
     event.preventDefault()
     setError(null)
 
-    if (!email.trim() && !phoneNumber.trim()) {
-      setError("Please enter either an email address or phone number.")
+    if (!email.trim()) {
+      setError("Please enter an email address so we can verify your account.")
       return
     }
 
@@ -79,6 +79,7 @@ export function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
+                  required
                 />
               </div>
 
