@@ -3,6 +3,7 @@ import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
 import type { Event, EventFormData } from "@/lib/types/event"
 import type { CropVariety, ProductionCycleReportDetail, ProductionCycleReportSummary } from "@/lib/types/production"
+import type { BuyersDashboardData, BuyersRegistrationForm, MarketplaceBooking, MarketplaceDecision } from "@/lib/types/buyers"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
 const CROP_VARIETY_NUMBER_FIELDS = [
@@ -419,6 +420,43 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     return this.getProfile()
+  }
+
+  async getBuyersDashboard(): Promise<BuyersDashboardData> {
+    return this.request({
+      method: "GET",
+      url: "/buyers/dashboard",
+    })
+  }
+
+  async registerForBuyers(data: BuyersRegistrationForm) {
+    return this.request({
+      method: "POST",
+      url: "/buyers/register",
+      data: {
+        ...data,
+        acreage_planted: Number(data.acreage_planted),
+      },
+    })
+  }
+
+  async getBuyerBookings(status = "all"): Promise<MarketplaceBooking[]> {
+    return this.request({
+      method: "GET",
+      url: "/buyers/bookings",
+      params: { status },
+    })
+  }
+
+  async decideBuyerBooking(bookingRef: string, decision: MarketplaceDecision): Promise<{
+    marketplace: any
+    bookings: MarketplaceBooking[]
+  }> {
+    return this.request({
+      method: "POST",
+      url: `/buyers/bookings/${bookingRef}/decision`,
+      data: { decision },
+    })
   }
 
   async updateProfile(data: any) {

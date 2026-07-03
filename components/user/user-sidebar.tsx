@@ -22,6 +22,7 @@ import {
   User,
   Sprout,
   CalendarDays,
+  ShoppingBag,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -59,6 +60,11 @@ const menuItems = [
     icon: CalendarDays,
   },
   {
+    title: "Buyers",
+    url: "/dashboard/buyers",
+    icon: ShoppingBag,
+  },
+  {
     title: "Analytics",
     url: "/dashboard/analytics",
     icon: BarChart3,
@@ -92,6 +98,9 @@ export function UserSidebar() {
     }
     if (url === "/dashboard/events") {
       return pathname?.startsWith("/dashboard/events") === true
+    }
+    if (url === "/dashboard/buyers") {
+      return pathname?.startsWith("/dashboard/buyers") === true
     }
     return pathname === url
   }
