@@ -51,12 +51,6 @@ const emptyDefaults: BuyersRegistrationDefaults = {
   planting_date: "",
 }
 
-const currencyFormatter = new Intl.NumberFormat("en-KE", {
-  style: "currency",
-  currency: "KES",
-  maximumFractionDigits: 0,
-})
-
 function statusCopy(status?: string) {
   const normalized = status || "not_registered"
   const labels: Record<string, string> = {
@@ -91,7 +85,7 @@ function bookingMessage(status: string) {
   return "Booking status updated by the marketplace."
 }
 
-export function BuyersPage() {
+export function BuyersPage({ variant = "standalone" }: { variant?: "standalone" | "embedded" } = {}) {
   const [dashboard, setDashboard] = useState<BuyersDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -170,19 +164,23 @@ export function BuyersPage() {
   const integration = dashboard?.integration
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className={cn("mx-auto w-full max-w-7xl space-y-6", variant === "embedded" && "space-y-5")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-agri-50 text-agri-700 ring-1 ring-agri-100">
-              <ShoppingBag className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">Buyers</h1>
-              <p className="mt-1 text-sm text-gray-600">Manage marketplace listing status and booking requests.</p>
+        {variant === "standalone" ? (
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-agri-50 text-agri-700 ring-1 ring-agri-100">
+                <ShoppingBag className="h-6 w-6" />
+              </span>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">Buyers</h1>
+                <p className="mt-1 text-sm text-gray-600">Manage marketplace listing status and booking requests.</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-gray-600">Manage marketplace listing status and booking requests.</p>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -202,7 +200,7 @@ export function BuyersPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-3">
             <StatusCard
               title="Registration"
               value={statusCopy(integration?.registrationStatus)}
@@ -275,14 +273,14 @@ function MarketplaceOnboarding({
             Buyer marketplace
           </Badge>
           <h2 className="mt-5 max-w-2xl text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-            List your farm where verified buyers can request bookings.
+            Sell Your Harvest Faster. List Your Farm Today.
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-            Register once from Farm Mall and keep managing buyer requests here. Your contact details stay private until you approve availability and the buyer confirms.
+            Don&apos;t wait for buyers to find you. Join our marketplace to showcase your farm, connect directly with ready buyers, and secure bookings for your produce before harvest season even begins.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button type="button" className="bg-agri-700 hover:bg-agri-800" onClick={onRegister}>
-              Register for Buyers
+              List My Farm
             </Button>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <ShieldCheck className="h-4 w-4 text-agri-700" />
@@ -515,47 +513,58 @@ function BookingCard({
 }) {
   const status = booking.booking_status as MarketplaceBookingStatus
   const buyer = booking.buyer || {}
+  const isConfirmed = status === "confirmed"
 
   return (
-    <Card className="border-gray-200 bg-white shadow-sm">
-      <CardHeader className="space-y-3 pb-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle className="text-base text-gray-950">{buyer.company_name || "Buyer request"}</CardTitle>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-              <span>{booking.booking_ref}</span>
-              {buyer.county ? (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {buyer.county}
-                </span>
-              ) : null}
+    <Card className="overflow-hidden border-gray-200 bg-white shadow-sm">
+      <CardHeader className="space-y-0 border-b border-gray-100 bg-gray-50/60 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-agri-100 text-agri-700">
+              <ShoppingBag className="h-5 w-5" />
+            </span>
+            <div>
+              <CardTitle className="text-base text-gray-950">
+                {isConfirmed ? buyer.company_name || "Confirmed buyer" : "Buyer request"}
+              </CardTitle>
+              <p className="mt-0.5 text-xs text-gray-500">{booking.booking_ref}</p>
             </div>
           </div>
-          <Badge variant="outline" className={cn("capitalize", statusBadgeClass(status))}>
+          <Badge variant="outline" className={cn("shrink-0 capitalize", statusBadgeClass(status))}>
             {statusCopy(status)}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid grid-cols-3 gap-3 rounded-lg bg-gray-50 p-3">
-          <Metric label="Acres" value={String(booking.acres_booked)} />
-          <Metric label="Per acre" value={currencyFormatter.format(Number(booking.price_per_acre || 0))} />
-          <Metric label="Total" value={currencyFormatter.format(Number(booking.total_amount || 0))} />
+      <CardContent className="space-y-4 pt-5">
+        <div className="flex items-center justify-between rounded-lg border border-agri-100 bg-agri-50 px-4 py-3">
+          <span className="text-sm font-medium text-agri-800">Acreage booked</span>
+          <span className="text-lg font-bold text-agri-900">{booking.acres_booked} acres</span>
         </div>
 
-        <Alert className="border-agri-100 bg-agri-50 text-agri-900">
-          {status === "confirmed" ? <CheckCircle2 className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          <AlertTitle>{status === "confirmed" ? "Confirmed booking" : "Buyer privacy protected"}</AlertTitle>
-          <AlertDescription>{bookingMessage(status)}</AlertDescription>
-        </Alert>
-
-        {status === "confirmed" ? (
-          <div className="grid grid-cols-1 gap-2 text-sm text-gray-700 sm:grid-cols-2">
-            <ContactLine icon={Phone} value={buyer.phone || "Phone unavailable"} />
-            <ContactLine icon={Mail} value={buyer.email || "Email unavailable"} />
+        {isConfirmed ? (
+          <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+              <CheckCircle2 className="h-4 w-4" />
+              Confirmed buyer details
+            </div>
+            {buyer.county ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-900">
+                <MapPin className="h-4 w-4 shrink-0 text-emerald-700" />
+                {buyer.county}
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <ContactLine icon={Phone} value={buyer.phone || "Phone unavailable"} />
+              <ContactLine icon={Mail} value={buyer.email || "Email unavailable"} />
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <Alert className="border-agri-100 bg-agri-50 text-agri-900">
+            <EyeOff className="h-4 w-4" />
+            <AlertTitle>Buyer privacy protected</AlertTitle>
+            <AlertDescription>{bookingMessage(status)}</AlertDescription>
+          </Alert>
+        )}
 
         {status === "pending_approval" ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -582,15 +591,6 @@ function BookingCard({
         ) : null}
       </CardContent>
     </Card>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-gray-950">{value}</p>
-    </div>
   )
 }
 
