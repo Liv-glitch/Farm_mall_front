@@ -14,19 +14,18 @@ import {
   ActivityIcon,
   Bell,
   Package,
-  Plus,
   ReceiptText,
+  ExternalLink,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
-import type { Activity, ActivityPrefill, ProductionCycle } from "@/lib/types/production"
+import type { Activity, ProductionCycle } from "@/lib/types/production"
 import { ActivityList } from "@/components/cycles/activity-list"
-import { AddActivityModal } from "@/components/cycles/add-activity-modal"
 import { EditCycleModal } from "@/components/cycles/edit-cycle-modal"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
-import { calendarItemToActivityPrefill, getNextCalendarItem } from "@/lib/production/activity-calendar"
+import { getMarketplaceUrl, getNextCalendarItem } from "@/lib/production/activity-calendar"
 
 export default function CycleDetailPage() {
   const params = useParams()
@@ -36,8 +35,6 @@ export default function CycleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showAddActivityModal, setShowAddActivityModal] = useState(false)
-  const [activityPrefill, setActivityPrefill] = useState<ActivityPrefill | null>(null)
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -184,12 +181,6 @@ export default function CycleDetailPage() {
     setCycle((prev) => (prev ? { ...prev, activities: updatedActivities } : prev))
   }
 
-  const handleAddCalendarActivity = () => {
-    if (!nextCalendarItem) return
-    setActivityPrefill(calendarItemToActivityPrefill(nextCalendarItem))
-    setShowAddActivityModal(true)
-  }
-
   return (
     <DashboardLayout sidebar={<UserSidebar />}>
       <div className="page-shell">
@@ -238,23 +229,34 @@ export default function CycleDetailPage() {
                         <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary-100" />
                         <div className="min-w-0">
                           <div className="text-xs font-bold uppercase text-primary-100">Next activity reminder</div>
-                          <h2 className="mt-1 text-lg font-extrabold text-white">{nextCalendarItem.name}</h2>
-                          <p className="mt-1 text-sm text-primary-50">
-                            {nextCalendarItem.stage} • {format(nextCalendarItem.date, "MMM dd, yyyy")}
-                          </p>
+                          <div className="mt-1 grid gap-3">
+                            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)] md:items-start">
+                              <div>
+                                <div className="text-xs text-primary-100">Activity name</div>
+                                <h2 className="text-lg font-extrabold text-white">{nextCalendarItem.name}</h2>
+                              </div>
+                              <div>
+                                <div className="text-xs text-primary-100">Likely inputs</div>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  {nextCalendarItem.inputs.map((item) => (
+                                    <span key={item.name} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-primary-50">
+                                      {item.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <Button asChild type="button" className="mt-1 w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md">
+                                <a href={getMarketplaceUrl(nextCalendarItem)} target="_blank" rel="noreferrer">
+                                  Access Inputs Here
+                                  <ExternalLink className="ml-2 h-4 w-4" />
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {nextCalendarItem.inputs.map((item) => (
-                          <span key={item.name} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-primary-50">
-                            {item.name}
-                          </span>
-                        ))}
-                      </div>
-                      <Button type="button" onClick={handleAddCalendarActivity} className="bg-white text-primary-900 hover:bg-primary-50">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add as activity
-                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-start gap-3">
@@ -326,6 +328,7 @@ export default function CycleDetailPage() {
                 cycleId={cycle.id}
                 onActivityUpdate={handleActivityUpdate}
                 onActivityAdd={handleActivityAdd}
+                cycle={cycle}
               />
             </CardContent>
           </Card>
@@ -381,16 +384,6 @@ export default function CycleDetailPage() {
         onClose={() => setShowEditModal(false)}
         cycle={cycle}
         onUpdate={handleCycleUpdate}
-      />
-      <AddActivityModal
-        isOpen={showAddActivityModal}
-        onClose={() => {
-          setShowAddActivityModal(false)
-          setActivityPrefill(null)
-        }}
-        cycleId={cycle.id}
-        onActivityAdd={handleActivityAdd}
-        initialActivity={activityPrefill}
       />
     </DashboardLayout>
   )

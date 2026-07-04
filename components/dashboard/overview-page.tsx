@@ -24,6 +24,7 @@ import { apiClient } from "@/lib/api/client"
 import type { Activity as CycleActivity, ProductionCycle } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { getWeatherRecommendation } from "@/lib/weather/recommendation"
+import { getNextCalendarItem, getNextCalendarItemAfter, type ProductionCalendarItem } from "@/lib/production/activity-calendar"
 
 interface CurrentWeather {
   locationName: string
@@ -79,10 +80,11 @@ function formatActivityDate(value?: string | Date | null) {
   return new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric" }).format(date)
 }
 
-function formatActivityLabel(activity?: CycleActivity | null) {
+function formatActivityLabel(activity?: CycleActivity | ProductionCalendarItem | null) {
   if (!activity) return "Not scheduled"
-  const date = formatActivityDate(activity.scheduledDate)
-  return [activity.description || activity.type.replace(/_/g, " "), date].filter(Boolean).join(" · ")
+  const date = "scheduledDate" in activity ? formatActivityDate(activity.scheduledDate) : formatActivityDate(activity.date)
+  const label = "name" in activity ? activity.name : activity.description || activity.type.replace(/_/g, " ")
+  return [label, date].filter(Boolean).join(" · ")
 }
 
 function getCycleActivities(cycle?: ProductionCycle | null) {
@@ -104,14 +106,13 @@ function getCycleActivities(cycle?: ProductionCycle | null) {
       .sort((a, b) => a.time - b.time)[0]?.activity ||
     null
 
+  const currentDate = current?.scheduledDate ? new Date(current.scheduledDate) : null
   const next =
-    validActivities
-      .filter(({ activity, time }) => activity.status === "in_progress" && time > now && activity.id !== current?.id)
-      .sort((a, b) => a.time - b.time)[0]?.activity ||
-    validActivities
-      .filter(({ activity }) => activity.status === "in_progress" && activity.id !== current?.id)
-      .sort((a, b) => a.time - b.time)[0]?.activity ||
-    null
+    cycle && currentDate && !Number.isNaN(currentDate.getTime())
+      ? getNextCalendarItemAfter(cycle, activities, currentDate)
+      : cycle
+        ? getNextCalendarItem(cycle, activities)
+        : null
 
   return { current, next }
 }
@@ -144,7 +145,8 @@ export function OverviewPage() {
       cycles.filter((cycle) => {
         const lat = Number(cycle.farmLocationLat)
         const lng = Number(cycle.farmLocationLng)
-        return !!cycle.farmLocation?.trim() || (Number.isFinite(lat) && Number.isFinite(lng))
+        const canShow = cycle.status !== "harvested" && cycle.status !== "archived"
+        return canShow && (!!cycle.farmLocation?.trim() || (Number.isFinite(lat) && Number.isFinite(lng)))
       }),
     [cycles]
   )
@@ -184,6 +186,8 @@ export function OverviewPage() {
   useEffect(() => {
     if (!selectedCycleId && locatedCycles[0]?.id) {
       setSelectedCycleId(locatedCycles[0].id)
+    } else if (selectedCycleId && !locatedCycles.some((cycle) => cycle.id === selectedCycleId)) {
+      setSelectedCycleId(locatedCycles[0]?.id || "")
     }
   }, [locatedCycles, selectedCycleId])
 
@@ -361,7 +365,7 @@ export function OverviewPage() {
               <Button
                 type="button"
                 onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-                className="w-full bg-amber-500 text-primary-950 hover:bg-amber-400"
+                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 Find Market
@@ -369,7 +373,7 @@ export function OverviewPage() {
               <Button
                 type="button"
                 onClick={() => window.open("https://findfarmers.onrender.com", "_blank")}
-                className="w-full bg-amber-500 text-primary-950 hover:bg-amber-400"
+                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400"
               >
                 <Search className="mr-2 h-4 w-4" />
                 Find Inputs

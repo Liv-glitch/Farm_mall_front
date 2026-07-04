@@ -225,7 +225,7 @@ export default function CyclesPage() {
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button
                 onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-                className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
+                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:w-auto"
               >
                 <ShoppingBag className="mr-2 h-4 w-4" />
                 Find Market

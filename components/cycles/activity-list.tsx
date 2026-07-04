@@ -13,14 +13,15 @@ import {
   AlertTriangle,
   DollarSign,
   Edit2,
-  MoreHorizontal,
-  Package
+  MoreHorizontal
 } from "lucide-react"
 import { format, isPast } from "date-fns"
-import type { Activity } from "@/lib/types/production"
+import type { Activity, ProductionCycle } from "@/lib/types/production"
 import { AddActivityModal } from "./add-activity-modal"
 import { EditActivityModal } from "./edit-activity-modal"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { apiClient } from "@/lib/api/client"
+import { toast } from "@/components/ui/use-toast"
 
 interface ActivityListProps {
   activities: Activity[]
@@ -29,15 +30,12 @@ interface ActivityListProps {
   onActivityAdd: (cycleId: string, activity: Activity) => void
   onActivityDelete?: (cycleId: string, activityId: string) => void
   onDeleteAllActivities?: (cycleId: string) => void
+  cycle?: ProductionCycle | null
+  compact?: boolean
+  showAddButton?: boolean
 }
 
 type ActivityStatusWithOverdue = Activity["status"] | "overdue"
-
-// Helper function to safely format numbers
-const formatNumber = (value: number | null | undefined, decimals: number = 2) => {
-  if (value === null || value === undefined || isNaN(Number(value))) return "N/A";
-  return Number(value).toFixed(decimals);
-};
 
 // Helper function to format currency
 const formatCurrency = (value: number | null | undefined) => {
@@ -51,24 +49,6 @@ const formatStatus = (status: ActivityStatusWithOverdue | undefined): string => 
   return status.replace(/_/g, " ").split(" ").map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(" ");
-};
-
-// Helper function to format labor type
-const formatLaborType = (laborType: string | undefined): string => {
-  if (!laborType) return "N/A";
-
-  switch (laborType) {
-    case "manual-family":
-      return "Manual - Family";
-    case "manual-hired":
-      return "Manual - Hired";
-    case "mechanized":
-      return "Mechanized";
-    default:
-      return laborType.split("-").map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(" - ");
-  }
 };
 
 // Helper function to parse and format inputs
@@ -92,9 +72,29 @@ const parseInputs = (inputs: string | any[] | undefined) => {
   }
 };
 
-export function ActivityList({ activities, cycleId, onActivityUpdate, onActivityAdd, onActivityDelete, onDeleteAllActivities }: ActivityListProps) {
+const getInputNames = (inputs: string | any[] | undefined) => {
+  const parsedInputs = parseInputs(inputs)
+  if (!parsedInputs || parsedInputs.length === 0) return "-"
+  const names = parsedInputs
+    .map((input: any) => String(input?.name || "").trim())
+    .filter(Boolean)
+  return names.length > 0 ? names.join(", ") : "-"
+}
+
+export function ActivityList({
+  activities,
+  cycleId,
+  onActivityUpdate,
+  onActivityAdd,
+  onActivityDelete,
+  onDeleteAllActivities,
+  cycle,
+  compact = false,
+  showAddButton = true,
+}: ActivityListProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [completingActivityId, setCompletingActivityId] = useState<string | null>(null)
 
   // Validate activity data before setting it for editing
   const handleEditActivity = (activity: Activity) => {
@@ -139,6 +139,32 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
     return <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-maize-600" />
   }
 
+  const handleMarkComplete = async (activity: Activity) => {
+    try {
+      setCompletingActivityId(activity.id)
+      const updatedActivity = await apiClient.updateActivity(cycleId, {
+        ...activity,
+        id: activity.id,
+        productionCycleId: activity.productionCycleId,
+        status: "completed",
+        completedDate: new Date().toISOString(),
+      })
+      onActivityUpdate(cycleId, updatedActivity)
+      toast({
+        title: "Activity completed",
+        description: "The activity status has been updated.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Could not complete activity",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setCompletingActivityId(null)
+    }
+  }
+
   const completedActivities = activities.filter(a => a.status === "completed").length
   const totalActivities = activities.length
   const completionPercentage = totalActivities > 0 ? (completedActivities / totalActivities) * 100 : 0
@@ -163,6 +189,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
     <>
       <div className="space-y-4">
         {/* Header with Progress */}
+        {!compact && (
         <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <div className="space-y-2 flex-1">
             <div className="flex items-center justify-between">
@@ -174,6 +201,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
             <Progress value={completionPercentage} className="h-2" />
           </div>
         </div>
+        )}
 
         {/* Activities List */}
         <div className="space-y-3 pb-16 sm:pb-0">
@@ -182,14 +210,16 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
               <CardContent className="flex flex-col items-center justify-center py-8">
                 <Calendar className="h-8 w-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-600 text-center">No activities scheduled yet</p>
-                <Button 
-                  onClick={() => setShowAddModal(true)}
-                  size="sm"
-                  className="mt-3"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add First Activity
-                </Button>
+                {showAddButton && (
+                  <Button 
+                    onClick={() => setShowAddModal(true)}
+                    size="sm"
+                    className="mt-3"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Activity
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -222,6 +252,18 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                             <Badge className={`${getStatusColor(actualStatus)} text-xs`}>
                               {formatStatus(actualStatus)}
                             </Badge>
+                            {activity.status !== "completed" && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleMarkComplete(activity)}
+                                disabled={completingActivityId === activity.id}
+                                className="h-8 bg-maize-500 px-2 text-xs text-primary-950 hover:bg-maize-400"
+                              >
+                                <CheckCircle className="mr-1 h-3.5 w-3.5" />
+                                {completingActivityId === activity.id ? "Saving..." : "Mark complete"}
+                              </Button>
+                            )}
                             
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -239,58 +281,23 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(120px,0.7fr)_minmax(0,1fr)_auto] sm:items-center">
                           <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
                             <Calendar className="mr-1 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                             <span className="truncate">
                               {format(new Date(activity.scheduledDate), "MMM dd, yyyy")}
                             </span>
                           </div>
-                          
-                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                            <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                            <span className="truncate">
-                              {formatNumber(Number(activity.laborHours), 1)} hours • {formatLaborType(activity.laborType || undefined)}
-                            </span>
+
+                          <div className="min-w-0 text-xs text-muted-foreground sm:text-sm">
+                            <span className="truncate block">{getInputNames(activity.inputs)}</span>
                           </div>
 
-                          {Number(activity.cost) > 0 && (
-                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                              <DollarSign className="mr-1 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                              <span className="truncate">{formatCurrency(Number(activity.cost))}</span>
-                            </div>
-                          )}
+                          <div className="flex items-center text-xs sm:justify-end sm:text-sm text-muted-foreground">
+                            <DollarSign className="mr-1 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                            <span className="truncate">{formatCurrency(Number(activity.cost) || 0)}</span>
+                          </div>
                         </div>
-
-                        {activity.inputs && (() => {
-                          const parsedInputs = parseInputs(activity.inputs);
-                          if (!parsedInputs || parsedInputs.length === 0) return null;
-
-                          return (
-                            <div className="mt-3 space-y-2">
-                              <div className="flex items-center text-xs sm:text-sm font-bold text-primary-900">
-                                <Package className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                                Inputs Used
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-5 sm:pl-6">
-                                {parsedInputs.map((input: any, idx: number) => (
-                                  <div key={idx} className="rounded-xl bg-primary-50 p-3 text-xs sm:text-sm">
-                                    <div className="font-bold text-primary-900">{input.name}</div>
-                                    <div className="text-muted-foreground mt-0.5">
-                                      Qty: {input.quantity} × KSh {input.cost.toLocaleString()} = KSh {(input.quantity * input.cost).toLocaleString()}
-                                    </div>
-                                    {input.brand && (
-                                      <div className="text-gray-500 text-xs mt-0.5">Brand: {input.brand}</div>
-                                    )}
-                                    {input.supplier && (
-                                      <div className="text-gray-500 text-xs">Supplier: {input.supplier}</div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })()}
 
                         {activity.notes && (
                           <div className="text-xs sm:text-sm text-muted-foreground">
@@ -313,6 +320,7 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
         </div>
 
         {/* Fixed Add Button on Mobile */}
+        {showAddButton && (
         <div className="fixed bottom-5 left-0 right-0 px-5 sm:hidden z-50">
           <Button 
             onClick={() => setShowAddModal(true)} 
@@ -323,8 +331,10 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
             Add Activity
           </Button>
         </div>
+        )}
 
         {/* Desktop Add Button */}
+        {showAddButton && (
         <div className="hidden sm:block">
           <Button 
             onClick={() => setShowAddModal(true)} 
@@ -335,12 +345,14 @@ export function ActivityList({ activities, cycleId, onActivityUpdate, onActivity
             Add Activity
           </Button>
         </div>
+        )}
       </div>
 
       <AddActivityModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         cycleId={cycleId}
+        cycle={cycle}
         onActivityAdd={onActivityAdd}
       />
 

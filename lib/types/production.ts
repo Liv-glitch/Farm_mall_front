@@ -25,6 +25,7 @@ export interface ActivityInput {
   quantity: number
   unit: string
   cost: number
+  reusedExistingStock?: boolean
   brand?: string
   supplier?: string
 }
@@ -34,6 +35,7 @@ export interface Activity {
   userId: string
   productionCycleId: string
   type: "soil_preparation" | "planting" | "fertilizing" | "fertilization" | "irrigation" | "pest_control" | "disease_control" | "weeding" | "harvesting" | "other"
+  cropStage?: string | null
   description: string
   scheduledDate: string | Date
   completedDate?: string | Date | null
@@ -118,6 +120,7 @@ export interface UpdateProductionCycleRequest {
 export interface CreateActivityRequest {
   type: string
   activityType?: string // legacy field
+  cropStage?: string
   description?: string
   scheduledDate: Date
   activityDate?: Date // legacy field
@@ -132,6 +135,7 @@ export interface CreateActivityRequest {
 export interface ActivityPrefill {
   name?: string
   type?: Activity["type"]
+  cropStage?: string
   description?: string
   scheduledDate?: string | Date
   laborHours?: number
@@ -178,6 +182,7 @@ export interface ProductionCycleReportSnapshot {
   activities: Array<{
     id: string
     type: string
+    cropStage?: string | null
     description: string
     status: string
     scheduledDate?: string | null

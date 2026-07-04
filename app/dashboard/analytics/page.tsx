@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { 
   BarChart3, 
   TrendingUp, 
@@ -40,6 +41,7 @@ export default function AnalyticsPage() {
   const [savingCycleId, setSavingCycleId] = useState<string | null>(null)
   const [harvestForms, setHarvestForms] = useState<Record<string, HarvestResultForm>>({})
   const [reports, setReports] = useState<ProductionCycleReportSummary[]>([])
+  const [selectedHarvestCycle, setSelectedHarvestCycle] = useState<ProductionCycle | null>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -189,6 +191,7 @@ export default function AnalyticsPage() {
         delete next[cycle.id]
         return next
       })
+      setSelectedHarvestCycle(null)
       toast({
         title: "Harvest results recorded",
         description: "Revenue, profit analytics, and completion reports have been updated.",
@@ -592,6 +595,7 @@ export default function AnalyticsPage() {
                           const firstReport = cycleReports[0]
                           const activityReport = cycleReports.find((report) => report.type === "activity")
                           const financialReport = cycleReports.find((report) => report.type === "financial")
+                          const reportCycle = cycles.find((cycle) => cycle.id === firstReport.productionCycleId)
                           return (
                             <div key={firstReport.productionCycleId} className="rounded-lg border border-agri-100 bg-agri-50 p-4">
                               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -614,13 +618,24 @@ export default function AnalyticsPage() {
                                     </Button>
                                   )}
                                   {financialReport && (
-                                    <Button asChild>
-                                      <a href={`/dashboard/analytics/reports/${financialReport.id}`} target="_blank" rel="noreferrer">
+                                    reportCycle && needsHarvestResult(reportCycle) ? (
+                                      <Button
+                                        type="button"
+                                        onClick={() => setSelectedHarvestCycle(reportCycle)}
+                                        className="bg-maize-500 text-primary-950 hover:bg-maize-400"
+                                      >
                                         <DollarSign className="mr-2 h-4 w-4" />
-                                        Financial Report
-                                        <ExternalLink className="ml-2 h-3.5 w-3.5" />
-                                      </a>
-                                    </Button>
+                                        Record Yield & Price
+                                      </Button>
+                                    ) : (
+                                      <Button asChild>
+                                        <a href={`/dashboard/analytics/reports/${financialReport.id}`} target="_blank" rel="noreferrer">
+                                          <DollarSign className="mr-2 h-4 w-4" />
+                                          Financial Report
+                                          <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                                        </a>
+                                      </Button>
+                                    )
                                   )}
                                 </div>
                               </div>
@@ -636,6 +651,82 @@ export default function AnalyticsPage() {
           </div>
         </main>
       </div>
+      <Dialog open={!!selectedHarvestCycle} onOpenChange={(open) => !open && setSelectedHarvestCycle(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Yield & Price</DialogTitle>
+            <DialogDescription>
+              Add harvest yield and selling price to complete the financial report.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedHarvestCycle && (() => {
+            const form = getHarvestForm(selectedHarvestCycle)
+            const actualYield = Number(form.actualYield)
+            const actualPrice = Number(form.actualPricePerKg)
+            const revenue =
+              Number.isFinite(actualYield) && actualYield > 0 && Number.isFinite(actualPrice) && actualPrice > 0
+                ? actualYield * actualPrice
+                : 0
+
+            return (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-agri-50 p-3">
+                  <div className="font-bold text-agri-900">{selectedHarvestCycle.cropVariety?.name || "Production cycle"}</div>
+                  <div className="text-sm text-muted-foreground">{selectedHarvestCycle.farmLocation || "Location not set"}</div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-actual-yield">Total yield (kg)</Label>
+                    <Input
+                      id="modal-actual-yield"
+                      type="number"
+                      min="1"
+                      value={form.actualYield}
+                      onChange={(event) => updateHarvestForm(selectedHarvestCycle, { actualYield: event.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-actual-price">Selling price per kg</Label>
+                    <Input
+                      id="modal-actual-price"
+                      type="number"
+                      min="1"
+                      value={form.actualPricePerKg}
+                      onChange={(event) => updateHarvestForm(selectedHarvestCycle, { actualPricePerKg: event.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="modal-actual-harvest">Harvest date</Label>
+                  <Input
+                    id="modal-actual-harvest"
+                    type="date"
+                    value={form.actualHarvestDate}
+                    onChange={(event) => updateHarvestForm(selectedHarvestCycle, { actualHarvestDate: event.target.value })}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-maize-50 p-3 text-sm">
+                  <span className="font-bold text-primary-950">Computed revenue</span>
+                  <span className="font-extrabold text-primary-950">{formatCurrency(revenue)}</span>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setSelectedHarvestCycle(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => saveHarvestResult(selectedHarvestCycle)}
+                    disabled={savingCycleId === selectedHarvestCycle.id}
+                    className="bg-maize-500 text-primary-950 hover:bg-maize-400"
+                  >
+                    {savingCycleId === selectedHarvestCycle.id ? "Saving..." : "Generate Financial Report"}
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 } 

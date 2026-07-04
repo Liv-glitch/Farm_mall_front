@@ -10,15 +10,18 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Plus, Trash2 } from "lucide-react"
-import type { Activity, ActivityInput, ActivityPrefill, CreateActivityRequest } from "@/lib/types/production"
+import type { Activity, ActivityInput, ActivityPrefill, CreateActivityRequest, ProductionCycle } from "@/lib/types/production"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { getCurrentCropStage } from "@/lib/production/activity-calendar"
 
 interface AddActivityModalProps {
   isOpen: boolean
   onClose: () => void
   cycleId: string
+  cycle?: ProductionCycle | null
   onActivityAdd: (cycleId: string, activity: Activity) => void
   initialActivity?: ActivityPrefill | null
 }
@@ -32,7 +35,26 @@ const EMPTY_INPUT: ActivityInput = {
   supplier: "",
 }
 
-export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, initialActivity }: AddActivityModalProps) {
+const CROP_STAGE_OPTIONS = ["Planting", "Emergence", "Vegetative Growth", "Flowering", "Tuber bulking", "Maturity", "Other"]
+const UNIT_OPTIONS = ["kg", "litres", "bags", "bottles", "packets", "grams", "ml", "sachets", "bunches"]
+
+function activityTypeForStage(stage: string): Activity["type"] {
+  switch (stage) {
+    case "Planting":
+    case "Emergence":
+      return "planting"
+    case "Vegetative Growth":
+      return "fertilizing"
+    case "Flowering":
+    case "Tuber bulking":
+    case "Maturity":
+      return "pest_control"
+    default:
+      return "other"
+  }
+}
+
+export function AddActivityModal({ isOpen, onClose, cycleId, cycle, onActivityAdd, initialActivity }: AddActivityModalProps) {
   const [loading, setLoading] = useState(false)
 
   // Helper function to format date for input
@@ -57,6 +79,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
   const [formData, setFormData] = useState({
     name: "",
     type: "soil_preparation" as Activity["type"],
+    cropStage: "",
     description: "",
     scheduledDate: "",
     laborHours: 0,
@@ -68,9 +91,11 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
   const [inputs, setInputs] = useState<ActivityInput[]>([{ ...EMPTY_INPUT }])
 
   const resetForm = (prefill?: ActivityPrefill | null) => {
+    const defaultStage = prefill?.cropStage || (cycle ? getCurrentCropStage(cycle) : "Planting")
     setFormData({
       name: prefill?.name || "",
-      type: prefill?.type || "soil_preparation",
+      type: prefill?.type || activityTypeForStage(defaultStage),
+      cropStage: defaultStage,
       description: prefill?.description || "",
       scheduledDate: formatDateForInput(prefill?.scheduledDate),
       laborHours: prefill?.laborHours || 0,
@@ -92,9 +117,19 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
     setInputs([...inputs, { ...EMPTY_INPUT }])
   }
 
-  const updateInput = (index: number, field: keyof ActivityInput, value: string | number) => {
+  const updateInput = (index: number, field: keyof ActivityInput, value: string | number | boolean) => {
     const updatedInputs = [...inputs]
     updatedInputs[index] = { ...updatedInputs[index], [field]: value }
+    setInputs(updatedInputs)
+  }
+
+  const setInputReusingStock = (index: number, reusing: boolean) => {
+    const updatedInputs = [...inputs]
+    updatedInputs[index] = {
+      ...updatedInputs[index],
+      reusedExistingStock: reusing,
+      cost: reusing ? 0 : updatedInputs[index].cost,
+    }
     setInputs(updatedInputs)
   }
 
@@ -105,7 +140,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
   }
 
   const calculateTotalCost = () => {
-    const inputsCost = inputs.reduce((sum, input) => sum + (input.quantity * input.cost), 0)
+    const inputsCost = inputs.reduce((sum, input) => sum + (input.reusedExistingStock ? 0 : input.quantity * input.cost), 0)
     const laborCost = formData.laborCost || 0
     return inputsCost + laborCost
   }
@@ -141,12 +176,18 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
       }
 
       // Filter out empty inputs (inputs are now optional)
-      const validatedInputs = inputs.filter(input => input.name.trim() !== "")
+      const validatedInputs = inputs
+        .filter(input => input.name.trim() !== "")
+        .map((input) => ({
+          ...input,
+          cost: input.reusedExistingStock ? 0 : input.cost,
+        }))
 
       const totalCost = calculateTotalCost()
 
       const activityData: CreateActivityRequest = {
         type: formData.type,
+        cropStage: formData.cropStage,
         description: formData.description,
         scheduledDate: scheduledDate,
         cost: totalCost,
@@ -218,24 +259,18 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Activity Type</Label>
+                <Label htmlFor="cropStage">Crop Stage</Label>
                 <Select
-                  value={formData.type}
-                  onValueChange={(value: Activity["type"]) => setFormData({ ...formData, type: value })}
+                  value={formData.cropStage}
+                  onValueChange={(value) => setFormData({ ...formData, cropStage: value, type: activityTypeForStage(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px] sm:max-h-none overflow-y-auto">
-                    <SelectItem value="soil_preparation">Soil Testing</SelectItem>
-                    <SelectItem value="planting">Planting</SelectItem>
-                    <SelectItem value="fertilizing">Fertilization</SelectItem>
-                    <SelectItem value="weeding">Weeding</SelectItem>
-                    <SelectItem value="pest_control">Pest Control</SelectItem>
-                    <SelectItem value="pest_control">Disease Control</SelectItem>
-                    <SelectItem value="irrigation">Irrigation</SelectItem>
-                    <SelectItem value="harvesting">Harvesting</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {CROP_STAGE_OPTIONS.map((stage) => (
+                      <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -327,8 +362,8 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="space-y-2 sm:col-span-2">
                         <Label className="text-xs font-medium">Item Name</Label>
                         <Input
                           placeholder="e.g., NPK Fertilizer"
@@ -337,29 +372,78 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
                           className="text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium">Quantity</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={input.quantity || ""}
-                          onChange={(e) => updateInput(index, "quantity", parseFloat(e.target.value) || 0)}
-                          className="text-sm"
-                        />
+                      <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={input.quantity || ""}
+                            onChange={(e) => updateInput(index, "quantity", parseFloat(e.target.value) || 0)}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                        <Label className="text-xs font-medium">Quantity Unit</Label>
+                        <Select
+                          value={UNIT_OPTIONS.includes(input.unit) ? input.unit : "custom"}
+                          onValueChange={(value) => updateInput(index, "unit", value === "custom" ? "" : value)}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNIT_OPTIONS.map((unit) => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                            <SelectItem value="custom">Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium">Unit Cost (KSh)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="Cost per unit"
-                          value={input.cost || ""}
-                          onChange={(e) => updateInput(index, "cost", parseFloat(e.target.value) || 0)}
-                          className="text-sm"
+                      {!UNIT_OPTIONS.includes(input.unit) && (
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label className="text-xs font-medium">Custom Unit</Label>
+                          <Input
+                            placeholder="Enter unit"
+                            value={input.unit}
+                            onChange={(e) => updateInput(index, "unit", e.target.value)}
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-start gap-2 rounded-lg bg-primary-50 p-3 sm:col-span-2">
+                        <Checkbox
+                          id={`reuse-stock-${index}`}
+                          checked={!!input.reusedExistingStock}
+                          onCheckedChange={(checked) => setInputReusingStock(index, checked === true)}
                         />
+                        <div className="space-y-1">
+                          <Label htmlFor={`reuse-stock-${index}`} className="text-xs font-bold text-primary-900">
+                            Reusing existing stock
+                          </Label>
+                          {input.reusedExistingStock && (
+                            <p className="text-xs text-muted-foreground">
+                              No cost will be recorded since you're using existing stock.
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      {!input.reusedExistingStock && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Unit Cost (KSh)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Cost per unit"
+                            value={input.cost || ""}
+                            onChange={(e) => updateInput(index, "cost", parseFloat(e.target.value) || 0)}
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <Label className="text-xs font-medium">Brand (Optional)</Label>
                         <Input
@@ -369,7 +453,7 @@ export function AddActivityModal({ isOpen, onClose, cycleId, onActivityAdd, init
                           className="text-sm"
                         />
                       </div>
-                      <div className="space-y-2 col-span-2">
+                      <div className="space-y-2 sm:col-span-2">
                         <Label className="text-xs font-medium">Supplier (Optional)</Label>
                         <Input
                           placeholder="Supplier name"
