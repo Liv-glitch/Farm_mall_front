@@ -12,6 +12,7 @@ import {
   RefreshCw,
   ShoppingBag,
   ShieldCheck,
+  Users,
   type LucideIcon,
   XCircle,
 } from "lucide-react"
@@ -162,6 +163,7 @@ export function BuyersPage({ variant = "standalone" }: { variant?: "standalone" 
   }
 
   const integration = dashboard?.integration
+  const totalBuyers = bookings.length
 
   return (
     <div className={cn("mx-auto w-full max-w-7xl space-y-6", variant === "embedded" && "space-y-5")}>
@@ -214,10 +216,10 @@ export function BuyersPage({ variant = "standalone" }: { variant?: "standalone" 
               icon={ShoppingBag}
             />
             <StatusCard
-              title="Marketplace ID"
-              value={integration?.marketplaceFarmerId || "Pending"}
-              status={integration?.marketplaceFarmerId ? "confirmed" : "pending"}
-              icon={CheckCircle2}
+              title="Total Buyers"
+              value={String(totalBuyers)}
+              status={totalBuyers > 0 ? "confirmed" : "pending"}
+              icon={Users}
             />
           </div>
 

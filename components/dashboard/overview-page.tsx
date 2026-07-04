@@ -10,6 +10,7 @@ import {
   Droplets,
   Loader2,
   MapPin,
+  Search,
   ShoppingBag,
   Sprout,
   Stethoscope,
@@ -20,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient } from "@/lib/api/client"
-import type { ProductionCycle } from "@/lib/types/production"
+import type { Activity as CycleActivity, ProductionCycle } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { getWeatherRecommendation } from "@/lib/weather/recommendation"
 
@@ -71,6 +72,50 @@ function formatNumber(value: number | undefined, suffix: string) {
   return `${Math.round(value)}${suffix}`
 }
 
+function formatActivityDate(value?: string | Date | null) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric" }).format(date)
+}
+
+function formatActivityLabel(activity?: CycleActivity | null) {
+  if (!activity) return "Not scheduled"
+  const date = formatActivityDate(activity.scheduledDate)
+  return [activity.description || activity.type.replace(/_/g, " "), date].filter(Boolean).join(" · ")
+}
+
+function getCycleActivities(cycle?: ProductionCycle | null) {
+  const activities = cycle?.activities || []
+  const now = new Date().getTime()
+  const validActivities = activities
+    .map((activity) => ({ activity, time: new Date(activity.scheduledDate).getTime() }))
+    .filter(({ time }) => Number.isFinite(time))
+
+  const current =
+    validActivities
+      .filter(({ activity, time }) => activity.status === "in_progress" && time <= now)
+      .sort((a, b) => b.time - a.time)[0]?.activity ||
+    validActivities
+      .filter(({ activity }) => activity.status === "completed")
+      .sort((a, b) => b.time - a.time)[0]?.activity ||
+    validActivities
+      .filter(({ activity }) => activity.status === "in_progress")
+      .sort((a, b) => a.time - b.time)[0]?.activity ||
+    null
+
+  const next =
+    validActivities
+      .filter(({ activity, time }) => activity.status === "in_progress" && time > now && activity.id !== current?.id)
+      .sort((a, b) => a.time - b.time)[0]?.activity ||
+    validActivities
+      .filter(({ activity }) => activity.status === "in_progress" && activity.id !== current?.id)
+      .sort((a, b) => a.time - b.time)[0]?.activity ||
+    null
+
+  return { current, next }
+}
+
 function getCycleLocationName(cycle?: ProductionCycle | null) {
   if (!cycle) return ""
   const composedLocation = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
@@ -111,6 +156,7 @@ export function OverviewPage() {
   const weatherLng = weatherUsesCycle ? Number(selectedCycle.farmLocationLng) : farm?.locationLng
   const hasCoordinates = Number.isFinite(weatherLat) && Number.isFinite(weatherLng)
   const hasLocation = hasCoordinates || !!weatherLocation
+  const selectedCycleActivities = getCycleActivities(selectedCycle)
 
   useEffect(() => {
     if (loading) return
@@ -206,55 +252,6 @@ export function OverviewPage() {
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary-950 via-primary-900 to-primary-700 text-white shadow-lift">
           <CardContent className="relative p-5 sm:p-7">
-            <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="absolute -bottom-20 left-10 h-44 w-44 rounded-full bg-primary-300/20 blur-3xl" />
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Current weather
-                </p>
-                <h2 className="mt-4 flex items-center gap-2 text-lg font-bold text-white sm:text-2xl">
-                  <CloudSun className="h-6 w-6 shrink-0 text-primary-100" />
-                  <span className="truncate">
-                    {weatherUsesCycle ? selectedCycleLocationName : weather?.locationName || weatherLocation || "Your farm"}
-                  </span>
-                </h2>
-                {weatherUsesCycle ? (
-                  <p className="mt-2 text-sm text-white/75">
-                    Weather for{" "}
-                    <Link href={`/dashboard/cycles/${selectedCycle.id}`} className="font-bold text-white underline underline-offset-4">
-                      {selectedCycleLocationName}
-                    </Link>
-                  </p>
-                ) : null}
-              </div>
-              {weather?.icon ? (
-                <img
-                  src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
-                  alt=""
-                  className="h-16 w-16 shrink-0 drop-shadow-lg"
-                />
-              ) : null}
-            </div>
-
-            {locatedCycles.length > 1 ? (
-              <div className="relative z-10 mt-5 max-w-xl">
-                <Select value={selectedCycle?.id || ""} onValueChange={setSelectedCycleId}>
-                  <SelectTrigger className="border-white/20 bg-white/10 text-white">
-                    <SelectValue placeholder="Choose farm weather" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locatedCycles.map((cycle) => (
-                      <SelectItem key={cycle.id} value={cycle.id}>
-                        {getCycleLocationName(cycle)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
-
             {loading || cyclesLoading || weatherLoading ? (
               <div className="mt-6 flex min-h-32 items-center justify-center text-white/75">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -273,38 +270,82 @@ export function OverviewPage() {
                 <p className="mt-1 text-sm text-white/75">{weatherError}</p>
               </div>
             ) : weather ? (
-              <>
-                <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-                  <div>
-                    <div className="flex items-start gap-1">
-                      <span className="text-6xl font-extrabold leading-none tracking-tight sm:text-7xl">
-                        {formatNumber(weather.temperature, "")}
-                      </span>
-                      <span className="mt-2 text-2xl font-bold text-white/80">°C</span>
-                    </div>
-                    <p className="mt-2 text-sm font-medium capitalize text-white/75">{weather.condition}</p>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Current weather
+                    </p>
+                    <h2 className="mt-4 flex items-center gap-2 text-lg font-bold text-white sm:text-2xl">
+                      <CloudSun className="h-6 w-6 shrink-0 text-primary-100" />
+                      {weatherUsesCycle && selectedCycle ? (
+                        <Link
+                          href={`/dashboard/cycles/${selectedCycle.id}`}
+                          className="min-w-0 truncate underline decoration-white/50 underline-offset-4 hover:decoration-white"
+                        >
+                          Weather for {selectedCycleLocationName}
+                        </Link>
+                      ) : (
+                        <span className="truncate">Weather for {weather?.locationName || weatherLocation || "Your farm"}</span>
+                      )}
+                    </h2>
                   </div>
-                  <p className="max-w-xs text-sm text-white/70 sm:text-right">{observedAt}</p>
+                  {weather?.icon ? (
+                    <img
+                      src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
+                      alt=""
+                      className="h-16 w-16 shrink-0 drop-shadow-lg"
+                    />
+                  ) : null}
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                {locatedCycles.length > 1 ? (
+                  <Select value={selectedCycle?.id || ""} onValueChange={setSelectedCycleId}>
+                    <SelectTrigger className="border-white/20 bg-white/10 text-white">
+                      <SelectValue placeholder="Choose production cycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locatedCycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id}>
+                          {getCycleLocationName(cycle)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg bg-white/10 p-4 backdrop-blur">
+                    <ThermometerSun className="mb-2 h-4 w-4 text-primary-100" />
+                    <div className="text-2xl font-extrabold">{formatNumber(weather.temperature, "°C")}</div>
+                    <div className="text-xs capitalize text-white/65">{weather.condition}</div>
+                  </div>
+                  <div className="rounded-lg bg-white/10 p-4 backdrop-blur">
                     <Droplets className="mb-2 h-4 w-4 text-primary-100" />
-                    <div className="text-xl font-extrabold">{formatNumber(weather.humidity, "%")}</div>
+                    <div className="text-2xl font-extrabold">{formatNumber(weather.humidity, "%")}</div>
                     <div className="text-xs text-white/65">Humidity</div>
                   </div>
-                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+                  <div className="rounded-lg bg-white/10 p-4 backdrop-blur">
                     <Wind className="mb-2 h-4 w-4 text-primary-100" />
-                    <div className="text-xl font-extrabold">{formatNumber(weather.windSpeed, " km/h")}</div>
+                    <div className="text-2xl font-extrabold">{formatNumber(weather.windSpeed, " km/h")}</div>
                     <div className="text-xs text-white/65">Wind speed</div>
                   </div>
-                  <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-                    <ThermometerSun className="mb-2 h-4 w-4 text-primary-100" />
-                    <div className="truncate text-sm font-extrabold">{farm?.name || "Farm"}</div>
-                    <div className="truncate text-xs text-white/65">{weatherLocation || weather.locationName}</div>
+                </div>
+
+                <div className="grid gap-3 rounded-lg bg-white/10 p-4 backdrop-blur sm:grid-cols-2">
+                  <div>
+                    <div className="text-xs font-bold uppercase text-white/60">Current activity</div>
+                    <div className="mt-1 font-semibold text-white">{formatActivityLabel(selectedCycleActivities.current)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase text-white/60">Next activity</div>
+                    <div className="mt-1 font-semibold text-white">{formatActivityLabel(selectedCycleActivities.next)}</div>
                   </div>
                 </div>
-              </>
+
+                <p className="text-xs text-white/60">Updated {observedAt}</p>
+              </div>
             ) : null}
           </CardContent>
         </Card>
@@ -316,14 +357,24 @@ export function OverviewPage() {
             <p className="mt-4 text-sm leading-6 text-agri-950">
               {recommendation || "Weather-based recommendations will appear after current conditions load."}
             </p>
-            <Button
-              type="button"
-              onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-              className="mt-5 w-full bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Find Market
-            </Button>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <Button
+                type="button"
+                onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
+                className="w-full bg-amber-500 text-primary-950 hover:bg-amber-400"
+              >
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Find Market
+              </Button>
+              <Button
+                type="button"
+                onClick={() => window.open("https://findfarmers.onrender.com", "_blank")}
+                className="w-full bg-amber-500 text-primary-950 hover:bg-amber-400"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Find Inputs
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

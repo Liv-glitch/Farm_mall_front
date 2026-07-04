@@ -8,6 +8,9 @@ import { apiClient } from "@/lib/api/client"
 import type { ProductionCycleReportDetail, ProductionCycleReportSnapshot } from "@/lib/types/production"
 import { DollarSign, FileText, Printer } from "lucide-react"
 
+const FARM_MALL_LOGO_URL =
+  "https://xnrlzezteajvrhlq.public.blob.vercel-storage.com/farmmall/WhatsApp_Image_2025-09-07_at_8.31.25_AM-removebg-preview%20%281%29.png"
+
 function formatDate(value?: string | Date | null) {
   if (!value) return "Not recorded"
   const date = new Date(value)
@@ -107,6 +110,9 @@ export default function CycleReportPage() {
       </div>
 
       <article className="report-page mx-auto max-w-5xl bg-white p-6 shadow-sm sm:p-10">
+        <div className="mb-6 flex justify-center">
+          <img src={FARM_MALL_LOGO_URL} alt="Farm Mall Logo" className="h-14 w-14 object-contain" />
+        </div>
         <header className="border-b border-slate-200 pb-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
