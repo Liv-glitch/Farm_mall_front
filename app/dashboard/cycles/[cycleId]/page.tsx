@@ -16,11 +16,14 @@ import {
   Package,
   ReceiptText,
   ExternalLink,
+  ShoppingBag,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { Activity, ProductionCycle } from "@/lib/types/production"
+import type { BuyersDashboardData } from "@/lib/types/buyers"
 import { ActivityList } from "@/components/cycles/activity-list"
 import { EditCycleModal } from "@/components/cycles/edit-cycle-modal"
+import { BuyersRegistrationModal, buildBuyersDefaultsFromCycle } from "@/components/buyers/buyers-page"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
@@ -35,6 +38,8 @@ export default function CycleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showMarketModal, setShowMarketModal] = useState(false)
+  const [buyersDashboard, setBuyersDashboard] = useState<BuyersDashboardData | null>(null)
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -54,7 +59,10 @@ export default function CycleDetailPage() {
         }
         setCycle(parsedCycle)
 
-        const activitiesRes = await apiClient.getCycleActivities(cycleId)
+        const [activitiesRes, buyersRes] = await Promise.all([
+          apiClient.getCycleActivities(cycleId),
+          apiClient.getBuyersDashboard().catch(() => null),
+        ])
         const parsedActivities = (Array.isArray(activitiesRes) ? activitiesRes : activitiesRes.data || [])
           .map((activity: Activity) => ({
             ...activity,
@@ -64,6 +72,7 @@ export default function CycleDetailPage() {
             updatedAt: activity.updatedAt ? new Date(activity.updatedAt).toISOString() : null,
           }))
         setActivities(parsedActivities)
+        setBuyersDashboard(buyersRes)
       } catch (err: any) {
         console.error("Error fetching cycle data:", err)
         setError(err.message || "Failed to load cycle or activities")
@@ -155,6 +164,24 @@ export default function CycleDetailPage() {
     return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
   const nextCalendarItem = getNextCalendarItem(cycle, activities)
+  const buyerIntegrations = buyersDashboard?.integrations || (buyersDashboard?.integration ? [buyersDashboard.integration] : [])
+  const cycleListed = buyerIntegrations.some((integration) => integration.productionCycleId === cycle.id)
+  const buyerDefaults = buildBuyersDefaultsFromCycle(
+    buyersDashboard?.defaults || {
+      external_platform_ref: "",
+      callback_url: "",
+      full_name: "",
+      phone_number: "",
+      email: "",
+      county: "",
+      ward: "",
+      specific_location: "",
+      potato_variety: "",
+      acreage_planted: "",
+      planting_date: "",
+    },
+    cycle
+  )
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) return null
@@ -203,16 +230,27 @@ export default function CycleDetailPage() {
               <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
                 {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
               </Badge>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label="Edit cycle"
-                onClick={() => setShowEditModal(true)}
-                className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  className="bg-maize-500 text-primary-950 hover:bg-maize-400"
+                  onClick={() => setShowMarketModal(true)}
+                  disabled={cycleListed}
+                >
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  {cycleListed ? "Already Listed" : "Find Market"}
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Edit cycle"
+                  onClick={() => setShowEditModal(true)}
+                  className="h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 space-y-4 lg:max-w-2xl xl:max-w-3xl">
@@ -384,6 +422,15 @@ export default function CycleDetailPage() {
         onClose={() => setShowEditModal(false)}
         cycle={cycle}
         onUpdate={handleCycleUpdate}
+      />
+      <BuyersRegistrationModal
+        open={showMarketModal}
+        defaults={buyerDefaults}
+        onOpenChange={setShowMarketModal}
+        onRegistered={async () => {
+          const updatedDashboard = await apiClient.getBuyersDashboard()
+          setBuyersDashboard(updatedDashboard)
+        }}
       />
     </DashboardLayout>
   )

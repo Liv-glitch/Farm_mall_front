@@ -11,7 +11,6 @@ import {
   Loader2,
   MapPin,
   Search,
-  ShoppingBag,
   Sprout,
   Stethoscope,
   ThermometerSun,
@@ -364,15 +363,7 @@ export function OverviewPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <Button
                 type="button"
-                onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400"
-              >
-                <ShoppingBag className="mr-2 h-4 w-4" />
-                Find Market
-              </Button>
-              <Button
-                type="button"
-                onClick={() => window.open("https://findfarmers.onrender.com", "_blank")}
+                onClick={() => window.open("https://inputs.farmmall.co.ke/", "_blank")}
                 className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400"
               >
                 <Search className="mr-2 h-4 w-4" />

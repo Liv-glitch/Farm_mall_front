@@ -1064,7 +1064,7 @@ function TreatView({
         className="w-full rounded-full bg-amber-500 py-6 text-base font-bold text-slate-950 hover:bg-amber-400"
       >
         <a
-          href="https://farmflow-platform.onrender.com/marketplace?category=herbicides"
+          href="https://inputs.farmmall.co.ke/marketplace?category=herbicides"
           target="_blank"
           rel="noopener noreferrer"
         >

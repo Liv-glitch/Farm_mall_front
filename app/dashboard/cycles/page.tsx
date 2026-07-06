@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Filter, TrendingUp, Sprout, DollarSign, BarChart3, ShoppingBag } from "lucide-react"
+import { Plus, Search, Filter, TrendingUp, Sprout, DollarSign, BarChart3 } from "lucide-react"
 import type { ProductionCycle, Activity } from "@/lib/types/production"
 import { ProductionCycleCard } from "@/components/cycles/production-cycle-card"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
@@ -223,13 +223,6 @@ export default function CyclesPage() {
               <p className="page-subtitle">Manage your production cycles and track progress</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Button
-                onClick={() => window.open("https://findfarmers.onrender.com/#/register-farmer", "_blank")}
-                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:w-auto"
-              >
-                <ShoppingBag className="mr-2 h-4 w-4" />
-                Find Market
-              </Button>
               <Button
                 onClick={() => router.push("/dashboard/cycles/new")}
                 className="w-full sm:w-auto"

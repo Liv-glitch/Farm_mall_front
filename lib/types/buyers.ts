@@ -2,6 +2,7 @@ export type MarketplaceBookingStatus = "pending_approval" | "approved" | "confir
 export type MarketplaceDecision = "approve" | "reject"
 
 export interface BuyersRegistrationForm {
+  production_cycle_id?: string
   full_name: string
   phone_number: string
   email: string
@@ -22,6 +23,7 @@ export interface BuyersIntegration {
   id: string
   userId: string
   farmId?: string | null
+  productionCycleId?: string | null
   marketplaceFarmerId?: string | null
   externalPlatformRef: string
   registrationStatus: string
@@ -30,6 +32,18 @@ export interface BuyersIntegration {
   lastCallbackEvent?: string | null
   createdAt: string
   updatedAt: string
+  productionCycle?: {
+    id: string
+    farmId?: string | null
+    cropVarietyName?: string | null
+    landSizeAcres?: number | null
+    farmLocation?: string | null
+    farmCounty?: string | null
+    farmSubcounty?: string | null
+    farmLocationName?: string | null
+    plantingDate?: string | null
+    status?: string
+  } | null
 }
 
 export interface MarketplaceBooking {
@@ -50,11 +64,20 @@ export interface MarketplaceBooking {
     county?: string
   }
   buyer_contact_hidden?: boolean
+  listing?: {
+    integration_id: string
+    production_cycle_id?: string | null
+    marketplace_farmer_id?: string | null
+    crop_variety?: string | null
+    acreage_planted?: number | null
+    location?: string | null
+  }
 }
 
 export interface BuyersDashboardData {
   registered: boolean
   integration: BuyersIntegration | null
+  integrations?: BuyersIntegration[]
   farmer?: Record<string, any>
   defaults: BuyersRegistrationDefaults
   bookings: MarketplaceBooking[]

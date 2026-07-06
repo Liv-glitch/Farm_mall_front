@@ -1,7 +1,7 @@
 import { addDays, differenceInDays, format, isSameDay, startOfDay } from "date-fns"
 import type { Activity, ActivityInput, ActivityPrefill, ProductionCycle } from "@/lib/types/production"
 
-export const MARKETPLACE_BASE_URL = "https://farmflow-platform.onrender.com/marketplace"
+export const MARKETPLACE_BASE_URL = "https://inputs.farmmall.co.ke/marketplace"
 
 export interface ProductionCalendarItem {
   id: string

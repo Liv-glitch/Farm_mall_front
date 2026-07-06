@@ -435,6 +435,7 @@ class ApiClient {
       url: "/buyers/register",
       data: {
         ...data,
+        production_cycle_id: data.production_cycle_id || undefined,
         acreage_planted: Number(data.acreage_planted),
       },
     })
@@ -448,14 +449,14 @@ class ApiClient {
     })
   }
 
-  async decideBuyerBooking(bookingRef: string, decision: MarketplaceDecision): Promise<{
+  async decideBuyerBooking(bookingRef: string, decision: MarketplaceDecision, farmerId?: string): Promise<{
     marketplace: any
     bookings: MarketplaceBooking[]
   }> {
     return this.request({
       method: "POST",
       url: `/buyers/bookings/${bookingRef}/decision`,
-      data: { decision },
+      data: { decision, farmer_id: farmerId },
     })
   }
 
