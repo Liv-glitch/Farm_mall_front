@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  /* Scales all rem-based Tailwind utilities (text, spacing, sizing, radii)
+     down uniformly, similar to viewing the app at ~90% browser zoom. */
+  font-size: 87.5%;
+}
+
 html,
 body {
   max-width: 100%;

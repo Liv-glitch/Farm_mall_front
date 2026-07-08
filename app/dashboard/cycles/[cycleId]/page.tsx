@@ -17,6 +17,9 @@ import {
   ReceiptText,
   ExternalLink,
   ShoppingBag,
+  Lightbulb,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import type { Activity, ProductionCycle } from "@/lib/types/production"
@@ -40,6 +43,7 @@ export default function CycleDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showMarketModal, setShowMarketModal] = useState(false)
   const [buyersDashboard, setBuyersDashboard] = useState<BuyersDashboardData | null>(null)
+  const [showAgronomyTip, setShowAgronomyTip] = useState(false)
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -138,13 +142,7 @@ export default function CycleDetailPage() {
     return differenceInDays(harvestDate, new Date())
   }
 
-  const toNumber = (value: number | string | null | undefined) => {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
   const progress = calculateProgress()
-  const actualYield = toNumber(cycle.actualYield)
   const completedActivities = activities.filter((activity) => activity.status === "completed").length
   const totalActivities = activities.length
   const locationParts = [cycle.farmLocationName, cycle.farmSubcounty, cycle.farmCounty]
@@ -164,6 +162,11 @@ export default function CycleDetailPage() {
     return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
   const nextCalendarItem = getNextCalendarItem(cycle, activities)
+  const varietySummary = [cycle.cropVariety?.name, displayCounty, `${cycle.landSizeAcres} acres`]
+    .map((part) => (typeof part === "string" ? part.trim() : part))
+    .filter(Boolean)
+    .join(", ")
+  const agronomyTip = nextCalendarItem?.advice
   const buyerIntegrations = buyersDashboard?.integrations || (buyersDashboard?.integration ? [buyersDashboard.integration] : [])
   const cycleListed = buyerIntegrations.some((integration) => integration.productionCycleId === cycle.id)
   const buyerDefaults = buildBuyersDefaultsFromCycle(
@@ -254,11 +257,16 @@ export default function CycleDetailPage() {
             </div>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 space-y-4 lg:max-w-2xl xl:max-w-3xl">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Sprout className="h-6 w-6 flex-shrink-0 text-primary-100" />
-                  <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
-                    {cycle.cropVariety?.name || "Unknown Variety"}
-                  </h1>
+                <div className="flex min-w-0 items-start gap-2">
+                  <Sprout className="mt-1 h-6 w-6 flex-shrink-0 text-primary-100" />
+                  <div className="min-w-0">
+                    <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
+                      {cycle.cropVariety?.name || "Unknown Variety"}
+                    </h1>
+                    {varietySummary && (
+                      <p className="mt-1 truncate text-sm font-medium text-primary-100">{varietySummary}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                   {nextCalendarItem ? (
@@ -308,27 +316,29 @@ export default function CycleDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[420px] xl:min-w-[480px]">
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">Crop Variety</div>
-                  <div className="mt-1 truncate text-sm font-bold">{cycle.cropVariety?.name || "Not set"}</div>
+              <div className="rounded-lg border border-white/15 bg-white/10 p-4 lg:min-w-[320px] xl:min-w-[360px]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
+                    <span className="text-xs font-bold uppercase text-primary-100">Agronomy Tip</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAgronomyTip((prev) => !prev)}
+                    aria-expanded={showAgronomyTip}
+                    className="flex items-center gap-1 text-xs font-bold text-maize-300 hover:text-maize-200 md:hidden"
+                  >
+                    {showAgronomyTip ? "Hide" : "Show"}
+                    {showAgronomyTip ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">County</div>
-                  <div className="mt-1 truncate text-sm font-bold">{displayCounty}</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">Land Size</div>
-                  <div className="mt-1 text-sm font-bold">{cycle.landSizeAcres} acres</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">Total Investment</div>
-                  <div className="mt-1 text-sm font-bold">{formatCurrency(totalCost) || "Not added"}</div>
-                </div>
-                <div className="rounded-lg bg-white/10 p-3">
-                  <div className="text-xs text-primary-100">Actual Yield</div>
-                  <div className="mt-1 text-sm font-bold">{actualYield != null ? `${actualYield.toLocaleString()} kg` : "Not recorded"}</div>
-                </div>
+                <p
+                  className={`mt-2 text-sm leading-relaxed text-primary-50 md:block ${
+                    showAgronomyTip ? "block" : "hidden"
+                  }`}
+                >
+                  {agronomyTip || "No agronomy tips available right now."}
+                </p>
               </div>
             </div>
           </CardContent>
