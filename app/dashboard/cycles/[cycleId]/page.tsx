@@ -4,12 +4,9 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
   ArrowLeft,
-  Calendar,
-  Sprout,
   Edit,
   ActivityIcon,
   Bell,
@@ -21,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
-import { format, differenceInDays } from "date-fns"
+import { differenceInDays } from "date-fns"
 import type { Activity, ProductionCycle } from "@/lib/types/production"
 import type { BuyersDashboardData } from "@/lib/types/buyers"
 import { ActivityList } from "@/components/cycles/activity-list"
@@ -113,19 +110,6 @@ export default function CycleDetailPage() {
     )
   }
 
-  const getStatusColor = (status: ProductionCycle["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-primary-100 text-primary-800"
-      case "harvested":
-        return "bg-amber-100 text-amber-800"
-      case "archived":
-        return "bg-muted text-muted-foreground"
-      default:
-        return "bg-muted text-muted-foreground"
-    }
-  }
-
   const calculateProgress = () => {
     if (!cycle.plantingDate || !cycle.estimatedHarvestDate) return 0
     const plantingDate = new Date(cycle.plantingDate)
@@ -134,12 +118,6 @@ export default function CycleDetailPage() {
     if (totalDays <= 0) return 0
     const daysPassed = differenceInDays(new Date(), plantingDate)
     return Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100)
-  }
-
-  const getDaysRemaining = () => {
-    if (!cycle.estimatedHarvestDate) return null
-    const harvestDate = cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate) : new Date(cycle.estimatedHarvestDate)
-    return differenceInDays(harvestDate, new Date())
   }
 
   const progress = calculateProgress()
@@ -229,10 +207,7 @@ export default function CycleDetailPage() {
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
           <CardContent className="p-5 sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
-                {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-              </Badge>
+            <div className="mb-3 flex items-center justify-end gap-3">
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -257,17 +232,11 @@ export default function CycleDetailPage() {
             </div>
             <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
               <div className="min-w-0 space-y-4">
-                <div className="flex min-w-0 items-start gap-2">
-                  <Sprout className="mt-1 h-6 w-6 flex-shrink-0 text-primary-100" />
-                  <div className="min-w-0">
-                    <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
-                      {cycle.cropVariety?.name || "Unknown Variety"}
-                    </h1>
-                    {varietySummary && (
-                      <p className="mt-1 text-sm font-medium text-primary-100">{varietySummary}</p>
-                    )}
-                  </div>
-                </div>
+                {varietySummary && (
+                  <p className="text-base font-extrabold leading-snug text-primary-50 sm:text-lg">
+                    {varietySummary}
+                  </p>
+                )}
                 <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                   {nextCalendarItem ? (
                     <div className="space-y-3">
