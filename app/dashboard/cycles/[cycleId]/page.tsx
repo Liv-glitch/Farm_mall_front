@@ -255,8 +255,8 @@ export default function CycleDetailPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0 space-y-4 lg:max-w-2xl xl:max-w-3xl">
+            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+              <div className="min-w-0 space-y-4">
                 <div className="flex min-w-0 items-start gap-2">
                   <Sprout className="mt-1 h-6 w-6 flex-shrink-0 text-primary-100" />
                   <div className="min-w-0">
@@ -264,7 +264,7 @@ export default function CycleDetailPage() {
                       {cycle.cropVariety?.name || "Unknown Variety"}
                     </h1>
                     {varietySummary && (
-                      <p className="mt-1 truncate text-sm font-medium text-primary-100">{varietySummary}</p>
+                      <p className="mt-1 text-sm font-medium text-primary-100">{varietySummary}</p>
                     )}
                   </div>
                 </div>
@@ -275,25 +275,23 @@ export default function CycleDetailPage() {
                         <Bell className="mt-0.5 h-5 w-5 shrink-0 text-primary-100" />
                         <div className="min-w-0">
                           <div className="text-xs font-bold uppercase text-primary-100">Next activity reminder</div>
-                          <div className="mt-1 grid gap-3">
-                            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)] md:items-start">
-                              <div>
-                                <div className="text-xs text-primary-100">Activity name</div>
-                                <h2 className="text-lg font-extrabold text-white">{nextCalendarItem.name}</h2>
-                              </div>
-                              <div>
-                                <div className="text-xs text-primary-100">Likely inputs</div>
-                                <div className="mt-1 flex flex-wrap gap-2">
-                                  {nextCalendarItem.inputs.map((item) => (
-                                    <span key={item.name} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-primary-50">
-                                      {item.name}
-                                    </span>
-                                  ))}
-                                </div>
+                          <div className="mt-1 space-y-3">
+                            <div>
+                              <div className="text-xs text-primary-100">Activity name</div>
+                              <h2 className="text-lg font-extrabold text-white">{nextCalendarItem.name}</h2>
+                            </div>
+                            <div>
+                              <div className="text-xs text-primary-100">Likely inputs</div>
+                              <div className="mt-1 flex flex-wrap gap-2">
+                                {nextCalendarItem.inputs.map((item) => (
+                                  <span key={item.name} className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-primary-50">
+                                    {item.name}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                             <div>
-                              <Button asChild type="button" className="mt-1 w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md">
+                              <Button asChild type="button" className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md">
                                 <a href={getMarketplaceUrl(nextCalendarItem)} target="_blank" rel="noreferrer">
                                   Access Inputs Here
                                   <ExternalLink className="ml-2 h-4 w-4" />
@@ -316,7 +314,7 @@ export default function CycleDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/15 bg-white/10 p-4 lg:min-w-[320px] xl:min-w-[360px]">
+              <div className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
