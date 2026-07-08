@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
   ArrowLeft,
+  Sprout,
   Edit,
   ActivityIcon,
   Bell,
@@ -207,8 +208,16 @@ export default function CycleDetailPage() {
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
           <CardContent className="p-5 sm:p-6">
-            <div className="mb-3 flex items-center justify-end gap-3">
-              <div className="flex items-center gap-2">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {varietySummary && (
+                <div className="flex min-w-0 items-center gap-2">
+                  <Sprout className="h-5 w-5 shrink-0 text-primary-100" />
+                  <p className="min-w-0 text-base font-extrabold leading-snug text-primary-50 sm:text-lg">
+                    {varietySummary}
+                  </p>
+                </div>
+              )}
+              <div className="flex shrink-0 items-center gap-2">
                 <Button
                   type="button"
                   className="bg-maize-500 text-primary-950 hover:bg-maize-400"
@@ -232,11 +241,6 @@ export default function CycleDetailPage() {
             </div>
             <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
               <div className="min-w-0 space-y-4">
-                {varietySummary && (
-                  <p className="text-base font-extrabold leading-snug text-primary-50 sm:text-lg">
-                    {varietySummary}
-                  </p>
-                )}
                 <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                   {nextCalendarItem ? (
                     <div className="space-y-3">
