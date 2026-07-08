@@ -29,7 +29,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
-import { getMarketplaceUrl, getNextCalendarItem } from "@/lib/production/activity-calendar"
+import { getCurrentCropStage, getMarketplaceUrl, getNextCalendarItem } from "@/lib/production/activity-calendar"
 
 export default function CycleDetailPage() {
   const params = useParams()
@@ -141,6 +141,7 @@ export default function CycleDetailPage() {
     return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
   const nextCalendarItem = getNextCalendarItem(cycle, activities)
+  const currentCropStage = getCurrentCropStage(cycle)
   const varietySummary = [cycle.cropVariety?.name, displayCounty, `${cycle.landSizeAcres} acres`]
     .map((part) => (typeof part === "string" ? part.trim() : part))
     .filter(Boolean)
@@ -240,6 +241,34 @@ export default function CycleDetailPage() {
               </div>
             </div>
             <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+              <div className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
+                    <span className="text-xs font-bold uppercase text-primary-100">Agronomy Tip</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAgronomyTip((prev) => !prev)}
+                    aria-expanded={showAgronomyTip}
+                    className="flex items-center gap-1 text-xs font-bold text-maize-300 hover:text-maize-200 md:hidden"
+                  >
+                    {showAgronomyTip ? "Hide" : "Show"}
+                    {showAgronomyTip ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <p
+                  className={`mt-2 text-sm leading-relaxed text-primary-50 md:block ${
+                    showAgronomyTip ? "block" : "hidden"
+                  }`}
+                >
+                  <span className="block font-bold text-white">Crop stage: {currentCropStage}</span>
+                  <span className="mt-2 block">
+                    {agronomyTip || "No agronomy tips available right now."}
+                  </span>
+                </p>
+              </div>
+
               <div className="min-w-0 space-y-4">
                 <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                   {nextCalendarItem ? (
@@ -285,31 +314,6 @@ export default function CycleDetailPage() {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
-                    <span className="text-xs font-bold uppercase text-primary-100">Agronomy Tip</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAgronomyTip((prev) => !prev)}
-                    aria-expanded={showAgronomyTip}
-                    className="flex items-center gap-1 text-xs font-bold text-maize-300 hover:text-maize-200 md:hidden"
-                  >
-                    {showAgronomyTip ? "Hide" : "Show"}
-                    {showAgronomyTip ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                <p
-                  className={`mt-2 text-sm leading-relaxed text-primary-50 md:block ${
-                    showAgronomyTip ? "block" : "hidden"
-                  }`}
-                >
-                  {agronomyTip || "No agronomy tips available right now."}
-                </p>
               </div>
             </div>
           </CardContent>
