@@ -29,6 +29,52 @@ export interface CostCalculationRequest {
     county: string | undefined
     subCounty: string | undefined
   }
+  selectedInputs?: Partial<Record<CalculatorInputCategory, CalculatorSelectedInput>>
+}
+
+export type CalculatorInputCategory = "seeds" | "fertilizer" | "pesticides"
+
+export interface CalculatorSelectedInput {
+  listingId: string
+  name: string
+  price: number
+  unit?: string | null
+  sellerName?: string | null
+}
+
+export interface CalculatorInputPriceSource extends CalculatorSelectedInput {
+  category: CalculatorInputCategory
+  appliedCost: number
+}
+
+export interface InputsMarketplaceListingCard {
+  id: string
+  category: CalculatorInputCategory
+  name: string
+  description?: string | null
+  price: number
+  unit?: string | null
+  imageUrl?: string | null
+  quantity?: number | null
+  inStock: boolean
+  soldOut: boolean
+  sellerName?: string | null
+  sellerCounty?: string | null
+  sellerLocation?: string | null
+  marketplaceUrl: string
+}
+
+export interface InputsMarketplaceListingsResponse {
+  listings: Record<CalculatorInputCategory, InputsMarketplaceListingCard[]>
+  filters: {
+    cropVarietyName?: string
+    cropType?: string
+    county?: string
+    landSizeAcres?: number
+    seedSize?: 1 | 2
+  }
+  source: "marketplace" | "unavailable"
+  message?: string
 }
 
 export interface CostCalculationResponse {
@@ -37,7 +83,8 @@ export interface CostCalculationResponse {
   landSizeAcres: number
   seedSize: number
   seedRequirement: {
-    bagsNeeded: number
+    bags?: number
+    bagsNeeded?: number
     totalCost: number
   }
   estimatedTotalCost: number
@@ -48,6 +95,7 @@ export interface CostCalculationResponse {
     pesticides: number
     other: number
   }
+  marketplacePriceSources?: Partial<Record<CalculatorInputCategory, CalculatorInputPriceSource>>
   recommendations: string[]
 }
 

@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type AxiosError } from "axios"
 import { config } from "@/lib/config"
 import type { User, LoginRequest, RegisterRequest, CollaboratorRole } from "@/lib/types/auth"
+import type { InputsMarketplaceListingsResponse } from "@/lib/types/calculator"
 import type { Event, EventFormData } from "@/lib/types/event"
 import type { CropVariety, ProductionCycleReportDetail, ProductionCycleReportSummary } from "@/lib/types/production"
 import type { BuyersDashboardData, BuyersRegistrationForm, MarketplaceBooking, MarketplaceDecision } from "@/lib/types/buyers"
@@ -562,6 +563,33 @@ class ApiClient {
       url: "/calculator/cost-estimate",
       data,
     })
+  }
+
+  async getInputPrices(params: {
+    cropVarietyId?: string
+    cropType?: string
+    county?: string
+    landSizeAcres?: number
+    seedSize?: 1 | 2
+  }): Promise<InputsMarketplaceListingsResponse> {
+    const response = await this.request({
+      method: "GET",
+      url: "/calculator/input-prices",
+      params,
+    }) as any
+
+    return response?.data || response
+  }
+
+  async createMarketplaceSsoUrl(redirect = "/marketplace"): Promise<string> {
+    const response = await this.request({
+      method: "POST",
+      url: "/sso/codes",
+      data: { redirect },
+    }) as any
+
+    const data = response?.data || response
+    return data?.url
   }
 
   async getHarvestPrediction(data: any) {

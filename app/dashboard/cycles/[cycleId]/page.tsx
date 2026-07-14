@@ -43,6 +43,37 @@ export default function CycleDetailPage() {
   const [buyersDashboard, setBuyersDashboard] = useState<BuyersDashboardData | null>(null)
   const [showAgronomyTip, setShowAgronomyTip] = useState(false)
 
+  const openMarketplaceLink = async (href: string) => {
+    const popup = window.open("about:blank", "_blank")
+    let redirect = "/marketplace"
+
+    try {
+      const url = new URL(href)
+      redirect = `${url.pathname}${url.search}${url.hash}` || "/marketplace"
+    } catch {
+      redirect = "/marketplace"
+    }
+
+    try {
+      const ssoUrl = await apiClient.createMarketplaceSsoUrl(redirect)
+      if (popup) {
+        popup.location.href = ssoUrl
+      } else {
+        window.open(ssoUrl, "_blank", "noopener,noreferrer")
+      }
+    } catch (error: any) {
+      if (popup) {
+        popup.location.href = href
+      } else {
+        window.open(href, "_blank", "noopener,noreferrer")
+      }
+      toast({
+        title: "Opening marketplace",
+        description: error?.message || "Single sign-on was unavailable, so the marketplace opened normally.",
+      })
+    }
+  }
+
   useEffect(() => {
     async function fetchCycleAndActivities() {
       setLoading(true)
@@ -293,11 +324,13 @@ export default function CycleDetailPage() {
                               </div>
                             </div>
                             <div>
-                              <Button asChild type="button" className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md">
-                                <a href={getMarketplaceUrl(nextCalendarItem)} target="_blank" rel="noreferrer">
-                                  Access Inputs Here
-                                  <ExternalLink className="ml-2 h-4 w-4" />
-                                </a>
+                              <Button
+                                type="button"
+                                onClick={() => openMarketplaceLink(getMarketplaceUrl(nextCalendarItem))}
+                                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md"
+                              >
+                                Access Inputs Here
+                                <ExternalLink className="ml-2 h-4 w-4" />
                               </Button>
                             </div>
                           </div>

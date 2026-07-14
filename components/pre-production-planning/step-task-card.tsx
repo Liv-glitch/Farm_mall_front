@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { CheckCircle2, Circle, ExternalLink, Info, Loader2, CalendarCheck, Coins, Truck, ListChecks } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
+import { useAuth } from "@/lib/hooks/use-auth"
 import type { PreproductionPlan, PreproductionTask } from "@/lib/types/preproduction"
 
 interface StepTaskCardProps {
@@ -17,6 +18,7 @@ interface StepTaskCardProps {
 
 export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ date_completed: "", cost: "", supplier: "" })
@@ -78,6 +80,40 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleMarketplaceLink = async (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    let url: URL
+    try {
+      url = new URL(href)
+    } catch {
+      return
+    }
+
+    if (url.hostname !== "inputs.farmmall.co.ke" || !user) return
+
+    event.preventDefault()
+    const popup = window.open("about:blank", "_blank")
+    const redirect = `${url.pathname}${url.search}${url.hash}` || "/marketplace"
+
+    try {
+      const ssoUrl = await apiClient.createMarketplaceSsoUrl(redirect)
+      if (popup) {
+        popup.location.href = ssoUrl
+      } else {
+        window.open(ssoUrl, "_blank", "noopener,noreferrer")
+      }
+    } catch (error: any) {
+      if (popup) {
+        popup.location.href = href
+      } else {
+        window.open(href, "_blank", "noopener,noreferrer")
+      }
+      toast({
+        title: "Opening marketplace",
+        description: error?.message || "Single sign-on was unavailable, so the marketplace opened normally.",
+      })
     }
   }
 
@@ -147,6 +183,7 @@ export function StepTaskCard({ task, onUpdated }: StepTaskCardProps) {
                   <a
                     key={`${task.id}-${link.href}-${link.label}`}
                     href={link.href}
+                    onClick={(event) => handleMarketplaceLink(event, link.href)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex w-fit items-center gap-1 rounded-full bg-primary-50 px-3 py-1.5 text-agri-700 hover:bg-primary-100 hover:text-agri-900"

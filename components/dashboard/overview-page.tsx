@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiClient } from "@/lib/api/client"
 import type { Activity as CycleActivity, ProductionCycle } from "@/lib/types/production"
 import { useAuth } from "@/lib/hooks/use-auth"
+import { useToast } from "@/components/ui/use-toast"
 import { getWeatherRecommendation } from "@/lib/weather/recommendation"
 import { getNextCalendarItem, getNextCalendarItemAfter, type ProductionCalendarItem } from "@/lib/production/activity-calendar"
 
@@ -130,7 +131,8 @@ function getCycleLocationName(cycle?: ProductionCycle | null) {
 }
 
 export function OverviewPage() {
-  const { farm, loading } = useAuth()
+  const { farm, loading, user } = useAuth()
+  const { toast } = useToast()
   const [weather, setWeather] = useState<CurrentWeather | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [weatherError, setWeatherError] = useState<string | null>(null)
@@ -158,6 +160,35 @@ export function OverviewPage() {
   const hasCoordinates = Number.isFinite(weatherLat) && Number.isFinite(weatherLng)
   const hasLocation = hasCoordinates || !!weatherLocation
   const selectedCycleActivities = getCycleActivities(selectedCycle)
+
+  const openInputsMarketplace = async () => {
+    const fallbackUrl = "https://inputs.farmmall.co.ke/marketplace"
+
+    if (!user) {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer")
+      return
+    }
+
+    const popup = window.open("about:blank", "_blank")
+    try {
+      const url = await apiClient.createMarketplaceSsoUrl("/marketplace")
+      if (popup) {
+        popup.location.href = url
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer")
+      }
+    } catch (error: any) {
+      if (popup) {
+        popup.location.href = fallbackUrl
+      } else {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer")
+      }
+      toast({
+        title: "Opening marketplace",
+        description: error?.message || "Single sign-on was unavailable, so the marketplace opened normally.",
+      })
+    }
+  }
 
   useEffect(() => {
     if (loading) return
@@ -363,7 +394,7 @@ export function OverviewPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <Button
                 type="button"
-                onClick={() => window.open("https://inputs.farmmall.co.ke/", "_blank")}
+                onClick={openInputsMarketplace}
                 className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400"
               >
                 <Search className="mr-2 h-4 w-4" />
