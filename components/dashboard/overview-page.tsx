@@ -87,6 +87,12 @@ function formatActivityLabel(activity?: CycleActivity | ProductionCalendarItem |
   return [label, date].filter(Boolean).join(" · ")
 }
 
+function toValidCoordinate(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") return null
+  const coordinate = Number(value)
+  return Number.isFinite(coordinate) ? coordinate : null
+}
+
 function getCycleActivities(cycle?: ProductionCycle | null) {
   const activities = cycle?.activities || []
   const now = new Date().getTime()
@@ -144,10 +150,10 @@ export function OverviewPage() {
   const locatedCycles = useMemo(
     () =>
       cycles.filter((cycle) => {
-        const lat = Number(cycle.farmLocationLat)
-        const lng = Number(cycle.farmLocationLng)
+        const lat = toValidCoordinate(cycle.farmLocationLat)
+        const lng = toValidCoordinate(cycle.farmLocationLng)
         const canShow = cycle.status !== "harvested" && cycle.status !== "archived"
-        return canShow && (!!cycle.farmLocation?.trim() || (Number.isFinite(lat) && Number.isFinite(lng)))
+        return canShow && (!!cycle.farmLocation?.trim() || (lat !== null && lng !== null))
       }),
     [cycles]
   )
@@ -155,9 +161,9 @@ export function OverviewPage() {
   const weatherUsesCycle = !!selectedCycle
   const selectedCycleLocationName = getCycleLocationName(selectedCycle)
   const weatherLocation = weatherUsesCycle ? selectedCycleLocationName : farmLocation
-  const weatherLat = weatherUsesCycle ? Number(selectedCycle.farmLocationLat) : farm?.locationLat
-  const weatherLng = weatherUsesCycle ? Number(selectedCycle.farmLocationLng) : farm?.locationLng
-  const hasCoordinates = Number.isFinite(weatherLat) && Number.isFinite(weatherLng)
+  const weatherLat = weatherUsesCycle ? toValidCoordinate(selectedCycle.farmLocationLat) : toValidCoordinate(farm?.locationLat)
+  const weatherLng = weatherUsesCycle ? toValidCoordinate(selectedCycle.farmLocationLng) : toValidCoordinate(farm?.locationLng)
+  const hasCoordinates = weatherLat !== null && weatherLng !== null
   const hasLocation = hasCoordinates || !!weatherLocation
   const selectedCycleActivities = getCycleActivities(selectedCycle)
 
