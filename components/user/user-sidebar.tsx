@@ -22,6 +22,7 @@ import {
   User,
   Sprout,
   CalendarDays,
+  ShoppingBag,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -67,6 +68,11 @@ const menuItems = [
 
 const toolsItems = [
   {
+    title: "Buyers",
+    url: "/dashboard/buyers",
+    icon: ShoppingBag,
+  },
+  {
     title: "Profile",
     url: "/dashboard/profile",
     icon: User,
@@ -94,7 +100,10 @@ export function UserSidebar() {
       return pathname?.startsWith("/dashboard/events") === true
     }
     if (url === "/dashboard/profile") {
-      return pathname?.startsWith("/dashboard/profile") === true || pathname?.startsWith("/dashboard/buyers") === true
+      return pathname?.startsWith("/dashboard/profile") === true
+    }
+    if (url === "/dashboard/buyers") {
+      return pathname?.startsWith("/dashboard/buyers") === true
     }
     return pathname === url
   }
