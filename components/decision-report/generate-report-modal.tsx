@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -12,7 +12,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Select,
   SelectContent,
@@ -20,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, MapPin, CalendarDays, Droplets, Sprout, Target, AlertCircle } from "lucide-react"
+import { AlertCircle, CalendarDays, ChevronDown, Droplets, Loader2, MapPin, Sprout, Target } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import { KENYAN_COUNTIES } from "@/lib/data/kenyan-counties"
@@ -86,6 +91,23 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
   const [optionsLoading, setOptionsLoading] = useState(false)
   const [optionsError, setOptionsError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const selectedVarieties = useMemo(
+    () =>
+      form.cropVarietyIds
+        .map((id) => varieties.find((variety) => variety.id === id))
+        .filter((variety): variety is DecisionReportFormOptionVariety => Boolean(variety)),
+    [form.cropVarietyIds, varieties]
+  )
+
+  const varietyDropdownLabel = useMemo(() => {
+    if (selectedVarieties.length === 0) return "Select varieties"
+
+    const selectedNames = selectedVarieties.map((variety) => variety.name).join(", ")
+    if (selectedNames.length <= 34) return selectedNames
+
+    return `${selectedVarieties.length} variet${selectedVarieties.length === 1 ? "y" : "ies"} selected`
+  }, [selectedVarieties])
 
   useEffect(() => {
     if (!isOpen) return
@@ -219,7 +241,7 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
           <DialogTitle>Generate Decision Report</DialogTitle>
           <DialogDescription>
             Tell us about your field and we&apos;ll run a full season forecast — suitability, planting
-            window, disease risk, yield, variety ranking, prices and profitability.
+            window, disease risk, yield, variety ranking and prices.
           </DialogDescription>
         </DialogHeader>
 
@@ -380,23 +402,43 @@ export function GenerateReportModal({ isOpen, onClose }: GenerateReportModalProp
               {varieties.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No potato varieties available right now.</p>
               ) : (
-                <div className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border p-3 sm:grid-cols-2">
-                  {varieties.map((variety) => {
-                    const checked = form.cropVarietyIds.includes(variety.id)
-                    return (
-                      <div key={variety.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`report-variety-${variety.id}`}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      id="report-varieties"
+                      type="button"
+                      variant="outline"
+                      className="h-10 w-full justify-between px-3 text-left font-normal"
+                    >
+                      <span
+                        className={
+                          selectedVarieties.length === 0 ? "text-muted-foreground" : "min-w-0 flex-1 truncate"
+                        }
+                      >
+                        {varietyDropdownLabel}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="max-h-64 w-[--radix-dropdown-menu-trigger-width] overflow-y-auto"
+                  >
+                    {varieties.map((variety) => {
+                      const checked = form.cropVarietyIds.includes(variety.id)
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={variety.id}
                           checked={checked}
                           onCheckedChange={() => toggleVariety(variety.id)}
-                        />
-                        <Label htmlFor={`report-variety-${variety.id}`} className="cursor-pointer text-sm font-normal">
+                          onSelect={(event) => event.preventDefault()}
+                        >
                           {variety.name}
-                        </Label>
-                      </div>
-                    )
-                  })}
-                </div>
+                        </DropdownMenuCheckboxItem>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
 
