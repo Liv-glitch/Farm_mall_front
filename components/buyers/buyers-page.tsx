@@ -555,12 +555,12 @@ export function BuyersRegistrationModal({
             <Alert className="border-emerald-100 bg-emerald-50 text-emerald-900">
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>Registration submitted</AlertTitle>
-              <AlertDescription>Your marketplace listing is awaiting approval. You can manage all listings from your profile page.</AlertDescription>
+              <AlertDescription>Your marketplace listing is awaiting approval. You can manage all listings from the Buyers page.</AlertDescription>
             </Alert>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={close}>Close</Button>
               <Button asChild className="bg-agri-700 hover:bg-agri-800">
-                <Link href="/dashboard/profile">View Buyers Dashboard</Link>
+                <Link href="/dashboard/buyers">View Buyers Dashboard</Link>
               </Button>
             </div>
           </div>

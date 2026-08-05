@@ -4,11 +4,9 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
   ArrowLeft,
-  Calendar,
   Sprout,
   Edit,
   ActivityIcon,
@@ -21,7 +19,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
-import { format, differenceInDays } from "date-fns"
+import { differenceInDays } from "date-fns"
 import type { Activity, ProductionCycle } from "@/lib/types/production"
 import type { BuyersDashboardData } from "@/lib/types/buyers"
 import { ActivityList } from "@/components/cycles/activity-list"
@@ -31,7 +29,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { toast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
-import { getMarketplaceUrl, getNextCalendarItem } from "@/lib/production/activity-calendar"
+import { getCurrentCropStage, getMarketplaceUrl, getNextCalendarItem } from "@/lib/production/activity-calendar"
 
 export default function CycleDetailPage() {
   const params = useParams()
@@ -44,6 +42,37 @@ export default function CycleDetailPage() {
   const [showMarketModal, setShowMarketModal] = useState(false)
   const [buyersDashboard, setBuyersDashboard] = useState<BuyersDashboardData | null>(null)
   const [showAgronomyTip, setShowAgronomyTip] = useState(false)
+
+  const openMarketplaceLink = async (href: string) => {
+    const popup = window.open("about:blank", "_blank")
+    let redirect = "/marketplace"
+
+    try {
+      const url = new URL(href)
+      redirect = `${url.pathname}${url.search}${url.hash}` || "/marketplace"
+    } catch {
+      redirect = "/marketplace"
+    }
+
+    try {
+      const ssoUrl = await apiClient.createMarketplaceSsoUrl(redirect)
+      if (popup) {
+        popup.location.href = ssoUrl
+      } else {
+        window.open(ssoUrl, "_blank", "noopener,noreferrer")
+      }
+    } catch (error: any) {
+      if (popup) {
+        popup.location.href = href
+      } else {
+        window.open(href, "_blank", "noopener,noreferrer")
+      }
+      toast({
+        title: "Opening marketplace",
+        description: error?.message || "Single sign-on was unavailable, so the marketplace opened normally.",
+      })
+    }
+  }
 
   useEffect(() => {
     async function fetchCycleAndActivities() {
@@ -113,19 +142,6 @@ export default function CycleDetailPage() {
     )
   }
 
-  const getStatusColor = (status: ProductionCycle["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-primary-100 text-primary-800"
-      case "harvested":
-        return "bg-amber-100 text-amber-800"
-      case "archived":
-        return "bg-muted text-muted-foreground"
-      default:
-        return "bg-muted text-muted-foreground"
-    }
-  }
-
   const calculateProgress = () => {
     if (!cycle.plantingDate || !cycle.estimatedHarvestDate) return 0
     const plantingDate = new Date(cycle.plantingDate)
@@ -134,12 +150,6 @@ export default function CycleDetailPage() {
     if (totalDays <= 0) return 0
     const daysPassed = differenceInDays(new Date(), plantingDate)
     return Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100)
-  }
-
-  const getDaysRemaining = () => {
-    if (!cycle.estimatedHarvestDate) return null
-    const harvestDate = cycle.actualHarvestDate ? new Date(cycle.actualHarvestDate) : new Date(cycle.estimatedHarvestDate)
-    return differenceInDays(harvestDate, new Date())
   }
 
   const progress = calculateProgress()
@@ -162,6 +172,7 @@ export default function CycleDetailPage() {
     return sum + (Number.isFinite(parsed) ? parsed : 0)
   }, 0)
   const nextCalendarItem = getNextCalendarItem(cycle, activities)
+  const currentCropStage = getCurrentCropStage(cycle)
   const varietySummary = [cycle.cropVariety?.name, displayCounty, `${cycle.landSizeAcres} acres`]
     .map((part) => (typeof part === "string" ? part.trim() : part))
     .filter(Boolean)
@@ -229,11 +240,16 @@ export default function CycleDetailPage() {
 
         <Card className="overflow-hidden border-0 bg-primary-900 text-white shadow-card">
           <CardContent className="p-5 sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <Badge className={`${getStatusColor(cycle.status)} w-fit text-xs`}>
-                {cycle.status.charAt(0).toUpperCase() + cycle.status.slice(1)}
-              </Badge>
-              <div className="flex items-center gap-2">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {varietySummary && (
+                <div className="flex min-w-0 items-center gap-2">
+                  <Sprout className="h-5 w-5 shrink-0 text-primary-100" />
+                  <p className="min-w-0 text-base font-extrabold leading-snug text-primary-50 sm:text-lg">
+                    {varietySummary}
+                  </p>
+                </div>
+              )}
+              <div className="flex shrink-0 items-center gap-2">
                 <Button
                   type="button"
                   className="bg-maize-500 text-primary-950 hover:bg-maize-400"
@@ -256,18 +272,35 @@ export default function CycleDetailPage() {
               </div>
             </div>
             <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-              <div className="min-w-0 space-y-4">
-                <div className="flex min-w-0 items-start gap-2">
-                  <Sprout className="mt-1 h-6 w-6 flex-shrink-0 text-primary-100" />
-                  <div className="min-w-0">
-                    <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-4xl">
-                      {cycle.cropVariety?.name || "Unknown Variety"}
-                    </h1>
-                    {varietySummary && (
-                      <p className="mt-1 text-sm font-medium text-primary-100">{varietySummary}</p>
-                    )}
+              <div className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
+                    <span className="text-xs font-bold uppercase text-primary-100">Agronomy Tip</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAgronomyTip((prev) => !prev)}
+                    aria-expanded={showAgronomyTip}
+                    className="flex items-center gap-1 text-xs font-bold text-maize-300 hover:text-maize-200 md:hidden"
+                  >
+                    {showAgronomyTip ? "Hide" : "Show"}
+                    {showAgronomyTip ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
+                <p
+                  className={`mt-2 text-sm leading-relaxed text-primary-50 md:block ${
+                    showAgronomyTip ? "block" : "hidden"
+                  }`}
+                >
+                  <span className="block font-bold text-white">Crop stage: {currentCropStage}</span>
+                  <span className="mt-2 block">
+                    {agronomyTip || "No agronomy tips available right now."}
+                  </span>
+                </p>
+              </div>
+
+              <div className="min-w-0 space-y-4">
                 <div className="rounded-lg border border-white/15 bg-white/10 p-4">
                   {nextCalendarItem ? (
                     <div className="space-y-3">
@@ -291,11 +324,13 @@ export default function CycleDetailPage() {
                               </div>
                             </div>
                             <div>
-                              <Button asChild type="button" className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md">
-                                <a href={getMarketplaceUrl(nextCalendarItem)} target="_blank" rel="noreferrer">
-                                  Access Inputs Here
-                                  <ExternalLink className="ml-2 h-4 w-4" />
-                                </a>
+                              <Button
+                                type="button"
+                                onClick={() => openMarketplaceLink(getMarketplaceUrl(nextCalendarItem))}
+                                className="w-full bg-maize-500 text-primary-950 hover:bg-maize-400 sm:max-w-md"
+                              >
+                                Access Inputs Here
+                                <ExternalLink className="ml-2 h-4 w-4" />
                               </Button>
                             </div>
                           </div>
@@ -312,31 +347,6 @@ export default function CycleDetailPage() {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className="min-w-0 rounded-lg border border-white/15 bg-white/10 p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb className="h-5 w-5 shrink-0 text-maize-300" />
-                    <span className="text-xs font-bold uppercase text-primary-100">Agronomy Tip</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAgronomyTip((prev) => !prev)}
-                    aria-expanded={showAgronomyTip}
-                    className="flex items-center gap-1 text-xs font-bold text-maize-300 hover:text-maize-200 md:hidden"
-                  >
-                    {showAgronomyTip ? "Hide" : "Show"}
-                    {showAgronomyTip ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                <p
-                  className={`mt-2 text-sm leading-relaxed text-primary-50 md:block ${
-                    showAgronomyTip ? "block" : "hidden"
-                  }`}
-                >
-                  {agronomyTip || "No agronomy tips available right now."}
-                </p>
               </div>
             </div>
           </CardContent>

@@ -7,10 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calculator, TrendingUp, Loader2 } from "lucide-react"
+import { Calculator, TrendingUp, Loader2, PackageCheck } from "lucide-react"
 import { apiClient } from "@/lib/api/client"
 import { toast } from "@/components/ui/use-toast"
-import type { CostCalculationRequest, CostCalculationResponse } from "@/lib/types/calculator"
+import type {
+  CalculatorInputCategory,
+  CalculatorSelectedInput,
+  CostCalculationRequest,
+  CostCalculationResponse,
+  InputsMarketplaceListingCard,
+  InputsMarketplaceListingsResponse,
+} from "@/lib/types/calculator"
 import type { CropVariety, ProductionCycle } from "@/lib/types/production"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
 
@@ -30,7 +37,11 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   })
   const [result, setResult] = useState<CostCalculationResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingInputs, setLoadingInputs] = useState(false)
   const [loadingVarieties, setLoadingVarieties] = useState(true)
+  const [inputSelectionOpen, setInputSelectionOpen] = useState(false)
+  const [marketplaceInputs, setMarketplaceInputs] = useState<InputsMarketplaceListingsResponse | null>(null)
+  const [selectedInputs, setSelectedInputs] = useState<Partial<Record<CalculatorInputCategory, InputsMarketplaceListingCard>>>({})
 
   useEffect(() => {
     if (open) {
@@ -67,7 +78,7 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
     }
   }
 
-  const calculateCost = async () => {
+  const openInputSelection = async () => {
     if (!formData.cropVarietyId || !formData.landSizeAcres) {
       toast({
         title: "Missing Information",
@@ -77,18 +88,70 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
       return
     }
 
+    setLoadingInputs(true)
+    try {
+      const selectedVariety = cropVarieties.find((variety) => variety.id === formData.cropVarietyId)
+      const response = await apiClient.getInputPrices({
+        cropVarietyId: formData.cropVarietyId,
+        cropType: selectedVariety?.cropType,
+        county: selectedCycle?.farmCounty,
+        landSizeAcres: formData.landSizeAcres,
+        seedSize: formData.seedSize,
+      })
+      setMarketplaceInputs(response)
+      setSelectedInputs({})
+      setInputSelectionOpen(true)
+      if (response.source === "unavailable") {
+        toast({
+          title: "Live prices unavailable",
+          description: response.message || "You can continue with the default calculator prices.",
+        })
+      }
+    } catch (error: any) {
+      setMarketplaceInputs({
+        listings: { seeds: [], fertilizer: [], pesticides: [] },
+        filters: {},
+        source: "unavailable",
+        message: error.message || "Could not load live marketplace prices.",
+      })
+      setSelectedInputs({})
+      setInputSelectionOpen(true)
+      toast({
+        title: "Live prices unavailable",
+        description: "You can continue with the default calculator prices.",
+      })
+    } finally {
+      setLoadingInputs(false)
+    }
+  }
+
+  const calculateCost = async (inputs: Partial<Record<CalculatorInputCategory, InputsMarketplaceListingCard>> = selectedInputs) => {
     setLoading(true)
     try {
+      const selectedInputPayload = Object.entries(inputs).reduce((acc, [category, listing]) => {
+        if (!listing) return acc
+        acc[category as CalculatorInputCategory] = {
+          listingId: listing.id,
+          name: listing.name,
+          price: listing.price,
+          unit: listing.unit,
+          sellerName: listing.sellerName,
+        }
+        return acc
+      }, {} as Partial<Record<CalculatorInputCategory, CalculatorSelectedInput>>)
+
       const requestData = {
         cropVarietyId: formData.cropVarietyId,
         landSizeAcres: formData.landSizeAcres,
         seedSize: formData.seedSize,
+        selectedInputs: selectedInputPayload,
       }
       
       const response = await apiClient.getCostEstimate(requestData)
       // Handle wrapped API response
       const result = (response as any).data || response
       setResult(result as CostCalculationResponse)
+      setInputSelectionOpen(false)
       toast({
         title: "Calculation Complete",
         description: "Cost estimate has been calculated successfully",
@@ -112,6 +175,8 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
     })
     setSelectedCycleId("none")
     setResult(null)
+    setMarketplaceInputs(null)
+    setSelectedInputs({})
   }
 
   const handleCycleSelect = (cycleId: string) => {
@@ -133,8 +198,17 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
   }
 
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId)
+  const categoryLabels: Record<CalculatorInputCategory, string> = {
+    seeds: "Seeds",
+    fertilizer: "Fertilizer",
+    pesticides: "Pesticides",
+  }
+  const categoryOrder: CalculatorInputCategory[] = ["seeds", "fertilizer", "pesticides"]
+  const selectedVariety = cropVarieties.find((variety) => variety.id === formData.cropVarietyId)
+  const seedBags = result?.seedRequirement.bagsNeeded ?? result?.seedRequirement.bags ?? 0
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
@@ -251,17 +325,17 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                   </div>
 
                   <Button
-                    onClick={calculateCost}
+                    onClick={openInputSelection}
                     className="w-full h-12 bg-sage-700 hover:bg-sage-800"
-                    disabled={loading || !formData.cropVarietyId || !formData.landSizeAcres}
+                    disabled={loading || loadingInputs || !formData.cropVarietyId || !formData.landSizeAcres}
                   >
-                    {loading ? (
+                    {loadingInputs ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
+                        Finding live prices...
                       </>
                     ) : (
-                      "Calculate Costs"
+                      "Find Prices & Calculate"
                     )}
                   </Button>
 
@@ -301,7 +375,10 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
                       <span className="font-medium">Seeds</span>
                       <div className="text-right">
                         <div className="font-semibold">KSh {result.costBreakdown.seeds.toLocaleString()}</div>
-                        <div className="text-xs text-gray-500">{result.seedRequirement.bagsNeeded} bags</div>
+                        <div className="text-xs text-gray-500">{seedBags} bags</div>
+                        {result.marketplacePriceSources?.seeds && (
+                          <div className="text-xs text-sage-700">{result.marketplacePriceSources.seeds.name}</div>
+                        )}
                       </div>
                     </div>
 
@@ -312,12 +389,22 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
 
                     <div className="flex justify-between p-3 bg-sage-50 rounded-lg">
                       <span className="font-medium">Fertilizer</span>
-                      <div className="font-semibold">KSh {result.costBreakdown.fertilizer.toLocaleString()}</div>
+                      <div className="text-right">
+                        <div className="font-semibold">KSh {result.costBreakdown.fertilizer.toLocaleString()}</div>
+                        {result.marketplacePriceSources?.fertilizer && (
+                          <div className="text-xs text-sage-700">{result.marketplacePriceSources.fertilizer.name}</div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-between p-3 bg-warm-50 rounded-lg">
                       <span className="font-medium">Pesticides</span>
-                      <div className="font-semibold">KSh {result.costBreakdown.pesticides.toLocaleString()}</div>
+                      <div className="text-right">
+                        <div className="font-semibold">KSh {result.costBreakdown.pesticides.toLocaleString()}</div>
+                        {result.marketplacePriceSources?.pesticides && (
+                          <div className="text-xs text-sage-700">{result.marketplacePriceSources.pesticides.name}</div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
@@ -351,5 +438,118 @@ export function CostCalculatorModal({ open, onOpenChange }: CostCalculatorModalP
         </div>
       </DialogContent>
     </Dialog>
+    <Dialog open={inputSelectionOpen} onOpenChange={setInputSelectionOpen}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PackageCheck className="h-5 w-5 text-sage-700" />
+            Select marketplace inputs
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="rounded-lg border bg-sage-50 p-3 text-sm text-sage-900">
+          <div className="font-semibold">Filters</div>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sage-700">
+            <span>Variety: {selectedVariety?.name || marketplaceInputs?.filters.cropVarietyName || "Selected crop"}</span>
+            <span>Land: {formData.landSizeAcres} acres</span>
+            <span>Seed size: {formData.seedSize}</span>
+            <span>County: {selectedCycle?.farmCounty || marketplaceInputs?.filters.county || "All counties"}</span>
+          </div>
+          {marketplaceInputs?.message && <p className="mt-2 text-sage-700">{marketplaceInputs.message}</p>}
+        </div>
+
+        <div className="space-y-6">
+          {categoryOrder.map((category) => {
+            const listings = marketplaceInputs?.listings[category] || []
+            const selected = selectedInputs[category]
+
+            return (
+              <section key={category} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-950">{categoryLabels[category]}</h3>
+                    <p className="text-sm text-gray-500">
+                      {selected ? `Using ${selected.name}` : "Skip to use the calculator default."}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={selected ? "outline" : "secondary"}
+                    onClick={() => setSelectedInputs((prev) => {
+                      const next = { ...prev }
+                      delete next[category]
+                      return next
+                    })}
+                  >
+                    Use default
+                  </Button>
+                </div>
+
+                {listings.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {listings.map((listing) => {
+                      const active = selected?.id === listing.id
+                      return (
+                        <button
+                          key={listing.id}
+                          type="button"
+                          onClick={() => setSelectedInputs((prev) => ({ ...prev, [category]: listing }))}
+                          className={`rounded-lg border p-3 text-left transition ${
+                            active ? "border-sage-700 bg-sage-50 shadow-sm" : "border-gray-200 bg-white hover:border-sage-300"
+                          }`}
+                        >
+                          <div className="flex gap-3">
+                            {listing.imageUrl ? (
+                              <img src={listing.imageUrl} alt="" className="h-14 w-14 rounded-md object-cover" />
+                            ) : (
+                              <div className="flex h-14 w-14 items-center justify-center rounded-md bg-sage-100">
+                                <PackageCheck className="h-5 w-5 text-sage-700" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="line-clamp-2 font-semibold text-gray-950">{listing.name}</div>
+                              <div className="mt-1 text-sm font-semibold text-sage-700">
+                                KSh {listing.price.toLocaleString()} {listing.unit ? `/ ${listing.unit}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs text-gray-500">
+                            {[listing.sellerName, listing.sellerCounty].filter(Boolean).join(" • ") || "Marketplace seller"}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed p-4 text-sm text-gray-500">
+                    No live {categoryLabels[category].toLowerCase()} listings found for these filters.
+                  </div>
+                )}
+              </section>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => setInputSelectionOpen(false)} disabled={loading}>
+            Back
+          </Button>
+          <Button type="button" onClick={() => calculateCost({})} variant="secondary" disabled={loading}>
+            Use all defaults
+          </Button>
+          <Button type="button" onClick={() => calculateCost()} className="bg-sage-700 hover:bg-sage-800" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Calculating...
+              </>
+            ) : (
+              "Calculate costs"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
