@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Loader2, Plus, MapPin, CalendarDays, ListChecks, Calculator, Sprout, Trash2 } from "lucide-react"
+import { Loader2, Plus, MapPin, CalendarDays, ListChecks, Calculator, Sprout, Trash2, FileText } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { apiClient } from "@/lib/api/client"
 import type { PreproductionPlan } from "@/lib/types/preproduction"
 import { NewPlanModal } from "./new-plan-modal"
 import { DashboardCostCalculator } from "./dashboard-cost-calculator"
+import { GenerateReportModal } from "@/components/decision-report/generate-report-modal"
 
 const planCardPalette = [
   {
@@ -55,6 +56,7 @@ export function PreproductionPlanningPage() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
+  const [reportModalOpen, setReportModalOpen] = useState(false)
 
   const loadPlans = async () => {
     setLoading(true)
@@ -112,12 +114,17 @@ export function PreproductionPlanningPage() {
   return (
     <div className="page-shell">
       {/* Heading */}
-      <div>
-        <h1 className="page-title">Farm Preparations</h1>
-        <p className="page-subtitle">
-          A clear checklist of everything to do before planting day — from picking the field to placing the first
-          tuber in the ground.
-        </p>
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="page-title">Farm Preparations</h1>
+          <p className="page-subtitle">
+            A clear checklist of everything to do before planting day — from picking the field to placing the first
+            tuber in the ground.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => setReportModalOpen(true)} className="w-full shrink-0 sm:w-auto">
+          <FileText className="mr-1.5 h-4 w-4" /> Generate Decision Report
+        </Button>
       </div>
 
       <Tabs defaultValue="plans" className="w-full">
@@ -257,6 +264,7 @@ export function PreproductionPlanningPage() {
       </Tabs>
 
       <NewPlanModal isOpen={modalOpen} onClose={handleModalClose} />
+      <GenerateReportModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
     </div>
   )
 }

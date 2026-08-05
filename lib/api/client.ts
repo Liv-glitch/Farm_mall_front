@@ -5,6 +5,11 @@ import type { Event, EventFormData } from "@/lib/types/event"
 import type { CropVariety, ProductionCycleReportDetail, ProductionCycleReportSummary } from "@/lib/types/production"
 import type { BuyersDashboardData, BuyersRegistrationForm, MarketplaceBooking, MarketplaceDecision } from "@/lib/types/buyers"
 import { POTATO_VARIETIES } from "@/lib/data/potato-varieties"
+import type {
+  DecisionReportFormOptions,
+  DecisionReportGenerateResponse,
+  DecisionReportRequest,
+} from "@/lib/types/decision-report"
 
 const CROP_VARIETY_NUMBER_FIELDS = [
   "maturityPeriodDays",
@@ -579,6 +584,22 @@ class ApiClient {
     }) as any
 
     return normalizeCropVarietiesResponse(response)
+  }
+
+  // Farm decision report endpoints
+  async getDecisionReportFormOptions(): Promise<DecisionReportFormOptions> {
+    return this.request({
+      method: "GET",
+      url: "/decision-reports/form-options",
+    })
+  }
+
+  async generateDecisionReport(data: DecisionReportRequest): Promise<DecisionReportGenerateResponse> {
+    return this.request({
+      method: "POST",
+      url: "/decision-reports/generate",
+      data,
+    })
   }
 
   // Admin endpoints

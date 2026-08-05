@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/hooks/use-auth"
+import { DecisionReportProvider } from "@/lib/hooks/use-decision-report"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
 
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AuthProvider>
-            {children}
-            <Toaster />
+            <DecisionReportProvider>
+              {children}
+              <Toaster />
+            </DecisionReportProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
