@@ -1,6 +1,6 @@
 # FarmMall frontend
 
-FarmMall's frontend is a responsive Next.js application for Kenyan farmers to plan a season, track production, diagnose crop problems, estimate costs and yields, connect to markets, and review farm performance. It consumes the FarmMall REST API in `../Farm-Mall-back`.
+FarmMall's frontend is a responsive Next.js application. It consumes the FarmMall REST API.
 
 ## Features currently available
 
@@ -123,14 +123,10 @@ These are ordered by product priority and include incomplete UI behavior found i
 
 1. **Integrate the satellite monitoring system with this platform.** Add a cycle-level satellite view using saved farm boundaries, vegetation/health and moisture layers, imagery dates, trends, alerts, and links from both the dashboard and production-cycle detail page. The UI must handle farms without boundaries, cloud-obscured/missing imagery, stale data, and provider errors.
 2. **Build a complete admin dashboard.** Only `/admin` and `/admin/events` exist today. The sidebar links for users, analytics, content, database, security, and settings point to pages that have not been built. Replace the static overview with real metrics and implement user/role management, farm and cycle oversight, content/events, subscriptions, marketplace operations, audit logs, service health, and configuration screens backed by protected admin APIs.
-3. **Finish weather and agronomic recommendations.** The frontend shows current weather through OpenWeather, but forecast, historical trends, field-specific alerts, and the backend AI weather/soil recommendation endpoints are incomplete.
-4. **Make AI history and provider states consistent.** Complete persisted diagnosis statistics/history, remove overlapping legacy diagnosis paths, and show whether a result came from Gemini, Plant.id, Hugging Face, a fallback, or an unavailable provider.
-5. **Complete financial accuracy.** Ensure activity edits immediately recalculate cycle totals and all analytics/reports use the same cost, yield, price, and revenue definitions. Add clear empty/loading/error states when data is incomplete.
-6. **Add real subscription and payment flows.** Premium upgrades are simulated by the backend. Build verified M-Pesa/card checkout, pending/success/failure states, receipts, plan management, and entitlement-aware UI.
-7. **Finish notifications.** In-app preferences and delivery feedback are needed once WhatsApp, SMS, email, and push providers are implemented in the backend. The existing WhatsApp button is an external link, not platform notification delivery.
-8. **Harden marketplace workflows.** Improve unavailable-service, callback-delay, duplicate-action, and expired-SSO handling; make integration status and retry actions clear to the farmer.
-9. **Restore strict build quality.** `next.config.mjs` currently ignores TypeScript and ESLint failures during builds. Fix existing errors, stop suppressing them, add frontend unit/component/end-to-end tests, and run lint, type-check, tests, and production build in CI.
-10. **Remove legacy and duplicate UI paths.** Consolidate the legacy `/dashboard/farm-intelligence` route and duplicate calculator/modal implementations so there is one maintained workflow per feature.
+3. **Make AI history and provider states consistent.** Complete persisted diagnosis statistics/history, remove overlapping legacy diagnosis paths, and show whether a result came from Gemini, Plant.id, Hugging Face, a fallback, or an unavailable provider.
+4. **Harden marketplace workflows.** Improve unavailable-service, callback-delay, duplicate-action, and expired-SSO handling; make integration status and retry actions clear to the farmer.
+5. **Restore strict build quality.** `next.config.mjs` currently ignores TypeScript and ESLint failures during builds. Fix existing errors, stop suppressing them, add frontend unit/component/end-to-end tests, and run lint, type-check, tests, and production build in CI.
+6. **Remove legacy and duplicate UI paths.** Consolidate the legacy `/dashboard/farm-intelligence` route and duplicate calculator/modal implementations so there is one maintained workflow per feature.
 
 ## Deployment
 
